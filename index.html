@@ -11,6 +11,18 @@
   button { padding: 10px 14px; font-size: 16px; }
   .stat { margin-top: 8px; font-size: 14px; color: #333; }
   .feedback { height: 24px; margin-top: 8px; font-weight: 600; }
+
+  /* Piano UI */
+  .piano { position: relative; display: flex; gap: 2px; user-select: none; margin-top: 10px; }
+  .piano.disabled { pointer-events: none; opacity: 0.7; }
+  .key { position: relative; cursor: pointer; }
+  .key.white { width: 64px; height: 160px; background: #fff; border: 1px solid #ccc; box-shadow: inset 0 -2px 0 rgba(0,0,0,0.06); }
+  .key.black { position: absolute; left: 42px; top: 0; width: 36px; height: 100px; background: #111; border: 1px solid #000; z-index: 2; border-radius: 0 0 3px 3px; }
+  .key.black::after { content: ""; position: absolute; inset: 0; box-shadow: inset 0 -2px 0 rgba(255,255,255,0.06); }
+  .key.active { outline: 2px solid #3b82f6; }
+  .key.correct { box-shadow: 0 0 0 2px #16a34a inset; }
+  .key.wrong { box-shadow: 0 0 0 2px #dc2626 inset; }
+  .key.hint { box-shadow: 0 0 0 2px #f59e0b inset; }
 </style>
 </head>
 <body>
@@ -19,12 +31,7 @@
     <button id="start">Start / Next</button>
     <label><input type="checkbox" id="resolve" checked /> Resolve to C</label>
   </div>
-  <div class="row">
-    <button class="ans" data-degree="1">1 (Do)</button>
-    <button class="ans" data-degree="2">2 (Re)</button>
-    <button class="ans" data-degree="3">3 (Mi)</button>
-    <button class="ans" data-degree="4">4 (Fa)</button>
-  </div>
+  <div id="piano" class="piano" aria-label="Piano C4–C5"></div>
   <div class="feedback" id="feedback"></div>
   <div class="stat" id="stat">Attempts: 0 | Correct: 0 | Accuracy: 0%</div>
 
@@ -51,12 +58,12 @@
   const midiToFreq = (m) => 440 * Math.pow(2, (m - 69) / 12);
   const NOTES = {
     // Core octave center
-    C4: 60, D4: 62, E4: 64, F4: 65, G4: 67,
+    C4: 60, Cs4: 61, D4: 62, Ds4: 63, E4: 64, F4: 65, Fs4: 66, G4: 67, Gs4: 68, A4: 69, As4: 70, B4: 71, C5: 72,
     // Additional tones for simple triad voicings
-    A4: 69, B3: 59, C5: 72, G3: 55, B4: 71, D5: 74
+    B3: 59, G3: 55, D5: 74
   };
   const DEGREE_TO_MIDI = { 1: NOTES.C4, 2: NOTES.D4, 3: NOTES.E4, 4: NOTES.F4 };
-  const MIDI_TO_NAME = { 55: "G3", 59: "B3", 60: "C4", 62: "D4", 64: "E4", 65: "F4", 67: "G4", 69: "A4", 71: "B4", 72: "C5", 74: "D5" };
+  const MIDI_TO_NAME = { 55: "G3", 59: "B3", 60: "C4", 61: "C#4", 62: "D4", 63: "D#4", 64: "E4", 65: "F4", 66: "F#4", 67: "G4", 68: "G#4", 69: "A4", 70: "A#4", 71: "B4", 72: "C5", 74: "D5" };
 
   async function preloadSampler() {
     // Create and load the sampler without starting audio; ready before first click
@@ -133,7 +140,7 @@
     stat: document.getElementById("stat"),
     resolve: document.getElementById("resolve"),
     startBtn: document.getElementById("start"),
-    ansBtns: Array.from(document.querySelectorAll(".ans")),
+    piano: document.getElementById("piano"),
   };
 
   function updateStats() {
@@ -146,9 +153,9 @@
     ui.feedback.style.color = ok === null ? "#333" : ok ? "green" : "crimson";
   }
 
-  function setAnswerButtonsEnabled(on) {
+  function setPianoEnabled(on) {
     state.answersEnabled = !!on;
-    ui.ansBtns.forEach(b => b.disabled = !on);
+    ui.piano.classList.toggle('disabled', !on);
   }
 
   function setStartEnabled(on) {
@@ -170,7 +177,7 @@
     startAudio();
     if (state.targetDegree) return; // ignore if a target is already active (awaiting answer)
     setStartEnabled(false);
-    setAnswerButtonsEnabled(false);
+    setPianoEnabled(false);
     setFeedback("Cadence…", null);
     const endCad = playCadence();
     const ctx = startAudio();
@@ -182,52 +189,102 @@
     const enableAtMs = Math.max(0, (tTarget - ctx.currentTime) * 1000) + 120;
     setTimeout(() => {
       setFeedback("What degree? (1–4)");
-      setAnswerButtonsEnabled(true);
+      setPianoEnabled(true);
+      // Briefly highlight the target key
+      highlightKey(DEGREE_TO_MIDI[state.targetDegree], 300);
     }, enableAtMs);
   });
 
-  // Answers
-  ui.ansBtns.forEach(btn => {
-    btn.addEventListener("click", () => {
-      if (!state.targetDegree || !state.answersEnabled) return;
-      const chosen = Number(btn.dataset.degree);
-      const ok = chosen === state.targetDegree;
-      state.attempts++;
-      if (ok) state.correct++;
-      setFeedback(ok ? "✓ Correct" : `✗ Wrong (it was ${state.targetDegree})`, ok);
-      updateStats();
+  // Piano click answers
+  function onPianoClick(e) {
+    const keyEl = e.target.closest('[data-midi]');
+    if (!keyEl || !state.answersEnabled || !state.targetDegree) return;
+    const midi = Number(keyEl.dataset.midi);
+    const degreeMap = { [NOTES.C4]: 1, [NOTES.D4]: 2, [NOTES.E4]: 3, [NOTES.F4]: 4 };
+    const chosenDegree = degreeMap[midi] || null;
+    if (!chosenDegree) {
+      setFeedback('Solo C–F en este modo');
+      flashKey(keyEl, 'wrong');
+      return;
+    }
+    const ok = chosenDegree === state.targetDegree;
+    state.attempts++;
+    if (ok) state.correct++;
+    setFeedback(ok ? '✓ Correct' : `✗ Wrong (it was ${state.targetDegree})`, ok);
+    updateStats();
+    flashKey(keyEl, ok ? 'correct' : 'wrong');
 
-      // Optional resolution to C
-      if (ui.resolve.checked) {
-        const ctx = startAudio();
-        const t0 = ctx.currentTime + 0.05;
-        // Replay target briefly, then resolve to C
-        playTone(DEGREE_TO_MIDI[state.targetDegree], t0, 0.45, "piano", 0.16);
-        playTone(NOTES.C4, t0 + 0.46, 0.8, "piano", 0.18);
-      }
+    // Optional resolution to C
+    if (ui.resolve.checked) {
+      const ctx = startAudio();
+      const t0 = ctx.currentTime + 0.05;
+      playTone(DEGREE_TO_MIDI[state.targetDegree], t0, 0.45, 'piano', 0.16);
+      playTone(NOTES.C4, t0 + 0.46, 0.8, 'piano', 0.18);
+    }
 
-      // clear target so user must press Start/Next
-      state.targetDegree = null;
-      setAnswerButtonsEnabled(false);
-      setStartEnabled(true);
-    });
-  });
+    // clear target so user must press Start/Next
+    state.targetDegree = null;
+    setPianoEnabled(false);
+    setStartEnabled(true);
+  }
+  ui.piano.addEventListener('click', onPianoClick);
 
-  // Keyboard shortcuts 1–4 + Enter
+  // Keyboard shortcuts Enter + number keys map to white keys C–F
   window.addEventListener("keydown", (e) => {
     if (e.key === "Enter") ui.startBtn.click();
-    if (["1","2","3","4"].includes(e.key)) {
-      const btn = ui.ansBtns.find(b => b.dataset.degree === e.key);
-      btn && btn.click();
-    }
+    const map = { '1': NOTES.C4, '2': NOTES.D4, '3': NOTES.E4, '4': NOTES.F4 };
+    if (map[e.key]) clickMidi(map[e.key]);
   });
 
   updateStats();
-  setAnswerButtonsEnabled(false);
+  setPianoEnabled(false);
+  buildPiano();
   setStartEnabled(false);
   setFeedback("Cargando piano…");
   // Preload samples; onload will enable Start
   preloadSampler();
+
+  // ---------- Piano UI helpers ----------
+  function buildPiano() {
+    const whites = [NOTES.C4, NOTES.D4, NOTES.E4, NOTES.F4, NOTES.G4, NOTES.A4, NOTES.B4, NOTES.C5];
+    ui.piano.innerHTML = '';
+    ui.piano.className = 'piano';
+    const hasSharpAfter = (midi) => {
+      // Sharps after C, D, F, G, A within the octave
+      const pc = midi % 12; // 0=C, 2=D, 4=E, 5=F, 7=G, 9=A, 11=B
+      return pc === 0 || pc === 2 || pc === 5 || pc === 7 || pc === 9;
+    };
+    whites.forEach((midi) => {
+      const key = document.createElement('div');
+      key.className = 'key white';
+      key.dataset.midi = String(midi);
+      key.dataset.note = MIDI_TO_NAME[midi] || '';
+      ui.piano.appendChild(key);
+      if (hasSharpAfter(midi)) {
+        const blackMidi = midi + 1;
+        const black = document.createElement('div');
+        black.className = 'key black';
+        black.dataset.midi = String(blackMidi);
+        black.dataset.note = MIDI_TO_NAME[blackMidi] || '';
+        key.appendChild(black);
+      }
+    });
+  }
+
+  function clickMidi(midi) {
+    const el = ui.piano.querySelector(`[data-midi="${midi}"]`);
+    if (el) el.click();
+  }
+
+  function flashKey(el, cls, ms = 250) {
+    el.classList.add('active', cls);
+    setTimeout(() => el.classList.remove('active', cls), ms);
+  }
+
+  function highlightKey(midi, ms = 300) {
+    const el = ui.piano.querySelector(`[data-midi="${midi}"]`);
+    if (el) flashKey(el, 'hint', ms);
+  }
 })();
 </script>
 </body>
