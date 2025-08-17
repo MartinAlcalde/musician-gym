@@ -345,16 +345,39 @@
     try {
       const key = (e.key || '');
       const code = (e.code || '');
-      if (ui.keyTestLine) ui.keyTestLine.textContent = `Key: ${key || '—'} | Code: ${code || '—'}`;
-      const kLower = (key || '').toLowerCase();
+      const keyCode = e.keyCode || e.which;
+      
+      // Enhanced display for unidentified keys
+      if (key === 'unidentified' || key === '') {
+        if (ui.keyTestLine) {
+          ui.keyTestLine.textContent = `Unidentified Key | Code: ${keyCode || '—'} | Location: ${e.location || 0}`;
+        }
+      } else {
+        if (ui.keyTestLine) {
+          ui.keyTestLine.textContent = `Key: ${key || '—'} | Code: ${code || '—'}`;
+        }
+      }
+      
       // Resolve mapping: check ids function if present
       let mappedMidi = null;
       if (typeof idsFromEvent === 'function') {
         const ids = idsFromEvent(e);
-        for (const id of ids) { if (state.keymap[id] != null) { mappedMidi = state.keymap[id]; break; } }
+        for (const id of ids) { 
+          if (state.keymap[id] != null) { 
+            mappedMidi = state.keymap[id]; 
+            break; 
+          } 
+        }
+        
+        // Show all possible IDs for debugging
+        if (ui.keyTestDetail) {
+          if (mappedMidi) {
+            ui.keyTestDetail.textContent = `Mapped to: ${labelForMidi(mappedMidi)}`;
+          } else {
+            ui.keyTestDetail.textContent = `IDs: ${ids.join(', ')} | No mapping`;
+          }
+        }
       }
-      if (!mappedMidi && kLower && state.keymap[kLower] != null) mappedMidi = state.keymap[kLower];
-      if (ui.keyTestDetail) ui.keyTestDetail.textContent = mappedMidi ? `Mapped to: ${labelForMidi(mappedMidi)}` : 'No mapping';
     } catch {}
 
     // Capture mapping assignment
@@ -636,8 +659,39 @@
     const ids = [];
     const k = (e.key || '').toLowerCase();
     const c = (e.code || '').toLowerCase();
-    if (k) { ids.push(k); ids.push(`key:${k}`); }
-    if (c) { ids.push(`code:${c}`); }
+    
+    // Handle unidentified keys from BLE shutters
+    if (k === 'unidentified' || k === '') {
+      // Use additional event properties for BLE devices
+      const keyCode = e.keyCode || e.which;
+      const location = e.location || 0;
+      const timeStamp = Math.floor(e.timeStamp / 100) * 100; // Round to 100ms groups
+      
+      if (keyCode) {
+        ids.push(`keycode:${keyCode}`);
+        ids.push(`keycode:${keyCode}:${location}`);
+      }
+      
+      // For rapid fire detection, use combination of properties
+      const signature = `unidentified:${keyCode}:${location}:${e.repeat ? 1 : 0}`;
+      ids.push(signature);
+      
+      // Also try code if available
+      if (c && c !== 'unidentified') {
+        ids.push(`code:${c}`);
+      }
+    } else {
+      // Normal key handling
+      if (k) { 
+        ids.push(k); 
+        ids.push(`key:${k}`); 
+      }
+    }
+    
+    if (c && c !== 'unidentified') { 
+      ids.push(`code:${c}`); 
+    }
+    
     return ids;
   }
   function isReservedKeyId(id) {
