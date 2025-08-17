@@ -13,11 +13,23 @@
   .feedback { height: 24px; margin-top: 8px; font-weight: 600; }
 
   /* Piano UI */
-  .piano { position: relative; display: flex; gap: 2px; user-select: none; margin-top: 10px; }
+  .piano {
+    --white-w: 64px; --white-h: 160px;
+    --black-w: 36px; --black-h: 100px;
+    --gap: 2px;
+    position: relative; display: flex; gap: var(--gap); user-select: none; margin-top: 10px;
+    overflow-x: auto; padding-bottom: 4px;
+  }
   .piano.disabled { pointer-events: none; opacity: 0.7; }
   .key { position: relative; cursor: pointer; }
-  .key.white { width: 64px; height: 160px; background: #fff; border: 1px solid #ccc; box-shadow: inset 0 -2px 0 rgba(0,0,0,0.06); }
-  .key.black { position: absolute; left: 42px; top: 0; width: 36px; height: 100px; background: #111; border: 1px solid #000; z-index: 2; border-radius: 0 0 3px 3px; }
+  .key.white { width: var(--white-w); height: var(--white-h); background: #fff; border: 1px solid #ccc; box-shadow: inset 0 -2px 0 rgba(0,0,0,0.06); }
+  .key.black {
+    position: absolute;
+    left: calc(var(--white-w) - (var(--black-w) / 2) + (var(--gap) / 2));
+    top: 0;
+    width: var(--black-w); height: var(--black-h);
+    background: #111; border: 1px solid #000; z-index: 2; border-radius: 0 0 3px 3px;
+  }
   .key.black::after { content: ""; position: absolute; inset: 0; box-shadow: inset 0 -2px 0 rgba(255,255,255,0.06); }
   .key.active { outline: 2px solid #3b82f6; }
   .key.correct { box-shadow: 0 0 0 2px #16a34a inset; }
@@ -28,6 +40,15 @@
   .key.black .label { color: #eee; text-shadow: 0 1px 1px rgba(0,0,0,0.6); bottom: 6px; font-size: 11px; }
   .key.white.in-scope { background: #fffbea; border-color: #f59e0b; }
   .key.white.out-of-scope { opacity: 0.85; cursor: default; }
+
+  @media (max-width: 480px) {
+    .piano { --white-w: 44px; --white-h: 132px; --black-w: 28px; --black-h: 84px; --gap: 2px; }
+    .key .label { font-size: 11px; }
+    .key.black .label { font-size: 10px; }
+  }
+  @media (max-width: 360px) {
+    .piano { --white-w: 38px; --white-h: 116px; --black-w: 24px; --black-h: 74px; --gap: 2px; }
+  }
 </style>
 </head>
 <body>
