@@ -25,7 +25,6 @@
   .key.white { width: var(--white-w); height: var(--white-h); background: #fff; border: 1px solid #ccc; box-shadow: inset 0 -2px 0 rgba(0,0,0,0.06); }
   .key.black {
     position: absolute;
-    left: calc(var(--white-w) - (var(--black-w) / 2) + (var(--gap) / 2));
     top: 0;
     width: var(--black-w); height: var(--black-h);
     background: #111; border: 1px solid #000; z-index: 2; border-radius: 0 0 3px 3px;
@@ -364,6 +363,10 @@
   setFeedback("Loading piano…");
   // Preload samples; onload will enable Start
   preloadSampler();
+  // Reposition black keys on resize (responsive)
+  window.addEventListener('resize', () => {
+    positionBlackKeys();
+  });
 
   // ---------- Piano UI helpers ----------
   function buildPiano() {
@@ -375,6 +378,7 @@
       const pc = midi % 12; // 0=C, 2=D, 4=E, 5=F, 7=G, 9=A, 11=B
       return pc === 0 || pc === 2 || pc === 5 || pc === 7 || pc === 9;
     };
+    // First render whites
     whites.forEach((midi) => {
       const key = document.createElement('div');
       key.className = 'key white';
@@ -384,21 +388,25 @@
       lab.className = 'label';
       key.appendChild(lab);
       ui.piano.appendChild(key);
-      // scope highlight will be applied after building all keys
-      if (hasSharpAfter(midi) && midi !== NOTES.C5) { // remove C#5 from UI
+    });
+    // Then render blacks positioned absolutely relative to the piano container
+    whites.forEach((midi) => {
+      if (hasSharpAfter(midi) && midi !== NOTES.C5) { // hide C#5
         const blackMidi = midi + 1;
         const black = document.createElement('div');
         black.className = 'key black';
         black.dataset.midi = String(blackMidi);
         black.dataset.note = MIDI_TO_NAME[blackMidi] || '';
+        black.dataset.blackFor = String(midi); // preceding white midi
         const blab = document.createElement('div');
         blab.className = 'label';
         black.appendChild(blab);
-        key.appendChild(black);
+        ui.piano.appendChild(black);
       }
     });
     applyScopeHighlight();
     updatePianoLabels();
+    positionBlackKeys();
   }
 
   function updatePianoLabels() {
@@ -424,6 +432,21 @@
   function labelForMidi(midi) {
     const pc = midi % 12;
     return state.notation === 'solfege' ? (PC_TO_SOLFEGE[pc] || '') : (PC_TO_LETTER[pc] || '');
+  }
+
+  function positionBlackKeys() {
+    const pianoRect = ui.piano.getBoundingClientRect();
+    const styles = getComputedStyle(ui.piano);
+    const gap = parseFloat(styles.getPropertyValue('--gap')) || 2;
+    ui.piano.querySelectorAll('.key.black').forEach(black => {
+      const whiteMidi = Number(black.dataset.blackFor);
+      const whiteEl = ui.piano.querySelector(`.key.white[data-midi="${whiteMidi}"]`);
+      if (!whiteEl) return;
+      const wRect = whiteEl.getBoundingClientRect();
+      const bRect = black.getBoundingClientRect();
+      const left = (wRect.left - pianoRect.left) + whiteEl.offsetWidth - (black.offsetWidth / 2) + (gap / 2);
+      black.style.left = `${left}px`;
+    });
   }
 
   function clickMidi(midi) {
