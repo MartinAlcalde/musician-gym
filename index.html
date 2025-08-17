@@ -30,6 +30,8 @@
 
 <!-- Tone.js local for offline usage -->
 <script src="./assets/lib/Tone.js"></script>
+<!-- Embedded base64 piano samples for file:// usage -->
+<script src="./assets/piano.base64.js"></script>
 <script>
 (() => {
   // ---------- Audio setup ----------
@@ -59,37 +61,30 @@
   async function preloadSampler() {
     // Create and load the sampler without starting audio; ready before first click
     if (sampler || typeof Tone === "undefined") return;
+    const B64 = (window.PIANO_BASE64 || {});
     sampler = new Tone.Sampler({
+      // Data-URI anchors; Tone.js interpolates nearby pitches
       urls: {
-        // Local anchor samples; Tone.js interpolates nearby pitches
-        A2: "A2.mp3",
-        A3: "A3.mp3",
-        A4: "A4.mp3",
-        A5: "A5.mp3",
-        C3: "C3.mp3",
-        C4: "C4.mp3",
-        C5: "C5.mp3",
-        C6: "C6.mp3",
+        A2: B64.A2,
+        A3: B64.A3,
+        A4: B64.A4,
+        A5: B64.A5,
+        C3: B64.C3,
+        C4: B64.C4,
+        C5: B64.C5,
+        C6: B64.C6,
       },
       release: 1.2,
-      baseUrl: "./assets/piano/",
+      onload: () => {
+        samplerReady = true;
+        setFeedback("Listo. Presioná Start");
+        setStartEnabled(true);
+      },
+      onerror: (e) => {
+        samplerReady = false;
+        setFeedback("Error cargando piano");
+      }
     }).toDestination();
-    // Wait for sampler buffers to be ready
-    if (sampler.loaded) {
-      try {
-        await sampler.loaded;
-        samplerReady = true;
-      } catch (e) {
-        samplerReady = false;
-      }
-    } else if (Tone.loaded) {
-      try {
-        await Tone.loaded();
-        samplerReady = true;
-      } catch (e) {
-        samplerReady = false;
-      }
-    }
   }
 
   function playTone(midi, when, dur = 0.6, type = "sine", gainVal = 0.15) {
@@ -231,15 +226,8 @@
   setAnswerButtonsEnabled(false);
   setStartEnabled(false);
   setFeedback("Cargando piano…");
-  // Preload samples and then enable Start
-  preloadSampler().then(() => {
-    if (samplerReady) {
-      setFeedback("Listo. Presioná Start");
-      setStartEnabled(true);
-    } else {
-      setFeedback("Error cargando piano");
-    }
-  });
+  // Preload samples; onload will enable Start
+  preloadSampler();
 })();
 </script>
 </body>
