@@ -291,6 +291,7 @@
   ui.solfege.addEventListener('change', () => {
     state.notation = ui.solfege.checked ? 'solfege' : 'letter';
     updatePianoLabels();
+    try { localStorage.setItem('fet-notation', state.notation); } catch {}
   });
 
   // Exercise selector
@@ -329,6 +330,14 @@
   updateStats();
   setPianoEnabled(false);
   setRepeatEnabled(false);
+  // Load saved notation preference
+  try {
+    const saved = localStorage.getItem('fet-notation');
+    if (saved === 'solfege' || saved === 'letter') {
+      state.notation = saved;
+      ui.solfege.checked = (saved === 'solfege');
+    }
+  } catch {}
   buildPiano();
   setStartEnabled(false);
   setFeedback("Loading piano…");
