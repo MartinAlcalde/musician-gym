@@ -53,8 +53,7 @@
     await Tone.start(); // unlock audio on user gesture
     sampler = new Tone.Sampler({
       urls: {
-        // Anchors provided by Tone's hosted Salamander set
-        A1: "A1.mp3",
+        // Local anchor samples; Tone.js interpolates nearby pitches
         A2: "A2.mp3",
         A3: "A3.mp3",
         A4: "A4.mp3",
@@ -63,11 +62,9 @@
         C4: "C4.mp3",
         C5: "C5.mp3",
         C6: "C6.mp3",
-        "D#4": "Ds4.mp3",
-        "F#4": "Fs4.mp3",
       },
       release: 1.2,
-      baseUrl: "https://tonejs.github.io/audio/salamander/",
+      baseUrl: "./assets/piano/",
     }).toDestination();
     // Wait for sample loading (Tone.js global)
     if (Tone.loaded) {
