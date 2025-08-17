@@ -83,10 +83,14 @@
     <div style="margin-top: 10px; font-weight: 600;">BLE Remote</div>
     <div class="panel" style="margin-top: 6px; padding: 8px;">
       <div class="row" style="margin: 0; gap: 10px; align-items: center;">
-        <button id="hidConnect">Connect Remote</button>
+        <button id="hidConnect">Connect HID</button>
         <div id="hidStatus" class="muted">Not connected</div>
       </div>
-      <div id="hidNote" class="muted" style="margin-top: 6px; font-size: 12px;">WebHID support for BLE shutter remotes</div>
+      <div class="row" style="margin: 6px 0 0 0; gap: 10px; align-items: center;">
+        <button id="bluetoothConnect">🔵 Connect Bluetooth</button>
+        <div id="bluetoothStatus" class="muted">Not connected</div>
+      </div>
+      <div id="hidNote" class="muted" style="margin-top: 6px; font-size: 12px;">Use Bluetooth for direct BLE access with unique button detection</div>
     </div>
     <div style="margin-top: 10px; font-weight: 600;">Key Tester</div>
     <div class="panel" style="margin-top: 6px; padding: 8px;">
@@ -203,6 +207,8 @@
     exercise: 1,
     keymap: {}, // key->midi
     waitingMapMidi: null,
+    bluetoothDevice: null,
+    bluetoothCharacteristic: null,
   };
 
   const ui = {
@@ -222,6 +228,8 @@
     hidConnect: document.getElementById("hidConnect"),
     hidStatus: document.getElementById("hidStatus"),
     hidNote: document.getElementById("hidNote"),
+    bluetoothConnect: document.getElementById("bluetoothConnect"),
+    bluetoothStatus: document.getElementById("bluetoothStatus"),
   };
 
   function updateStats() {
@@ -507,6 +515,146 @@
     return arr.join('');
   }
 
+  // ---------- Web Bluetooth API for direct BLE access ----------
+  async function connectBluetooth() {
+    if (!navigator.bluetooth) {
+      ui.bluetoothStatus.textContent = 'Bluetooth not supported';
+      return;
+    }
+
+    try {
+      console.log('Requesting Bluetooth device...');
+      ui.bluetoothStatus.textContent = 'Requesting device...';
+      
+      // Try specific HID devices first, then fall back to any device
+      let device;
+      try {
+        device = await navigator.bluetooth.requestDevice({
+          filters: [
+            { services: ['00001812-0000-1000-8000-00805f9b34fb'] }, // HID over GATT
+            { namePrefix: 'AB Shutter' },
+            { namePrefix: 'Bluetooth' },
+            { namePrefix: 'Remote' },
+            { namePrefix: 'Shutter' },
+            { namePrefix: 'BLE' },
+          ],
+          optionalServices: [
+            '00001812-0000-1000-8000-00805f9b34fb', // HID over GATT
+            '0000180f-0000-1000-8000-00805f9b34fb', // Battery Service
+            '0000180a-0000-1000-8000-00805f9b34fb', // Device Information
+          ]
+        });
+      } catch (err) {
+        console.log('HID filter failed, trying broad search:', err.message);
+        // Fallback: allow any device (user will need to pick manually)
+        device = await navigator.bluetooth.requestDevice({
+          acceptAllDevices: true,
+          optionalServices: [
+            '00001812-0000-1000-8000-00805f9b34fb', // HID over GATT
+            '0000180f-0000-1000-8000-00805f9b34fb', // Battery Service
+            '0000180a-0000-1000-8000-00805f9b34fb', // Device Information
+          ]
+        });
+      }
+
+      console.log('Device selected:', device.name);
+      ui.bluetoothStatus.textContent = `Connecting to ${device.name}...`;
+      
+      state.bluetoothDevice = device;
+      
+      // Connect to GATT server
+      const server = await device.gatt.connect();
+      console.log('Connected to GATT server');
+      
+      // Try to find any service that might have characteristics we can use
+      const services = await server.getPrimaryServices();
+      console.log('Available services:', services.map(s => s.uuid));
+      
+      let characteristic = null;
+      
+      // Try HID service first
+      for (const service of services) {
+        try {
+          console.log(`Checking service: ${service.uuid}`);
+          const characteristics = await service.getCharacteristics();
+          console.log(`Characteristics in ${service.uuid}:`, characteristics.map(c => c.uuid));
+          
+          // Look for any characteristic that supports notifications
+          for (const char of characteristics) {
+            if (char.properties.notify) {
+              console.log(`Found notifiable characteristic: ${char.uuid}`);
+              characteristic = char;
+              break;
+            }
+          }
+          if (characteristic) break;
+        } catch (err) {
+          console.log(`Error with service ${service.uuid}:`, err.message);
+        }
+      }
+      
+      if (!characteristic) {
+        throw new Error('No notifiable characteristics found');
+      }
+      
+      state.bluetoothCharacteristic = characteristic;
+      
+      // Start notifications
+      await characteristic.startNotifications();
+      characteristic.addEventListener('characteristicvaluechanged', onBluetoothData);
+      
+      ui.bluetoothStatus.textContent = `Connected: ${device.name}`;
+      console.log('Bluetooth setup complete, listening for data...');
+      
+    } catch (error) {
+      console.error('Bluetooth connection error:', error);
+      ui.bluetoothStatus.textContent = `Failed: ${error.message}`;
+    }
+  }
+
+  function onBluetoothData(event) {
+    const value = event.target.value;
+    const data = new Uint8Array(value.buffer);
+    const hexBytes = Array.from(data).map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    console.log('Bluetooth data:', {
+      data: hexBytes,
+      length: data.length,
+      values: Array.from(data)
+    });
+    
+    // Update key tester
+    if (ui.keyTestLine) {
+      ui.keyTestLine.textContent = `Bluetooth data: ${hexBytes} (${data.length} bytes)`;
+    }
+    
+    // Create unique ID based on data pattern
+    const bluetoothId = `bluetooth:${hexBytes}`;
+    
+    if (ui.keyTestDetail) {
+      const midi = state.keymap[bluetoothId];
+      ui.keyTestDetail.textContent = midi ? `Mapped to: ${labelForMidi(midi)}` : `Bluetooth ID: ${bluetoothId}`;
+    }
+    
+    // Handle mapping if active
+    if (state.waitingMapMidi !== null) {
+      state.keymap[bluetoothId] = state.waitingMapMidi;
+      saveKeymap();
+      state.waitingMapMidi = null;
+      renderKeymapRows();
+      setFeedback(`Mapped bluetooth data to ${labelForMidi(state.waitingMapMidi)}`);
+      return;
+    }
+    
+    
+    // Check if mapped and trigger
+    const midi = state.keymap[bluetoothId];
+    if (midi != null && state.answersEnabled) {
+      console.log('Triggering mapped note from Bluetooth:', labelForMidi(midi));
+      clickMidi(midi);
+    }
+  }
+
   // Notation toggle
   ui.solfege.addEventListener('change', () => {
     state.notation = ui.solfege.checked ? 'solfege' : 'letter';
@@ -727,6 +875,7 @@
     state.keymap = { a: NOTES.C4, s: NOTES.D4, d: NOTES.E4, f: NOTES.F4, g: NOTES.G4, h: NOTES.A4, j: NOTES.B4, k: NOTES.C5 };
     saveKeymap();
   }
+
   function renderKeymapRows() {
     const set = getExerciseSet();
     ui.mapGrid.innerHTML = '';
@@ -770,6 +919,11 @@
     ui.settingsPanel.classList.toggle('hidden');
     renderKeymapRows();
   });
+
+  // Bluetooth connection
+  if (ui.bluetoothConnect) {
+    ui.bluetoothConnect.addEventListener('click', connectBluetooth);
+  }
 
   function clickMidi(midi) {
     const el = ui.piano.querySelector(`[data-midi="${midi}"]`);
