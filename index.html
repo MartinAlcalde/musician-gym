@@ -56,6 +56,7 @@
   .map-row { padding: 2px 0; }
   .map-note { font-weight: 600; }
   .map-key { min-width: 24px; text-align: center; font-family: ui-monospace, monospace; }
+  .muted { color: #6b7280; }
 </style>
 </head>
 <body>
@@ -79,6 +80,19 @@
     </div>
     <div style="margin-top: 8px; font-weight: 600;">Key Mapping</div>
     <div class="map-grid" id="mapGrid" style="margin-top: 6px;"></div>
+    <div style="margin-top: 10px; font-weight: 600;">BLE Remote</div>
+    <div class="panel" style="margin-top: 6px; padding: 8px;">
+      <div class="row" style="margin: 0; gap: 10px; align-items: center;">
+        <button id="hidConnect">Connect Remote</button>
+        <div id="hidStatus" class="muted">Not connected</div>
+      </div>
+      <div id="hidNote" class="muted" style="margin-top: 6px; font-size: 12px;">WebHID support for BLE shutter remotes</div>
+    </div>
+    <div style="margin-top: 10px; font-weight: 600;">Key Tester</div>
+    <div class="panel" style="margin-top: 6px; padding: 8px;">
+      <div id="keyTestLine">Press a key or your remote…</div>
+      <div id="keyTestDetail" class="muted" style="margin-top: 4px; font-size: 12px;"></div>
+    </div>
   </div>
   <div id="piano" class="piano" aria-label="Piano C4–C5"></div>
   <div class="feedback" id="feedback"></div>
@@ -203,6 +217,11 @@
     settingsBtn: document.getElementById("settingsBtn"),
     settingsPanel: document.getElementById("settingsPanel"),
     mapGrid: document.getElementById("mapGrid"),
+    keyTestLine: document.getElementById("keyTestLine"),
+    keyTestDetail: document.getElementById("keyTestDetail"),
+    hidConnect: document.getElementById("hidConnect"),
+    hidStatus: document.getElementById("hidStatus"),
+    hidNote: document.getElementById("hidNote"),
   };
 
   function updateStats() {
@@ -212,7 +231,9 @@
 
   function setFeedback(text, ok = null) {
     ui.feedback.textContent = text;
-    ui.feedback.style.color = ok === null ? "#333" : ok ? "green" : "crimson";
+    ui.feedback.classList.remove('ok','err');
+    if (ok === true) ui.feedback.classList.add('ok');
+    if (ok === false) ui.feedback.classList.add('err');
   }
 
   function setPianoEnabled(on) {
@@ -320,24 +341,148 @@
 
   // Keyboard shortcuts: Enter to start, custom keymap to play
   window.addEventListener("keydown", (e) => {
+    // Key tester output
+    try {
+      const key = (e.key || '');
+      const code = (e.code || '');
+      if (ui.keyTestLine) ui.keyTestLine.textContent = `Key: ${key || '—'} | Code: ${code || '—'}`;
+      const kLower = (key || '').toLowerCase();
+      // Resolve mapping: check ids function if present
+      let mappedMidi = null;
+      if (typeof idsFromEvent === 'function') {
+        const ids = idsFromEvent(e);
+        for (const id of ids) { if (state.keymap[id] != null) { mappedMidi = state.keymap[id]; break; } }
+      }
+      if (!mappedMidi && kLower && state.keymap[kLower] != null) mappedMidi = state.keymap[kLower];
+      if (ui.keyTestDetail) ui.keyTestDetail.textContent = mappedMidi ? `Mapped to: ${labelForMidi(mappedMidi)}` : 'No mapping';
+    } catch {}
+
     // Capture mapping assignment
     if (state.waitingMapMidi !== null) {
       e.preventDefault();
-      const key = normalizeKey(e);
-      if (key && !isReservedKey(key)) {
-        setKeymap(state.waitingMapMidi, key);
-      }
+      if (e.key === 'Escape') { state.waitingMapMidi = null; setFeedback('Mapping cancelled'); return; }
+      setKeymapFromEvent(state.waitingMapMidi, e);
       state.waitingMapMidi = null;
       renderKeymapRows();
       return;
     }
     if (e.key === "Enter") ui.startBtn.click();
-    const key = normalizeKey(e);
-    if (key && state.keymap[key] != null) {
-      e.preventDefault();
-      clickMidi(state.keymap[key]);
+    const ids = idsFromEvent(e);
+    for (const id of ids) {
+      if (state.keymap[id] != null) {
+        e.preventDefault();
+        clickMidi(state.keymap[id]);
+        break;
+      }
     }
   });
+
+  // ---------- WebHID support for BLE shutter remotes ----------
+  const hid = navigator.hid;
+  if (ui.hidNote) {
+    if (!hid || !window.isSecureContext) {
+      ui.hidNote.textContent = 'WebHID requires a secure context (https or localhost). Open this page via http://localhost to connect a remote.';
+    } else {
+      ui.hidNote.textContent = 'Click Connect Remote to pair your shutter. Then press a button to test or map it.';
+    }
+  }
+  if (ui.hidConnect) {
+    ui.hidConnect.disabled = !(hid && window.isSecureContext);
+    ui.hidConnect.addEventListener('click', async () => {
+      if (!hid || !window.isSecureContext) return;
+      try {
+        // Expanded filters for better BLE shutter compatibility
+        const filters = [
+          { usagePage: 0x0C }, // Consumer Control (volume, play/pause)
+          { usagePage: 0x01, usage: 0x06 }, // Keyboard
+          { usagePage: 0x01, usage: 0x02 }, // Mouse
+          { usagePage: 0x01, usage: 0x80 }, // System Control
+          // No filter to catch all devices (comment out if too broad)
+          // {}
+        ];
+        console.log('Requesting HID device...');
+        const devices = await hid.requestDevice({ filters });
+        console.log('Selected devices:', devices);
+        
+        if (!devices || devices.length === 0) {
+          ui.hidStatus.textContent = 'No device selected';
+          return;
+        }
+        
+        for (const d of devices) {
+          console.log('Device info:', {
+            vendorId: d.vendorId?.toString(16),
+            productId: d.productId?.toString(16),
+            productName: d.productName
+          });
+          
+          await d.open().catch((err) => {
+            console.error('Failed to open device:', err);
+          });
+          d.addEventListener('inputreport', onHidReport);
+        }
+        ui.hidStatus.textContent = `Connected: ${devices.length} device(s)`;
+      } catch (err) {
+        console.error('HID connection error:', err);
+        ui.hidStatus.textContent = `Failed: ${err.message}`;
+      }
+    });
+    if (hid) {
+      hid.addEventListener('connect', (e) => { ui.hidStatus.textContent = 'Remote connected'; e.device.open().catch(()=>{}); e.device.addEventListener('inputreport', onHidReport); });
+      hid.addEventListener('disconnect', () => { ui.hidStatus.textContent = 'Remote disconnected'; });
+    }
+  }
+
+  function onHidReport(event) {
+    const { device, reportId, data } = event;
+    const id = hidEventId(device, reportId, data);
+    const hexBytes = toHexBytes(data);
+    
+    console.log('HID Report:', {
+      device: device.productName || 'Unknown',
+      reportId,
+      data: hexBytes,
+      id
+    });
+    
+    // Update tester
+    if (ui.keyTestLine) {
+      ui.keyTestLine.textContent = `HID reportId ${reportId} (${hexBytes})`;
+    }
+    if (ui.keyTestDetail) {
+      const midi = state.keymap[id];
+      ui.keyTestDetail.textContent = midi ? `Mapped to: ${labelForMidi(midi)}` : `No mapping for: ${id}`;
+    }
+    
+    // If mapping capture is active, assign this HID id
+    if (state.waitingMapMidi !== null) {
+      state.keymap[id] = state.waitingMapMidi;
+      saveKeymap();
+      state.waitingMapMidi = null;
+      renderKeymapRows();
+      setFeedback(`Mapped ${hexBytes} to ${labelForMidi(state.waitingMapMidi)}`);
+      return;
+    }
+    
+    // Otherwise, trigger if mapped
+    const midi = state.keymap[id];
+    if (midi != null && state.answersEnabled) {
+      console.log('Triggering mapped note:', labelForMidi(midi));
+      clickMidi(midi);
+    }
+  }
+
+  function hidEventId(device, reportId, dataView) {
+    const vid = device.vendorId?.toString(16).padStart(4,'0');
+    const pid = device.productId?.toString(16).padStart(4,'0');
+    const bytes = toHexBytes(dataView);
+    return `hid:${vid}:${pid}:${reportId}:${bytes}`;
+  }
+  function toHexBytes(dv) {
+    const arr = [];
+    for (let i=0; i<dv.byteLength; i++) arr.push(dv.getUint8(i).toString(16).padStart(2,'0'));
+    return arr.join('');
+  }
 
   // Notation toggle
   ui.solfege.addEventListener('change', () => {
@@ -487,22 +632,26 @@
   }
 
   // ---------- Key mapping helpers ----------
-  function normalizeKey(e) {
-    const k = e.key;
-    if (!k) return '';
-    if (k.length === 1) return k.toLowerCase();
-    // allow some named keys if desired; currently disallow to keep simple
-    return k.toLowerCase();
+  function idsFromEvent(e) {
+    const ids = [];
+    const k = (e.key || '').toLowerCase();
+    const c = (e.code || '').toLowerCase();
+    if (k) { ids.push(k); ids.push(`key:${k}`); }
+    if (c) { ids.push(`code:${c}`); }
+    return ids;
   }
-  function isReservedKey(k) {
-    return ['enter','escape','shift','control','alt','meta','tab'].includes(k);
+  function isReservedKeyId(id) {
+    const v = id.replace(/^key:|^code:/,'');
+    return ['escape','shift','control','alt','meta','tab'].includes(v);
   }
-  function setKeymap(midi, key) {
-    // remove previous mapping of this key
+  function setKeymapFromEvent(midi, e) {
+    const ids = idsFromEvent(e).filter(id => !isReservedKeyId(id));
+    if (ids.length === 0) return;
     Object.keys(state.keymap).forEach(k => {
-      if (state.keymap[k] === midi || k === key) delete state.keymap[k];
+      if (state.keymap[k] === midi || ids.includes(k)) delete state.keymap[k];
     });
-    state.keymap[key] = midi;
+    const preferred = ids.find(id => id.startsWith('code:')) || ids.find(id => id.startsWith('key:')) || ids[0];
+    state.keymap[preferred] = midi;
     saveKeymap();
   }
   function clearKeymap(midi) {
@@ -532,6 +681,7 @@
       row.className = 'map-row map-note';
       row.textContent = labelForMidi(midi);
       const setBtn = document.createElement('button');
+      setBtn.className = 'btn';
       setBtn.textContent = 'Set key';
       setBtn.addEventListener('click', () => {
         state.waitingMapMidi = midi;
@@ -541,6 +691,7 @@
       keySpan.className = 'map-key';
       keySpan.textContent = keyForMidi(midi) || '—';
       const clrBtn = document.createElement('button');
+      clrBtn.className = 'btn';
       clrBtn.textContent = 'Clear';
       clrBtn.addEventListener('click', () => { clearKeymap(midi); renderKeymapRows(); });
       ui.mapGrid.appendChild(row);
@@ -550,8 +701,14 @@
     });
   }
   function keyForMidi(midi) {
-    const entry = Object.entries(state.keymap).find(([k, m]) => m === midi);
-    return entry ? entry[0] : '';
+    const entries = Object.entries(state.keymap).filter(([k, m]) => m === midi);
+    if (entries.length === 0) return '';
+    const simple = entries.find(([k]) => k.length === 1);
+    const chosen = simple || entries[0];
+    const id = chosen[0];
+    if (id.startsWith('key:')) return id.slice(4);
+    if (id.startsWith('code:')) return id.slice(5);
+    return id;
   }
 
   // Toggle settings panel
