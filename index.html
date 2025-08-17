@@ -28,11 +28,14 @@
   <div class="feedback" id="feedback"></div>
   <div class="stat" id="stat">Attempts: 0 | Correct: 0 | Accuracy: 0%</div>
 
+<!-- Tone.js for sample-based piano -->
+<script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
 <script>
 (() => {
   // ---------- Audio setup ----------
   let audioCtx;
   const startAudio = () => audioCtx ??= new (window.AudioContext || window.webkitAudioContext)();
+  let sampler; // Tone.Sampler instance (lazy)
 
   const midiToFreq = (m) => 440 * Math.pow(2, (m - 69) / 12);
   const NOTES = {
@@ -42,23 +45,62 @@
     A4: 69, B3: 59, C5: 72, G3: 55, B4: 71, D5: 74
   };
   const DEGREE_TO_MIDI = { 1: NOTES.C4, 2: NOTES.D4, 3: NOTES.E4, 4: NOTES.F4 };
+  const MIDI_TO_NAME = { 55: "G3", 59: "B3", 60: "C4", 62: "D4", 64: "E4", 65: "F4", 67: "G4", 69: "A4", 71: "B4", 72: "C5", 74: "D5" };
 
-  function playTone(midi, when, dur = 0.5, type = "sine", gainVal = 0.15) {
+  async function ensureSampler() {
+    // If Tone.js is available, create/load a Salamander sampler with known-good file names
+    if (sampler || typeof Tone === "undefined") return;
+    await Tone.start(); // unlock audio on user gesture
+    sampler = new Tone.Sampler({
+      urls: {
+        // Anchors provided by Tone's hosted Salamander set
+        A1: "A1.mp3",
+        A2: "A2.mp3",
+        A3: "A3.mp3",
+        A4: "A4.mp3",
+        A5: "A5.mp3",
+        C3: "C3.mp3",
+        C4: "C4.mp3",
+        C5: "C5.mp3",
+        C6: "C6.mp3",
+        "D#4": "Ds4.mp3",
+        "F#4": "Fs4.mp3",
+      },
+      release: 1.2,
+      baseUrl: "https://tonejs.github.io/audio/salamander/",
+    }).toDestination();
+    // Wait for sample loading (Tone.js global)
+    if (Tone.loaded) {
+      await Tone.loaded();
+    }
+  }
+
+  function playTone(midi, when, dur = 0.6, type = "sine", gainVal = 0.15) {
+    // Prefer sample-based piano if available
+    const name = MIDI_TO_NAME[midi];
+    if (sampler && name) {
+      const ctx = startAudio();
+      const delay = Math.max(0, when - ctx.currentTime);
+      const t = (typeof Tone !== "undefined" ? Tone.now() : 0) + delay;
+      const vel = Math.max(0.05, Math.min(1, gainVal * 6));
+      sampler.triggerAttackRelease(name, dur, t, vel);
+      return;
+    }
     const ctx = startAudio();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = type;
     osc.frequency.value = midiToFreq(midi);
-    gain.gain.setValueAtTime(0, when);
+    gain.gain.setValueAtTime(0.0001, when);
     gain.gain.linearRampToValueAtTime(gainVal, when + 0.01);
-    gain.gain.setTargetAtTime(0.0001, when + dur - 0.05, 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.0005, when + dur);
 
     osc.connect(gain).connect(ctx.destination);
     osc.start(when);
     osc.stop(when + dur + 0.1);
   }
 
-  function playChord(midis, when, dur = 0.6, type = "sine", chordGain = 0.12) {
+  function playChord(midis, when, dur = 0.7, type = "piano", chordGain = 0.24) {
     const perVoice = chordGain / Math.max(1, midis.length);
     midis.forEach(m => playTone(m, when, dur, type, perVoice));
   }
@@ -69,13 +111,13 @@
     const t0 = ctx.currentTime + 0.05;
     const step = 0.65;
     // I: C major (C4 E4 G4)
-    playChord([NOTES.C4, NOTES.E4, NOTES.G4], t0, step);
+    playChord([NOTES.C4, NOTES.E4, NOTES.G4], t0, step, "piano");
     // IV: F major voiced with common tone C4 (C4 F4 A4)
-    playChord([NOTES.C4, NOTES.F4, NOTES.A4], t0 + step, step);
+    playChord([NOTES.C4, NOTES.F4, NOTES.A4], t0 + step, step, "piano");
     // V: G major (B3 D4 G4) for smooth motion
-    playChord([NOTES.B3, NOTES.D4, NOTES.G4], t0 + 2*step, step);
+    playChord([NOTES.B3, NOTES.D4, NOTES.G4], t0 + 2*step, step, "piano");
     // I: C major return
-    playChord([NOTES.C4, NOTES.E4, NOTES.G4], t0 + 3*step, step);
+    playChord([NOTES.C4, NOTES.E4, NOTES.G4], t0 + 3*step, step, "piano");
     return t0 + 4*step; // end time
   }
 
@@ -123,6 +165,7 @@
   // Start/Next cycle
   ui.startBtn.addEventListener("click", async () => {
     startAudio();
+    await ensureSampler().catch(() => {});
     if (state.targetDegree) return; // ignore if a target is already active (awaiting answer)
     setStartEnabled(false);
     setAnswerButtonsEnabled(false);
@@ -132,7 +175,7 @@
     // Choose target after cadence completes
     state.targetDegree = randTargetDegree();
     const tTarget = endCad + 0.12;
-    playTone(DEGREE_TO_MIDI[state.targetDegree], tTarget, 0.7, "sine", 0.16);
+    playTone(DEGREE_TO_MIDI[state.targetDegree], tTarget, 0.9, "piano", 0.18);
     // Enable answers slightly after target onset
     const enableAtMs = Math.max(0, (tTarget - ctx.currentTime) * 1000) + 120;
     setTimeout(() => {
@@ -157,8 +200,8 @@
         const ctx = startAudio();
         const t0 = ctx.currentTime + 0.05;
         // Replay target briefly, then resolve to C
-        playTone(DEGREE_TO_MIDI[state.targetDegree], t0, 0.35, "sine", 0.13);
-        playTone(NOTES.C4, t0 + 0.4, 0.5, "sine", 0.16);
+        playTone(DEGREE_TO_MIDI[state.targetDegree], t0, 0.45, "piano", 0.16);
+        playTone(NOTES.C4, t0 + 0.46, 0.8, "piano", 0.18);
       }
 
       // clear target so user must press Start/Next
