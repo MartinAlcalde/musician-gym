@@ -571,27 +571,40 @@
       console.log('Available services:', services.map(s => s.uuid));
       
       let characteristic = null;
+      let allCharacteristics = [];
       
-      // Try HID service first
+      // Collect all characteristics first
       for (const service of services) {
         try {
           console.log(`Checking service: ${service.uuid}`);
           const characteristics = await service.getCharacteristics();
-          console.log(`Characteristics in ${service.uuid}:`, characteristics.map(c => c.uuid));
+          console.log(`Characteristics in ${service.uuid}:`, characteristics.map(c => ({
+            uuid: c.uuid,
+            properties: {
+              read: c.properties.read,
+              write: c.properties.write,
+              notify: c.properties.notify,
+              indicate: c.properties.indicate,
+              writeWithoutResponse: c.properties.writeWithoutResponse
+            }
+          })));
+          
+          allCharacteristics.push(...characteristics);
           
           // Look for any characteristic that supports notifications
           for (const char of characteristics) {
-            if (char.properties.notify) {
+            if (char.properties.notify || char.properties.indicate) {
               console.log(`Found notifiable characteristic: ${char.uuid}`);
-              characteristic = char;
-              break;
+              if (!characteristic) characteristic = char; // Use first one found
             }
           }
-          if (characteristic) break;
         } catch (err) {
           console.log(`Error with service ${service.uuid}:`, err.message);
         }
       }
+      
+      console.log(`Total characteristics found: ${allCharacteristics.length}`);
+      console.log('All characteristics:', allCharacteristics.map(c => c.uuid));
       
       if (!characteristic) {
         throw new Error('No notifiable characteristics found');
@@ -599,12 +612,42 @@
       
       state.bluetoothCharacteristic = characteristic;
       
+      // Try to activate device by writing to writable characteristics
+      for (const char of allCharacteristics) {
+        if (char.properties.write || char.properties.writeWithoutResponse) {
+          try {
+            console.log(`Trying to write to characteristic: ${char.uuid}`);
+            // Common activation commands for BLE devices
+            const activationCommands = [
+              new Uint8Array([0x01]), // Simple enable
+              new Uint8Array([0x01, 0x00]), // Enable notifications
+              new Uint8Array([0x00, 0x01]), // Alternative enable
+              new Uint8Array([0xFF]), // Max value
+            ];
+            
+            for (const cmd of activationCommands) {
+              try {
+                await char.writeValue(cmd);
+                console.log(`Successfully wrote ${Array.from(cmd).map(b => b.toString(16)).join('')} to ${char.uuid}`);
+                await new Promise(resolve => setTimeout(resolve, 100)); // Wait a bit
+                break; // If successful, don't try other commands
+              } catch (writeErr) {
+                console.log(`Write failed for ${char.uuid}:`, writeErr.message);
+              }
+            }
+          } catch (err) {
+            console.log(`Error writing to ${char.uuid}:`, err.message);
+          }
+        }
+      }
+      
       // Start notifications
       await characteristic.startNotifications();
       characteristic.addEventListener('characteristicvaluechanged', onBluetoothData);
       
       ui.bluetoothStatus.textContent = `Connected: ${device.name}`;
       console.log('Bluetooth setup complete, listening for data...');
+      console.log('Try pressing buttons on your device now');
       
     } catch (error) {
       console.error('Bluetooth connection error:', error);
@@ -803,26 +846,97 @@
   }
 
   // ---------- Key mapping helpers ----------
+  // Deep pattern analysis for shutter buttons
+  let eventHistory = [];
+  let lastEventTime = 0;
+  let eventCounter = 0;
+
   function idsFromEvent(e) {
     const ids = [];
     const k = (e.key || '').toLowerCase();
     const c = (e.code || '').toLowerCase();
+    const now = performance.now();
     
-    // Handle unidentified keys from BLE shutters
+    // Capture ALL possible event properties for analysis
+    const eventFingerprint = {
+      key: e.key,
+      code: e.code,
+      keyCode: e.keyCode,
+      which: e.which,
+      charCode: e.charCode,
+      location: e.location,
+      repeat: e.repeat,
+      ctrlKey: e.ctrlKey,
+      shiftKey: e.shiftKey,
+      altKey: e.altKey,
+      metaKey: e.metaKey,
+      timeStamp: e.timeStamp,
+      isTrusted: e.isTrusted,
+      type: e.type,
+      bubbles: e.bubbles,
+      cancelable: e.cancelable,
+      composed: e.composed
+    };
+    
+    // Timing analysis
+    const timeSinceLastEvent = now - lastEventTime;
+    lastEventTime = now;
+    eventCounter++;
+    
+    // Store event for pattern analysis
+    eventHistory.push({
+      ...eventFingerprint,
+      timeSinceLastEvent,
+      eventNumber: eventCounter
+    });
+    
+    // Keep only last 20 events
+    if (eventHistory.length > 20) {
+      eventHistory = eventHistory.slice(-20);
+    }
+    
+    // Log detailed event info for debugging
+    console.log('Deep Event Analysis:', {
+      eventNumber: eventCounter,
+      fingerprint: eventFingerprint,
+      timeSinceLastEvent: Math.round(timeSinceLastEvent),
+      historyLength: eventHistory.length
+    });
+    
+    // Handle unidentified keys with deep analysis
     if (k === 'unidentified' || k === '') {
-      // Use additional event properties for BLE devices
-      const keyCode = e.keyCode || e.which;
-      const location = e.location || 0;
-      const timeStamp = Math.floor(e.timeStamp / 100) * 100; // Round to 100ms groups
+      // Create multiple ID candidates based on different properties
+      const candidates = [];
       
-      if (keyCode) {
-        ids.push(`keycode:${keyCode}`);
-        ids.push(`keycode:${keyCode}:${location}`);
+      // Basic properties
+      if (e.keyCode) candidates.push(`keycode:${e.keyCode}`);
+      if (e.which) candidates.push(`which:${e.which}`);
+      if (e.charCode) candidates.push(`charcode:${e.charCode}`);
+      
+      // Combined properties
+      const combo1 = `${e.keyCode || 0}:${e.which || 0}:${e.location || 0}`;
+      candidates.push(`combo1:${combo1}`);
+      
+      // Timing-based (for buttons with different timing patterns)
+      const timingGroup = Math.floor(timeSinceLastEvent / 50) * 50; // Group by 50ms
+      candidates.push(`timing:${timingGroup}:${e.keyCode || 0}`);
+      
+      // Event sequence pattern (last 3 events)
+      if (eventHistory.length >= 3) {
+        const lastThree = eventHistory.slice(-3);
+        const pattern = lastThree.map(ev => `${ev.keyCode || 0}`).join('-');
+        candidates.push(`pattern3:${pattern}`);
       }
       
-      // For rapid fire detection, use combination of properties
-      const signature = `unidentified:${keyCode}:${location}:${e.repeat ? 1 : 0}`;
-      ids.push(signature);
+      // Modifier state signature
+      const modifiers = `${e.ctrlKey?'C':''}${e.shiftKey?'S':''}${e.altKey?'A':''}${e.metaKey?'M':''}`;
+      if (modifiers) candidates.push(`mod:${modifiers}:${e.keyCode || 0}`);
+      
+      // TimeStamp based (some devices have microsecond differences)
+      const timestampLow = Math.floor((e.timeStamp || 0) % 1000);
+      candidates.push(`ts:${timestampLow}:${e.keyCode || 0}`);
+      
+      ids.push(...candidates);
       
       // Also try code if available
       if (c && c !== 'unidentified') {
