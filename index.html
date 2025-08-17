@@ -48,6 +48,14 @@
   @media (max-width: 360px) {
     .piano { --white-w: 38px; --white-h: 116px; --black-w: 24px; --black-h: 74px; --gap: 2px; }
   }
+
+  /* Key mapping panel */
+  .panel { border: 1px solid #ddd; padding: 8px; border-radius: 6px; }
+  .hidden { display: none; }
+  .map-grid { display: grid; grid-template-columns: 1fr auto auto auto; gap: 6px 10px; align-items: center; }
+  .map-row { padding: 2px 0; }
+  .map-note { font-weight: 600; }
+  .map-key { min-width: 24px; text-align: center; font-family: ui-monospace, monospace; }
 </style>
 </head>
 <body>
@@ -64,6 +72,10 @@
       </select>
     </label>
     <button id="repeat">Repeat</button>
+    <button id="keymapBtn">Key Mapping</button>
+  </div>
+  <div id="keymapPanel" class="panel hidden">
+    <div class="map-grid" id="mapGrid"></div>
   </div>
   <div id="piano" class="piano" aria-label="Piano C4–C5"></div>
   <div class="feedback" id="feedback"></div>
@@ -172,6 +184,8 @@
     answersEnabled: false,
     notation: 'solfege',
     exercise: 1,
+    keymap: {}, // key->midi
+    waitingMapMidi: null,
   };
 
   const ui = {
@@ -183,6 +197,9 @@
     solfege: document.getElementById("solfege"),
     exercise: document.getElementById("exercise"),
     repeatBtn: document.getElementById("repeat"),
+    keymapBtn: document.getElementById("keymapBtn"),
+    keymapPanel: document.getElementById("keymapPanel"),
+    mapGrid: document.getElementById("mapGrid"),
   };
 
   function updateStats() {
@@ -298,12 +315,24 @@
   }
   ui.piano.addEventListener('click', onPianoClick);
 
-  // Keyboard shortcuts Enter + number keys (1–4 map for Ex 1)
+  // Keyboard shortcuts: Enter to start, custom keymap to play
   window.addEventListener("keydown", (e) => {
+    // Capture mapping assignment
+    if (state.waitingMapMidi !== null) {
+      e.preventDefault();
+      const key = normalizeKey(e);
+      if (key && !isReservedKey(key)) {
+        setKeymap(state.waitingMapMidi, key);
+      }
+      state.waitingMapMidi = null;
+      renderKeymapRows();
+      return;
+    }
     if (e.key === "Enter") ui.startBtn.click();
-    if (state.exercise === 1) {
-      const map = { '1': NOTES.C4, '2': NOTES.D4, '3': NOTES.E4, '4': NOTES.F4 };
-      if (map[e.key]) clickMidi(map[e.key]);
+    const key = normalizeKey(e);
+    if (key && state.keymap[key] != null) {
+      e.preventDefault();
+      clickMidi(state.keymap[key]);
     }
   });
 
@@ -312,6 +341,7 @@
     state.notation = ui.solfege.checked ? 'solfege' : 'letter';
     updatePianoLabels();
     try { localStorage.setItem('fet-notation', state.notation); } catch {}
+    renderKeymapRows();
   });
 
   // Exercise selector
@@ -326,6 +356,7 @@
       setStartEnabled(true);
       setFeedback('Exercise changed. Press Start');
     }
+    renderKeymapRows();
   });
 
   // Repeat current target (cadence + same target)
@@ -367,6 +398,9 @@
   window.addEventListener('resize', () => {
     positionBlackKeys();
   });
+  // Load/save keymap and build UI
+  loadKeymap();
+  renderKeymapRows();
 
   // ---------- Piano UI helpers ----------
   function buildPiano() {
@@ -448,6 +482,80 @@
       black.style.left = `${left}px`;
     });
   }
+
+  // ---------- Key mapping helpers ----------
+  function normalizeKey(e) {
+    const k = e.key;
+    if (!k) return '';
+    if (k.length === 1) return k.toLowerCase();
+    // allow some named keys if desired; currently disallow to keep simple
+    return k.toLowerCase();
+  }
+  function isReservedKey(k) {
+    return ['enter','escape','shift','control','alt','meta','tab'].includes(k);
+  }
+  function setKeymap(midi, key) {
+    // remove previous mapping of this key
+    Object.keys(state.keymap).forEach(k => {
+      if (state.keymap[k] === midi || k === key) delete state.keymap[k];
+    });
+    state.keymap[key] = midi;
+    saveKeymap();
+  }
+  function clearKeymap(midi) {
+    Object.keys(state.keymap).forEach(k => { if (state.keymap[k] === midi) delete state.keymap[k]; });
+    saveKeymap();
+  }
+  function saveKeymap() {
+    try { localStorage.setItem('fet-keymap', JSON.stringify(state.keymap)); } catch {}
+  }
+  function loadKeymap() {
+    try {
+      const raw = localStorage.getItem('fet-keymap');
+      if (raw) {
+        state.keymap = JSON.parse(raw) || {};
+        return;
+      }
+    } catch {}
+    // Default home-row mapping across the visible octave: a..k
+    state.keymap = { a: NOTES.C4, s: NOTES.D4, d: NOTES.E4, f: NOTES.F4, g: NOTES.G4, h: NOTES.A4, j: NOTES.B4, k: NOTES.C5 };
+    saveKeymap();
+  }
+  function renderKeymapRows() {
+    const set = getExerciseSet();
+    ui.mapGrid.innerHTML = '';
+    set.forEach(midi => {
+      const row = document.createElement('div');
+      row.className = 'map-row map-note';
+      row.textContent = labelForMidi(midi);
+      const setBtn = document.createElement('button');
+      setBtn.textContent = 'Set key';
+      setBtn.addEventListener('click', () => {
+        state.waitingMapMidi = midi;
+        setFeedback(`Press a key for ${labelForMidi(midi)} (Esc to cancel)`);
+      });
+      const keySpan = document.createElement('div');
+      keySpan.className = 'map-key';
+      keySpan.textContent = keyForMidi(midi) || '—';
+      const clrBtn = document.createElement('button');
+      clrBtn.textContent = 'Clear';
+      clrBtn.addEventListener('click', () => { clearKeymap(midi); renderKeymapRows(); });
+      ui.mapGrid.appendChild(row);
+      ui.mapGrid.appendChild(setBtn);
+      ui.mapGrid.appendChild(keySpan);
+      ui.mapGrid.appendChild(clrBtn);
+    });
+  }
+  function keyForMidi(midi) {
+    const entry = Object.entries(state.keymap).find(([k, m]) => m === midi);
+    return entry ? entry[0] : '';
+  }
+
+  // Toggle panel
+  ui.keymapBtn.addEventListener('click', () => {
+    ui.keymapPanel.classList.toggle('hidden');
+    renderKeymapRows();
+  });
 
   function clickMidi(midi) {
     const el = ui.piano.querySelector(`[data-midi="${midi}"]`);
