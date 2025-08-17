@@ -36,6 +36,7 @@
     <button id="start">Start / Next</button>
     <label><input type="checkbox" id="resolve" checked /> Resolve to C</label>
     <label><input type="checkbox" id="solfege" /> Solfege labels (Do Re)</label>
+    <button id="repeat">Repeat</button>
   </div>
   <div id="piano" class="piano" aria-label="Piano C4–C5"></div>
   <div class="feedback" id="feedback"></div>
@@ -153,6 +154,7 @@
     startBtn: document.getElementById("start"),
     piano: document.getElementById("piano"),
     solfege: document.getElementById("solfege"),
+    repeatBtn: document.getElementById("repeat"),
   };
 
   function updateStats() {
@@ -174,6 +176,10 @@
     ui.startBtn.disabled = !on;
   }
 
+  function setRepeatEnabled(on) {
+    ui.repeatBtn.disabled = !on;
+  }
+
   function randTargetDegree() {
     const choices = [1, 2, 3, 4];
     return choices[Math.floor(Math.random() * choices.length)];
@@ -188,8 +194,13 @@
     await Tone.start(); // unlock audio context on gesture
     startAudio();
     if (state.targetDegree) return; // ignore if a target is already active (awaiting answer)
+    startRound();
+  });
+
+  function startRound() {
     setStartEnabled(false);
     setPianoEnabled(false);
+    setRepeatEnabled(false);
     setFeedback("Cadence…", null);
     const endCad = playCadence();
     const ctx = startAudio();
@@ -202,8 +213,9 @@
     setTimeout(() => {
       setFeedback("What degree? (1–4)");
       setPianoEnabled(true);
+      setRepeatEnabled(true);
     }, enableAtMs);
-  });
+  }
 
   // Piano click answers
   function onPianoClick(e) {
@@ -227,18 +239,29 @@
     updateStats();
     flashKey(keyEl, ok ? 'correct' : 'wrong');
 
-    // Optional resolution to C
-    if (ui.resolve.checked) {
+    if (ok) {
+      // Optional resolution to C, then auto-advance to next round
       const ctx = startAudio();
-      const t0 = ctx.currentTime + 0.05;
-      playTone(DEGREE_TO_MIDI[state.targetDegree], t0, 0.45, 'piano', 0.16);
-      playTone(NOTES.C4, t0 + 0.46, 0.8, 'piano', 0.18);
+      let nextDelayMs = 400; // minimal gap if no resolution
+      if (ui.resolve.checked) {
+        const t0 = ctx.currentTime + 0.05;
+        playTone(DEGREE_TO_MIDI[state.targetDegree], t0, 0.45, 'piano', 0.16);
+        playTone(NOTES.C4, t0 + 0.46, 0.8, 'piano', 0.18);
+        const tEnd = t0 + 0.46 + 0.82; // rough end of resolution
+        nextDelayMs = Math.max(0, (tEnd - ctx.currentTime) * 1000) + 120;
+      }
+      // Prepare for next round
+      setPianoEnabled(false);
+      setRepeatEnabled(false);
+      const oldDegree = state.targetDegree;
+      state.targetDegree = null;
+      setTimeout(() => {
+        startRound();
+      }, nextDelayMs);
+    } else {
+      // Stay on this round, no resolution
+      // Keep piano and repeat enabled for retry
     }
-
-    // clear target so user must press Start/Next
-    state.targetDegree = null;
-    setPianoEnabled(false);
-    setStartEnabled(true);
   }
   ui.piano.addEventListener('click', onPianoClick);
 
@@ -255,8 +278,28 @@
     updatePianoLabels();
   });
 
+  // Repeat current target
+  ui.repeatBtn.addEventListener('click', () => {
+    if (!state.targetDegree) return;
+    // Repeat full context: cadence + same target
+    setPianoEnabled(false);
+    setRepeatEnabled(false);
+    setFeedback('Cadence…', null);
+    const endCad = playCadence();
+    const ctx = startAudio();
+    const tTarget = endCad + 0.12;
+    playTone(DEGREE_TO_MIDI[state.targetDegree], tTarget, 0.9, 'piano', 0.18);
+    const enableAtMs = Math.max(0, (tTarget - ctx.currentTime) * 1000) + 120;
+    setTimeout(() => {
+      setFeedback('What degree? (1–4)');
+      setPianoEnabled(true);
+      setRepeatEnabled(true);
+    }, enableAtMs);
+  });
+
   updateStats();
   setPianoEnabled(false);
+  setRepeatEnabled(false);
   buildPiano();
   setStartEnabled(false);
   setFeedback("Loading piano…");
