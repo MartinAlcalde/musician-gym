@@ -62,20 +62,23 @@
   <h1>Functional Ear – Minimal (C major, C–F)</h1>
   <div class="row">
     <button id="start">Start / Next</button>
-    <label><input type="checkbox" id="resolve" checked /> Resolve to C</label>
-    <label><input type="checkbox" id="solfege" checked /> Solfege labels (Do Re)</label>
-    <label>Exercise:
-      <select id="exercise">
-        <option value="1">Ex 1 – C to F</option>
-        <option value="2">Ex 2 – G to C (next)</option>
-        <option value="3">Ex 3 – Full octave (C–C)</option>
-      </select>
-    </label>
     <button id="repeat">Repeat</button>
-    <button id="keymapBtn">Key Mapping</button>
+    <button id="settingsBtn" title="Settings">⚙️</button>
   </div>
-  <div id="keymapPanel" class="panel hidden">
-    <div class="map-grid" id="mapGrid"></div>
+  <div id="settingsPanel" class="panel hidden" aria-label="Settings">
+    <div class="row" style="margin-top: 0; align-items: center; gap: 14px;">
+      <label><input type="checkbox" id="resolve" checked /> Resolve to C</label>
+      <label><input type="checkbox" id="solfege" checked /> Solfege labels (Do Re)</label>
+      <label>Exercise:
+        <select id="exercise">
+          <option value="1">Ex 1 – C to F</option>
+          <option value="2">Ex 2 – G to C (next)</option>
+          <option value="3">Ex 3 – Full octave (C–C)</option>
+        </select>
+      </label>
+    </div>
+    <div style="margin-top: 8px; font-weight: 600;">Key Mapping</div>
+    <div class="map-grid" id="mapGrid" style="margin-top: 6px;"></div>
   </div>
   <div id="piano" class="piano" aria-label="Piano C4–C5"></div>
   <div class="feedback" id="feedback"></div>
@@ -197,8 +200,8 @@
     solfege: document.getElementById("solfege"),
     exercise: document.getElementById("exercise"),
     repeatBtn: document.getElementById("repeat"),
-    keymapBtn: document.getElementById("keymapBtn"),
-    keymapPanel: document.getElementById("keymapPanel"),
+    settingsBtn: document.getElementById("settingsBtn"),
+    settingsPanel: document.getElementById("settingsPanel"),
     mapGrid: document.getElementById("mapGrid"),
   };
 
@@ -551,9 +554,9 @@
     return entry ? entry[0] : '';
   }
 
-  // Toggle panel
-  ui.keymapBtn.addEventListener('click', () => {
-    ui.keymapPanel.classList.toggle('hidden');
+  // Toggle settings panel
+  ui.settingsBtn.addEventListener('click', () => {
+    ui.settingsPanel.classList.toggle('hidden');
     renderKeymapRows();
   });
 
