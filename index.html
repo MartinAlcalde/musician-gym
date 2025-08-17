@@ -28,14 +28,23 @@
   <div class="feedback" id="feedback"></div>
   <div class="stat" id="stat">Attempts: 0 | Correct: 0 | Accuracy: 0%</div>
 
-<!-- Tone.js for sample-based piano -->
-<script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
+<!-- Tone.js local for offline usage -->
+<script src="./assets/lib/Tone.js"></script>
 <script>
 (() => {
   // ---------- Audio setup ----------
   let audioCtx;
-  const startAudio = () => audioCtx ??= new (window.AudioContext || window.webkitAudioContext)();
+  const startAudio = () => {
+    if (audioCtx) return audioCtx;
+    if (typeof Tone !== "undefined" && Tone.getContext) {
+      audioCtx = Tone.getContext().rawContext;
+    } else {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return audioCtx;
+  };
   let sampler; // Tone.Sampler instance (lazy)
+  let samplerReady = false;
 
   const midiToFreq = (m) => 440 * Math.pow(2, (m - 69) / 12);
   const NOTES = {
@@ -47,10 +56,9 @@
   const DEGREE_TO_MIDI = { 1: NOTES.C4, 2: NOTES.D4, 3: NOTES.E4, 4: NOTES.F4 };
   const MIDI_TO_NAME = { 55: "G3", 59: "B3", 60: "C4", 62: "D4", 64: "E4", 65: "F4", 67: "G4", 69: "A4", 71: "B4", 72: "C5", 74: "D5" };
 
-  async function ensureSampler() {
-    // If Tone.js is available, create/load a Salamander sampler with known-good file names
+  async function preloadSampler() {
+    // Create and load the sampler without starting audio; ready before first click
     if (sampler || typeof Tone === "undefined") return;
-    await Tone.start(); // unlock audio on user gesture
     sampler = new Tone.Sampler({
       urls: {
         // Local anchor samples; Tone.js interpolates nearby pitches
@@ -66,35 +74,33 @@
       release: 1.2,
       baseUrl: "./assets/piano/",
     }).toDestination();
-    // Wait for sample loading (Tone.js global)
-    if (Tone.loaded) {
-      await Tone.loaded();
+    // Wait for sampler buffers to be ready
+    if (sampler.loaded) {
+      try {
+        await sampler.loaded;
+        samplerReady = true;
+      } catch (e) {
+        samplerReady = false;
+      }
+    } else if (Tone.loaded) {
+      try {
+        await Tone.loaded();
+        samplerReady = true;
+      } catch (e) {
+        samplerReady = false;
+      }
     }
   }
 
   function playTone(midi, when, dur = 0.6, type = "sine", gainVal = 0.15) {
-    // Prefer sample-based piano if available
+    // Require sample-based piano; if not ready, do nothing
     const name = MIDI_TO_NAME[midi];
-    if (sampler && name) {
-      const ctx = startAudio();
-      const delay = Math.max(0, when - ctx.currentTime);
-      const t = (typeof Tone !== "undefined" ? Tone.now() : 0) + delay;
-      const vel = Math.max(0.05, Math.min(1, gainVal * 6));
-      sampler.triggerAttackRelease(name, dur, t, vel);
-      return;
-    }
+    if (!(sampler && samplerReady && name)) return;
     const ctx = startAudio();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = type;
-    osc.frequency.value = midiToFreq(midi);
-    gain.gain.setValueAtTime(0.0001, when);
-    gain.gain.linearRampToValueAtTime(gainVal, when + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0005, when + dur);
-
-    osc.connect(gain).connect(ctx.destination);
-    osc.start(when);
-    osc.stop(when + dur + 0.1);
+    const delay = Math.max(0, when - ctx.currentTime);
+    const t = (typeof Tone !== "undefined" ? Tone.now() : 0) + delay;
+    const vel = Math.max(0.05, Math.min(1, gainVal * 6));
+    sampler.triggerAttackRelease(name, dur, t, vel);
   }
 
   function playChord(midis, when, dur = 0.7, type = "piano", chordGain = 0.24) {
@@ -161,8 +167,12 @@
 
   // Start/Next cycle
   ui.startBtn.addEventListener("click", async () => {
+    if (!samplerReady) {
+      setFeedback("Cargando piano…");
+      return;
+    }
+    await Tone.start(); // unlock audio context on gesture
     startAudio();
-    await ensureSampler().catch(() => {});
     if (state.targetDegree) return; // ignore if a target is already active (awaiting answer)
     setStartEnabled(false);
     setAnswerButtonsEnabled(false);
@@ -219,6 +229,17 @@
 
   updateStats();
   setAnswerButtonsEnabled(false);
+  setStartEnabled(false);
+  setFeedback("Cargando piano…");
+  // Preload samples and then enable Start
+  preloadSampler().then(() => {
+    if (samplerReady) {
+      setFeedback("Listo. Presioná Start");
+      setStartEnabled(true);
+    } else {
+      setFeedback("Error cargando piano");
+    }
+  });
 })();
 </script>
 </body>
