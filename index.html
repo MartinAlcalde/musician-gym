@@ -23,6 +23,11 @@
   .key.correct { box-shadow: 0 0 0 2px #16a34a inset; }
   .key.wrong { box-shadow: 0 0 0 2px #dc2626 inset; }
   .key.hint { box-shadow: 0 0 0 2px #f59e0b inset; }
+  .key .label { position: absolute; left: 0; right: 0; bottom: 4px; text-align: center; font-size: 12px; pointer-events: none; }
+  .key.white .label { color: #222; }
+  .key.black .label { color: #eee; text-shadow: 0 1px 1px rgba(0,0,0,0.6); bottom: 6px; font-size: 11px; }
+  .key.white.in-scope { background: #fffbea; border-color: #f59e0b; }
+  .key.out-of-scope { opacity: 0.85; cursor: default; }
 </style>
 </head>
 <body>
@@ -30,6 +35,7 @@
   <div class="row">
     <button id="start">Start / Next</button>
     <label><input type="checkbox" id="resolve" checked /> Resolve to C</label>
+    <label><input type="checkbox" id="solfege" /> Solfege labels (Do Re)</label>
   </div>
   <div id="piano" class="piano" aria-label="Piano C4–C5"></div>
   <div class="feedback" id="feedback"></div>
@@ -64,6 +70,10 @@
   };
   const DEGREE_TO_MIDI = { 1: NOTES.C4, 2: NOTES.D4, 3: NOTES.E4, 4: NOTES.F4 };
   const MIDI_TO_NAME = { 55: "G3", 59: "B3", 60: "C4", 61: "C#4", 62: "D4", 63: "D#4", 64: "E4", 65: "F4", 66: "F#4", 67: "G4", 68: "G#4", 69: "A4", 70: "A#4", 71: "B4", 72: "C5", 74: "D5" };
+  const PC_TO_SOLFEGE = { 0: 'do', 1: 'do#', 2: 're', 3: 're#', 4: 'mi', 5: 'fa', 6: 'fa#', 7: 'sol', 8: 'sol#', 9: 'la', 10: 'la#', 11: 'si' };
+  const DEGREE_TO_SOLFEGE = { 1: 'do', 2: 're', 3: 'mi', 4: 'fa' };
+  const PC_TO_LETTER = { 0: 'C', 1: 'C#', 2: 'D', 3: 'D#', 4: 'E', 5: 'F', 6: 'F#', 7: 'G', 8: 'G#', 9: 'A', 10: 'A#', 11: 'B' };
+  const DEGREE_TO_LETTER = { 1: 'C', 2: 'D', 3: 'E', 4: 'F' };
 
   async function preloadSampler() {
     // Create and load the sampler without starting audio; ready before first click
@@ -84,7 +94,7 @@
       release: 1.2,
       onload: () => {
         samplerReady = true;
-        setFeedback("Listo. Presioná Start");
+        setFeedback("Ready. Press Start");
         setStartEnabled(true);
       },
       onerror: (e) => {
@@ -133,6 +143,7 @@
     attempts: 0,
     correct: 0,
     answersEnabled: false,
+    notation: 'letter',
   };
 
   const ui = {
@@ -141,6 +152,7 @@
     resolve: document.getElementById("resolve"),
     startBtn: document.getElementById("start"),
     piano: document.getElementById("piano"),
+    solfege: document.getElementById("solfege"),
   };
 
   function updateStats() {
@@ -170,7 +182,7 @@
   // Start/Next cycle
   ui.startBtn.addEventListener("click", async () => {
     if (!samplerReady) {
-      setFeedback("Cargando piano…");
+      setFeedback("Loading piano…");
       return;
     }
     await Tone.start(); // unlock audio context on gesture
@@ -190,8 +202,6 @@
     setTimeout(() => {
       setFeedback("What degree? (1–4)");
       setPianoEnabled(true);
-      // Briefly highlight the target key
-      highlightKey(DEGREE_TO_MIDI[state.targetDegree], 300);
     }, enableAtMs);
   });
 
@@ -203,14 +213,17 @@
     const degreeMap = { [NOTES.C4]: 1, [NOTES.D4]: 2, [NOTES.E4]: 3, [NOTES.F4]: 4 };
     const chosenDegree = degreeMap[midi] || null;
     if (!chosenDegree) {
-      setFeedback('Solo C–F en este modo');
+      setFeedback('Only C–F are valid in this exercise');
       flashKey(keyEl, 'wrong');
       return;
     }
     const ok = chosenDegree === state.targetDegree;
     state.attempts++;
     if (ok) state.correct++;
-    setFeedback(ok ? '✓ Correct' : `✗ Wrong (it was ${state.targetDegree})`, ok);
+    const correctLabel = (state.notation === 'solfege'
+      ? (DEGREE_TO_SOLFEGE[state.targetDegree] || String(state.targetDegree))
+      : (DEGREE_TO_LETTER[state.targetDegree] || String(state.targetDegree)));
+    setFeedback(ok ? '✓ Correct' : `✗ Wrong (it was ${correctLabel})`, ok);
     updateStats();
     flashKey(keyEl, ok ? 'correct' : 'wrong');
 
@@ -236,11 +249,17 @@
     if (map[e.key]) clickMidi(map[e.key]);
   });
 
+  // Notation toggle
+  ui.solfege.addEventListener('change', () => {
+    state.notation = ui.solfege.checked ? 'solfege' : 'letter';
+    updatePianoLabels();
+  });
+
   updateStats();
   setPianoEnabled(false);
   buildPiano();
   setStartEnabled(false);
-  setFeedback("Cargando piano…");
+  setFeedback("Loading piano…");
   // Preload samples; onload will enable Start
   preloadSampler();
 
@@ -259,15 +278,40 @@
       key.className = 'key white';
       key.dataset.midi = String(midi);
       key.dataset.note = MIDI_TO_NAME[midi] || '';
+      const lab = document.createElement('div');
+      lab.className = 'label';
+      key.appendChild(lab);
       ui.piano.appendChild(key);
-      if (hasSharpAfter(midi)) {
+      // Scope highlighting: only C–F (Do–Fa) are in-scope
+      if (midi >= NOTES.C4 && midi <= NOTES.F4) {
+        key.classList.add('in-scope');
+      } else {
+        key.classList.add('out-of-scope');
+      }
+      if (hasSharpAfter(midi) && midi !== NOTES.C5) { // remove C#5 from UI
         const blackMidi = midi + 1;
         const black = document.createElement('div');
         black.className = 'key black';
         black.dataset.midi = String(blackMidi);
         black.dataset.note = MIDI_TO_NAME[blackMidi] || '';
+        const blab = document.createElement('div');
+        blab.className = 'label';
+        black.appendChild(blab);
+        black.classList.add('out-of-scope');
         key.appendChild(black);
       }
+    });
+    updatePianoLabels();
+  }
+
+  function updatePianoLabels() {
+    const useSolfege = state.notation === 'solfege';
+    ui.piano.querySelectorAll('[data-midi]').forEach(el => {
+      const midi = Number(el.dataset.midi);
+      const pc = midi % 12;
+      const text = useSolfege ? (PC_TO_SOLFEGE[pc] || '') : (PC_TO_LETTER[pc] || '');
+      const lab = el.querySelector('.label');
+      if (lab) lab.textContent = text;
     });
   }
 
