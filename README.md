@@ -1,4 +1,4 @@
-Functional Ear Training – Minimal Web Clone
+Functional Ear Training
 
 What Is Functional Ear Training
 - Focus: recognizing scale degrees by their function within a key, not by absolute pitch or isolated intervals.
