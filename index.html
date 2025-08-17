@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Functional Ear – Minimal Web</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 520px; margin: 32px auto; }
+  h1 { font-size: 1.2rem; margin-bottom: 8px; }
+  .row { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
+  button { padding: 10px 14px; font-size: 16px; }
+  .stat { margin-top: 8px; font-size: 14px; color: #333; }
+  .feedback { height: 24px; margin-top: 8px; font-weight: 600; }
+</style>
+</head>
+<body>
+  <h1>Functional Ear – Minimal (C major, C–F)</h1>
+  <div class="row">
+    <button id="start">Start / Next</button>
+    <label><input type="checkbox" id="resolve" checked /> Resolve to C</label>
+  </div>
+  <div class="row">
+    <button class="ans" data-degree="1">1 (Do)</button>
+    <button class="ans" data-degree="2">2 (Re)</button>
+    <button class="ans" data-degree="3">3 (Mi)</button>
+    <button class="ans" data-degree="4">4 (Fa)</button>
+  </div>
+  <div class="feedback" id="feedback"></div>
+  <div class="stat" id="stat">Attempts: 0 | Correct: 0 | Accuracy: 0%</div>
+
+<script>
+(() => {
+  // ---------- Audio setup ----------
+  let audioCtx;
+  const startAudio = () => audioCtx ??= new (window.AudioContext || window.webkitAudioContext)();
+
+  const midiToFreq = (m) => 440 * Math.pow(2, (m - 69) / 12);
+  const NOTES = {
+    // Core octave center
+    C4: 60, D4: 62, E4: 64, F4: 65, G4: 67,
+    // Additional tones for simple triad voicings
+    A4: 69, B3: 59, C5: 72, G3: 55, B4: 71, D5: 74
+  };
+  const DEGREE_TO_MIDI = { 1: NOTES.C4, 2: NOTES.D4, 3: NOTES.E4, 4: NOTES.F4 };
+
+  function playTone(midi, when, dur = 0.5, type = "sine", gainVal = 0.15) {
+    const ctx = startAudio();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = midiToFreq(midi);
+    gain.gain.setValueAtTime(0, when);
+    gain.gain.linearRampToValueAtTime(gainVal, when + 0.01);
+    gain.gain.setTargetAtTime(0.0001, when + dur - 0.05, 0.03);
+
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(when);
+    osc.stop(when + dur + 0.1);
+  }
+
+  function playChord(midis, when, dur = 0.6, type = "sine", chordGain = 0.12) {
+    const perVoice = chordGain / Math.max(1, midis.length);
+    midis.forEach(m => playTone(m, when, dur, type, perVoice));
+  }
+
+  // Cadence: I–IV–V–I in C major (simple triads with smooth voice-leading)
+  function playCadence() {
+    const ctx = startAudio();
+    const t0 = ctx.currentTime + 0.05;
+    const step = 0.65;
+    // I: C major (C4 E4 G4)
+    playChord([NOTES.C4, NOTES.E4, NOTES.G4], t0, step);
+    // IV: F major voiced with common tone C4 (C4 F4 A4)
+    playChord([NOTES.C4, NOTES.F4, NOTES.A4], t0 + step, step);
+    // V: G major (B3 D4 G4) for smooth motion
+    playChord([NOTES.B3, NOTES.D4, NOTES.G4], t0 + 2*step, step);
+    // I: C major return
+    playChord([NOTES.C4, NOTES.E4, NOTES.G4], t0 + 3*step, step);
+    return t0 + 4*step; // end time
+  }
+
+  // ---------- Game state ----------
+  const state = {
+    running: false,
+    targetDegree: null,
+    attempts: 0,
+    correct: 0,
+    answersEnabled: false,
+  };
+
+  const ui = {
+    feedback: document.getElementById("feedback"),
+    stat: document.getElementById("stat"),
+    resolve: document.getElementById("resolve"),
+    startBtn: document.getElementById("start"),
+    ansBtns: Array.from(document.querySelectorAll(".ans")),
+  };
+
+  function updateStats() {
+    const acc = state.attempts ? Math.round((100 * state.correct) / state.attempts) : 0;
+    ui.stat.textContent = `Attempts: ${state.attempts} | Correct: ${state.correct} | Accuracy: ${acc}%`;
+  }
+
+  function setFeedback(text, ok = null) {
+    ui.feedback.textContent = text;
+    ui.feedback.style.color = ok === null ? "#333" : ok ? "green" : "crimson";
+  }
+
+  function setAnswerButtonsEnabled(on) {
+    state.answersEnabled = !!on;
+    ui.ansBtns.forEach(b => b.disabled = !on);
+  }
+
+  function setStartEnabled(on) {
+    ui.startBtn.disabled = !on;
+  }
+
+  function randTargetDegree() {
+    const choices = [1, 2, 3, 4];
+    return choices[Math.floor(Math.random() * choices.length)];
+  }
+
+  // Start/Next cycle
+  ui.startBtn.addEventListener("click", async () => {
+    startAudio();
+    if (state.targetDegree) return; // ignore if a target is already active (awaiting answer)
+    setStartEnabled(false);
+    setAnswerButtonsEnabled(false);
+    setFeedback("Cadence…", null);
+    const endCad = playCadence();
+    const ctx = startAudio();
+    // Choose target after cadence completes
+    state.targetDegree = randTargetDegree();
+    const tTarget = endCad + 0.12;
+    playTone(DEGREE_TO_MIDI[state.targetDegree], tTarget, 0.7, "sine", 0.16);
+    // Enable answers slightly after target onset
+    const enableAtMs = Math.max(0, (tTarget - ctx.currentTime) * 1000) + 120;
+    setTimeout(() => {
+      setFeedback("What degree? (1–4)");
+      setAnswerButtonsEnabled(true);
+    }, enableAtMs);
+  });
+
+  // Answers
+  ui.ansBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (!state.targetDegree || !state.answersEnabled) return;
+      const chosen = Number(btn.dataset.degree);
+      const ok = chosen === state.targetDegree;
+      state.attempts++;
+      if (ok) state.correct++;
+      setFeedback(ok ? "✓ Correct" : `✗ Wrong (it was ${state.targetDegree})`, ok);
+      updateStats();
+
+      // Optional resolution to C
+      if (ui.resolve.checked) {
+        const ctx = startAudio();
+        const t0 = ctx.currentTime + 0.05;
+        // Replay target briefly, then resolve to C
+        playTone(DEGREE_TO_MIDI[state.targetDegree], t0, 0.35, "sine", 0.13);
+        playTone(NOTES.C4, t0 + 0.4, 0.5, "sine", 0.16);
+      }
+
+      // clear target so user must press Start/Next
+      state.targetDegree = null;
+      setAnswerButtonsEnabled(false);
+      setStartEnabled(true);
+    });
+  });
+
+  // Keyboard shortcuts 1–4 + Enter
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") ui.startBtn.click();
+    if (["1","2","3","4"].includes(e.key)) {
+      const btn = ui.ansBtns.find(b => b.dataset.degree === e.key);
+      btn && btn.click();
+    }
+  });
+
+  updateStats();
+  setAnswerButtonsEnabled(false);
+})();
+</script>
+</body>
+</html>
