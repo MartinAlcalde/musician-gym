@@ -57,6 +57,68 @@
   .map-note { font-weight: 600; }
   .map-key { min-width: 24px; text-align: center; font-family: ui-monospace, monospace; }
   .muted { color: #6b7280; }
+
+  /* Dark theme */
+  body.dark {
+    background: #1a1a1a;
+    color: #e5e5e5;
+  }
+  
+  body.dark .panel {
+    background: #2a2a2a;
+    border-color: #404040;
+  }
+  
+  body.dark button {
+    background: #3a3a3a;
+    color: #e5e5e5;
+    border: 1px solid #555;
+  }
+  
+  body.dark button:hover {
+    background: #4a4a4a;
+  }
+  
+  body.dark button:disabled {
+    background: #2a2a2a;
+    color: #666;
+  }
+  
+  body.dark select {
+    background: #3a3a3a;
+    color: #e5e5e5;
+    border: 1px solid #555;
+  }
+  
+  body.dark input[type="checkbox"] {
+    background: #3a3a3a;
+    border: 1px solid #555;
+  }
+  
+  body.dark .feedback.ok { color: #22c55e; }
+  body.dark .feedback.err { color: #ef4444; }
+  
+  body.dark .muted { color: #9ca3af; }
+  
+  /* Dark theme piano */
+  body.dark .key.white {
+    background: #f5f5f5;
+    border-color: #888;
+  }
+  
+  body.dark .key.white.in-scope {
+    background: #fff9c4;
+    border-color: #d97706;
+  }
+  
+  body.dark .key.white.out-of-scope {
+    opacity: 0.7;
+  }
+  
+  body.dark .key.black {
+    background: #0a0a0a;
+    border-color: #000;
+  }
 </style>
 </head>
 <body>
@@ -70,6 +132,7 @@
     <div class="row" style="margin-top: 0; align-items: center; gap: 14px;">
       <label><input type="checkbox" id="resolve" checked /> Resolve to C</label>
       <label><input type="checkbox" id="solfege" checked /> Solfege labels (Do Re)</label>
+      <label><input type="checkbox" id="darkTheme" /> Dark theme</label>
       <label>Exercise:
         <select id="exercise">
           <option value="1">Ex 1 – C to F</option>
@@ -240,6 +303,7 @@
     bluetoothStatus: document.getElementById("bluetoothStatus"),
     gamepadConnect: document.getElementById("gamepadConnect"),
     gamepadStatus: document.getElementById("gamepadStatus"),
+    darkTheme: document.getElementById("darkTheme"),
   };
 
   function updateStats() {
@@ -882,6 +946,13 @@
     renderKeymapRows();
   });
 
+  // Dark theme toggle
+  ui.darkTheme.addEventListener('change', () => {
+    const isDark = ui.darkTheme.checked;
+    document.body.classList.toggle('dark', isDark);
+    try { localStorage.setItem('fet-dark-theme', isDark); } catch {}
+  });
+
   // Exercise selector
   ui.exercise.addEventListener('change', () => {
     state.exercise = Number(ui.exercise.value) || 1;
@@ -919,12 +990,18 @@
   updateStats();
   setPianoEnabled(false);
   setRepeatEnabled(false);
-  // Load saved notation preference
+  // Load saved preferences
   try {
-    const saved = localStorage.getItem('fet-notation');
-    if (saved === 'solfege' || saved === 'letter') {
-      state.notation = saved;
-      ui.solfege.checked = (saved === 'solfege');
+    const savedNotation = localStorage.getItem('fet-notation');
+    if (savedNotation === 'solfege' || savedNotation === 'letter') {
+      state.notation = savedNotation;
+      ui.solfege.checked = (savedNotation === 'solfege');
+    }
+    
+    const savedTheme = localStorage.getItem('fet-dark-theme');
+    if (savedTheme === 'true') {
+      ui.darkTheme.checked = true;
+      document.body.classList.add('dark');
     }
   } catch {}
   buildPiano();
