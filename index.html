@@ -1028,28 +1028,42 @@
       setFeedback("🎵 (Answer hidden)");
     }
     
+    // Calculate timing based on what's enabled
+    let speechDuration = 0;
+    let resolutionDuration = 0;
+    
     // Say answer if enabled and available
     if (state.sayAnswer && 'speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(targetLabel);
       utterance.rate = 0.8;
       utterance.pitch = 1.0;
+      
+      // Estimate speech duration (rough calculation)
+      speechDuration = Math.max(1000, targetLabel.length * 200); // ~200ms per character, min 1s
+      
       speechSynthesis.speak(utterance);
     }
     
-    // Play resolution if enabled
-    let resolutionDuration = 0;
+    // Play resolution after speech finishes
     if (ui.resolve.checked) {
-      const ctx = startAudio();
-      const t0 = ctx.currentTime + 0.5;
-      playTone(state.targetMidi, t0, 0.45, 'piano', 0.16);
-      playTone(NOTES.C4, t0 + 0.46, 0.8, 'piano', 0.18);
-      resolutionDuration = 1800; // 0.5s delay + 0.45s + 0.8s + extra buffer
+      const resolutionDelay = speechDuration + 300; // Wait for speech + small gap
+      
+      setTimeout(() => {
+        if (state.autoMode && state.running) {
+          const ctx = startAudio();
+          const t0 = ctx.currentTime + 0.1;
+          playTone(state.targetMidi, t0, 0.45, 'piano', 0.16);
+          playTone(NOTES.C4, t0 + 0.46, 0.8, 'piano', 0.18);
+        }
+      }, resolutionDelay);
+      
+      resolutionDuration = resolutionDelay + 1400; // Delay + actual resolution duration
     }
     
     // Schedule next round with proper timing
-    // Total time used so far: 2000ms (listen) + resolutionDuration + extra pause
-    const usedTime = 2000 + resolutionDuration + 1500; // Extra 1.5s pause after resolution
-    const delay = Math.max(2000, state.autoInterval - usedTime); // Minimum 2 seconds before next round
+    // Total time used: 2000ms (listen) + speechDuration + resolutionDuration + extra pause
+    const usedTime = 2000 + Math.max(speechDuration, 0) + resolutionDuration + 1500;
+    const delay = Math.max(3000, state.autoInterval - usedTime); // Minimum 3 seconds when speech is involved
     
     state.autoTimer = setTimeout(() => {
       if (state.autoMode && state.running) {
