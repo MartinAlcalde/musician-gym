@@ -215,6 +215,8 @@
     bluetoothCharacteristic: null,
     gamepadIndex: -1,
     gamepadButtons: [],
+    gamepadAxes: [],
+    axisThreshold: 0.5,
   };
 
   const ui = {
@@ -723,7 +725,9 @@
         
         state.gamepadIndex = i;
         state.gamepadButtons = new Array(gamepad.buttons.length).fill(false);
-        ui.gamepadStatus.textContent = `Connected: ${gamepad.id} (${gamepad.buttons.length} buttons)`;
+        // Track axis states: [axis0up, axis0down, axis0left, axis0right, axis1up, axis1down, ...]
+        state.gamepadAxes = new Array(gamepad.axes.length * 4).fill(false);
+        ui.gamepadStatus.textContent = `Connected: ${gamepad.id} (${gamepad.buttons.length} buttons, ${gamepad.axes.length} axes)`;
         
         // Start polling
         startGamepadPolling();
@@ -788,8 +792,70 @@
         state.gamepadButtons[i] = isPressed;
       }
       
+      // Check axes for directional input
+      for (let i = 0; i < gamepad.axes.length; i++) {
+        const axisValue = gamepad.axes[i];
+        const baseIndex = i * 4; // Each axis has 4 directions
+        
+        // Determine current axis directions
+        const isUp = axisValue < -state.axisThreshold;    // Negative Y = up
+        const isDown = axisValue > state.axisThreshold;   // Positive Y = down
+        const isLeft = axisValue < -state.axisThreshold;  // Negative X = left  
+        const isRight = axisValue > state.axisThreshold;  // Positive X = right
+        
+        // For even axes (0, 2, 4...) = X axis (left/right)
+        // For odd axes (1, 3, 5...) = Y axis (up/down)
+        const isXAxis = i % 2 === 0;
+        
+        if (isXAxis) {
+          // X axis: check left/right
+          checkAxisDirection(i, 'left', isLeft, baseIndex + 0);
+          checkAxisDirection(i, 'right', isRight, baseIndex + 1);
+        } else {
+          // Y axis: check up/down  
+          checkAxisDirection(i, 'up', isUp, baseIndex + 2);
+          checkAxisDirection(i, 'down', isDown, baseIndex + 3);
+        }
+      }
+      
       // Continue polling
       requestAnimationFrame(poll);
+    }
+    
+    function checkAxisDirection(axisIndex, direction, isActive, stateIndex) {
+      const wasActive = state.gamepadAxes[stateIndex];
+      
+      if (isActive && !wasActive) {
+        const gamepadId = `gamepad:axis${axisIndex}-${direction}`;
+        console.log(`Gamepad axis ${axisIndex} ${direction}`);
+        
+        // Update key tester
+        if (ui.keyTestLine) {
+          ui.keyTestLine.textContent = `Gamepad Axis ${axisIndex} ${direction}`;
+        }
+        if (ui.keyTestDetail) {
+          const midi = state.keymap[gamepadId];
+          ui.keyTestDetail.textContent = midi ? `Mapped to: ${labelForMidi(midi)}` : `Gamepad ID: ${gamepadId}`;
+        }
+        
+        // Handle mapping if active
+        if (state.waitingMapMidi !== null) {
+          state.keymap[gamepadId] = state.waitingMapMidi;
+          saveKeymap();
+          state.waitingMapMidi = null;
+          renderKeymapRows();
+          setFeedback(`Mapped axis ${axisIndex} ${direction} to ${labelForMidi(state.waitingMapMidi)}`);
+        } else {
+          // Check if mapped and trigger
+          const midi = state.keymap[gamepadId];
+          if (midi != null && state.answersEnabled) {
+            console.log('Triggering mapped note from gamepad axis:', labelForMidi(midi));
+            clickMidi(midi);
+          }
+        }
+      }
+      
+      state.gamepadAxes[stateIndex] = isActive;
     }
     
     poll();
