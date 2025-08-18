@@ -90,6 +90,10 @@
         <button id="bluetoothConnect">🔵 Connect Bluetooth</button>
         <div id="bluetoothStatus" class="muted">Not connected</div>
       </div>
+      <div class="row" style="margin: 6px 0 0 0; gap: 10px; align-items: center;">
+        <button id="gamepadConnect">🎮 Detect Gamepad</button>
+        <div id="gamepadStatus" class="muted">Not detected</div>
+      </div>
       <div id="hidNote" class="muted" style="margin-top: 6px; font-size: 12px;">Use Bluetooth for direct BLE access with unique button detection</div>
     </div>
     <div style="margin-top: 10px; font-weight: 600;">Key Tester</div>
@@ -209,6 +213,8 @@
     waitingMapMidi: null,
     bluetoothDevice: null,
     bluetoothCharacteristic: null,
+    gamepadIndex: -1,
+    gamepadButtons: [],
   };
 
   const ui = {
@@ -230,6 +236,8 @@
     hidNote: document.getElementById("hidNote"),
     bluetoothConnect: document.getElementById("bluetoothConnect"),
     bluetoothStatus: document.getElementById("bluetoothStatus"),
+    gamepadConnect: document.getElementById("gamepadConnect"),
+    gamepadStatus: document.getElementById("gamepadStatus"),
   };
 
   function updateStats() {
@@ -698,6 +706,108 @@
     }
   }
 
+  // ---------- Gamepad API support ----------
+  function detectGamepad() {
+    const gamepads = navigator.getGamepads();
+    console.log('Checking for gamepads:', gamepads.length);
+    
+    for (let i = 0; i < gamepads.length; i++) {
+      const gamepad = gamepads[i];
+      if (gamepad) {
+        console.log(`Gamepad ${i} found:`, {
+          id: gamepad.id,
+          index: gamepad.index,
+          buttons: gamepad.buttons.length,
+          axes: gamepad.axes.length
+        });
+        
+        state.gamepadIndex = i;
+        state.gamepadButtons = new Array(gamepad.buttons.length).fill(false);
+        ui.gamepadStatus.textContent = `Connected: ${gamepad.id} (${gamepad.buttons.length} buttons)`;
+        
+        // Start polling
+        startGamepadPolling();
+        return true;
+      }
+    }
+    
+    ui.gamepadStatus.textContent = 'No gamepad detected - press a button first';
+    return false;
+  }
+  
+  function startGamepadPolling() {
+    console.log('Starting gamepad polling...');
+    
+    function poll() {
+      const gamepads = navigator.getGamepads();
+      const gamepad = gamepads[state.gamepadIndex];
+      
+      if (!gamepad) {
+        ui.gamepadStatus.textContent = 'Gamepad disconnected';
+        state.gamepadIndex = -1;
+        return;
+      }
+      
+      // Check each button for state changes
+      for (let i = 0; i < gamepad.buttons.length; i++) {
+        const button = gamepad.buttons[i];
+        const wasPressed = state.gamepadButtons[i];
+        const isPressed = button.pressed;
+        
+        // Button press detected (transition from false to true)
+        if (isPressed && !wasPressed) {
+          const gamepadId = `gamepad:button${i}`;
+          console.log(`Gamepad button ${i} pressed`);
+          
+          // Update key tester
+          if (ui.keyTestLine) {
+            ui.keyTestLine.textContent = `Gamepad Button ${i} pressed`;
+          }
+          if (ui.keyTestDetail) {
+            const midi = state.keymap[gamepadId];
+            ui.keyTestDetail.textContent = midi ? `Mapped to: ${labelForMidi(midi)}` : `Gamepad ID: ${gamepadId}`;
+          }
+          
+          // Handle mapping if active
+          if (state.waitingMapMidi !== null) {
+            state.keymap[gamepadId] = state.waitingMapMidi;
+            saveKeymap();
+            state.waitingMapMidi = null;
+            renderKeymapRows();
+            setFeedback(`Mapped button ${i} to ${labelForMidi(state.waitingMapMidi)}`);
+          } else {
+            // Check if mapped and trigger
+            const midi = state.keymap[gamepadId];
+            if (midi != null && state.answersEnabled) {
+              console.log('Triggering mapped note from gamepad:', labelForMidi(midi));
+              clickMidi(midi);
+            }
+          }
+        }
+        
+        state.gamepadButtons[i] = isPressed;
+      }
+      
+      // Continue polling
+      requestAnimationFrame(poll);
+    }
+    
+    poll();
+  }
+  
+  // Gamepad connect/disconnect events
+  window.addEventListener('gamepadconnected', (e) => {
+    console.log('Gamepad connected:', e.gamepad.id);
+    ui.gamepadStatus.textContent = `Connected: ${e.gamepad.id}`;
+    detectGamepad();
+  });
+  
+  window.addEventListener('gamepaddisconnected', (e) => {
+    console.log('Gamepad disconnected:', e.gamepad.id);
+    ui.gamepadStatus.textContent = 'Disconnected';
+    state.gamepadIndex = -1;
+  });
+
   // Notation toggle
   ui.solfege.addEventListener('change', () => {
     state.notation = ui.solfege.checked ? 'solfege' : 'letter';
@@ -1037,6 +1147,11 @@
   // Bluetooth connection
   if (ui.bluetoothConnect) {
     ui.bluetoothConnect.addEventListener('click', connectBluetooth);
+  }
+
+  // Gamepad detection
+  if (ui.gamepadConnect) {
+    ui.gamepadConnect.addEventListener('click', detectGamepad);
   }
 
   function clickMidi(midi) {
