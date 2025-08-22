@@ -87,28 +87,20 @@ function App() {
     }
   }, [audio.isReady])
 
-  // Dark theme effect
+  // Dark theme effect - only apply to DOM, don't save here
   useEffect(() => {
     document.body.classList.toggle('dark', darkTheme)
-    try {
-      localStorage.setItem(STORAGE_KEYS.DARK_THEME, String(darkTheme))
-      console.log('💾 Saved dark theme:', String(darkTheme))
-    } catch {}
   }, [darkTheme])
 
-  // Auto mode effect
+  // Auto mode effect - only handle state changes, don't save here  
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEYS.AUTO_MODE, String(autoModeEnabled))
-    } catch {}
-    
     if (!autoModeEnabled && autoMode.isRunning) {
       autoMode.stop()
       setFeedback('Auto mode disabled')
       gameState.resetTarget()
       gameState.disableAnswers()
     }
-  }, [autoModeEnabled])
+  }, [autoModeEnabled, autoMode, gameState])
 
   // Keyboard event handler
   useEffect(() => {
@@ -304,9 +296,11 @@ function App() {
         break
       case 'darkTheme':
         setDarkTheme(value)
+        try { localStorage.setItem(STORAGE_KEYS.DARK_THEME, String(value)) } catch {}
         break
       case 'autoMode':
         setAutoModeEnabled(value)
+        try { localStorage.setItem(STORAGE_KEYS.AUTO_MODE, String(value)) } catch {}
         break
       case 'exercise':
         gameState.setExercise(value)
