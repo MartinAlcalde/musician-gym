@@ -35,26 +35,49 @@ function App() {
   useEffect(() => {
     try {
       const savedNotation = localStorage.getItem(STORAGE_KEYS.NOTATION) || 'solfege'
-      const savedTheme = localStorage.getItem(STORAGE_KEYS.DARK_THEME) === 'true'
-      const savedAutoMode = localStorage.getItem(STORAGE_KEYS.AUTO_MODE) === 'true' 
-      const savedInterval = Number(localStorage.getItem(STORAGE_KEYS.AUTO_INTERVAL)) || 5000
-      const savedShowAnswer = localStorage.getItem(STORAGE_KEYS.SHOW_ANSWER) !== 'false'
-      const savedSayAnswer = localStorage.getItem(STORAGE_KEYS.SAY_ANSWER) === 'true'
+      const savedThemeRaw = localStorage.getItem(STORAGE_KEYS.DARK_THEME)
+      const savedAutoModeRaw = localStorage.getItem(STORAGE_KEYS.AUTO_MODE)
+      
+      const savedTheme = savedThemeRaw === 'true'
+      const savedAutoMode = savedAutoModeRaw === 'true'
+
+      console.log('🔧 Loading saved preferences:', { 
+        savedNotation, 
+        savedThemeRaw, 
+        savedTheme, 
+        savedAutoModeRaw, 
+        savedAutoMode 
+      })
 
       setNotation(savedNotation)
       setDarkTheme(savedTheme)
       setAutoModeEnabled(savedAutoMode)
-      autoMode.setInterval(savedInterval)
-      autoMode.setShowAnswer(savedShowAnswer)
-      autoMode.setSayAnswer(savedSayAnswer)
 
+      // Apply dark theme immediately to body
       if (savedTheme) {
         document.body.classList.add('dark')
+      } else {
+        document.body.classList.remove('dark')
       }
     } catch (error) {
       console.warn('Error loading preferences:', error)
     }
   }, [])
+
+  // Load auto mode settings separately after auto mode hook is ready
+  useEffect(() => {
+    try {
+      const savedInterval = Number(localStorage.getItem(STORAGE_KEYS.AUTO_INTERVAL)) || 5000
+      const savedShowAnswer = localStorage.getItem(STORAGE_KEYS.SHOW_ANSWER) !== 'false'
+      const savedSayAnswer = localStorage.getItem(STORAGE_KEYS.SAY_ANSWER) === 'true'
+
+      autoMode.setInterval(savedInterval)
+      autoMode.setShowAnswer(savedShowAnswer)
+      autoMode.setSayAnswer(savedSayAnswer)
+    } catch (error) {
+      console.warn('Error loading auto mode preferences:', error)
+    }
+  }, [autoMode])
 
   // Audio ready effect
   useEffect(() => {
@@ -68,14 +91,15 @@ function App() {
   useEffect(() => {
     document.body.classList.toggle('dark', darkTheme)
     try {
-      localStorage.setItem(STORAGE_KEYS.DARK_THEME, darkTheme)
+      localStorage.setItem(STORAGE_KEYS.DARK_THEME, String(darkTheme))
+      console.log('💾 Saved dark theme:', String(darkTheme))
     } catch {}
   }, [darkTheme])
 
   // Auto mode effect
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEYS.AUTO_MODE, autoModeEnabled)
+      localStorage.setItem(STORAGE_KEYS.AUTO_MODE, String(autoModeEnabled))
     } catch {}
     
     if (!autoModeEnabled && autoMode.isRunning) {
@@ -295,15 +319,15 @@ function App() {
         break
       case 'autoInterval':
         autoMode.setInterval(value)
-        try { localStorage.setItem(STORAGE_KEYS.AUTO_INTERVAL, value) } catch {}
+        try { localStorage.setItem(STORAGE_KEYS.AUTO_INTERVAL, String(value)) } catch {}
         break
       case 'showAnswer':
         autoMode.setShowAnswer(value)
-        try { localStorage.setItem(STORAGE_KEYS.SHOW_ANSWER, value) } catch {}
+        try { localStorage.setItem(STORAGE_KEYS.SHOW_ANSWER, String(value)) } catch {}
         break
       case 'sayAnswer':
         autoMode.setSayAnswer(value)
-        try { localStorage.setItem(STORAGE_KEYS.SAY_ANSWER, value) } catch {}
+        try { localStorage.setItem(STORAGE_KEYS.SAY_ANSWER, String(value)) } catch {}
         break
     }
   }

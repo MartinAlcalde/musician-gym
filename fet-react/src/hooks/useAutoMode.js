@@ -28,15 +28,19 @@ export function useAutoMode() {
     const tTarget = endCad + 0.12
     playTone(targetMidi, tTarget, 0.9, "piano", 0.18)
 
-    const listenDelay = Math.max(0, (tTarget - performance.now() / 1000) * 1000) + 200
-    
-    setTimeout(() => {
-      if (!isRunning) return
+    // Use Tone context for timing like in the original
+    import('tone').then(Tone => {
+      const ctx = Tone.getContext().rawContext
+      const enableAtMs = Math.max(0, (tTarget - ctx.currentTime) * 1000) + 200
       
       setTimeout(() => {
-        showAutoAnswer(targetMidi, playTone, onComplete)
-      }, 2000)
-    }, listenDelay)
+        if (!isRunning) return
+        
+        setTimeout(() => {
+          showAutoAnswer(targetMidi, playTone, onComplete)
+        }, 2000)
+      }, enableAtMs)
+    })
   }, [isRunning])
 
   const showAutoAnswer = useCallback((targetMidi, playTone, onComplete) => {
