@@ -69,7 +69,7 @@ function App() {
     try {
       const savedInterval = Number(localStorage.getItem(STORAGE_KEYS.AUTO_INTERVAL)) || 5000
       const savedShowAnswer = localStorage.getItem(STORAGE_KEYS.SHOW_ANSWER) !== 'false'
-      const savedSayAnswer = localStorage.getItem(STORAGE_KEYS.SAY_ANSWER) === 'true'
+      const savedSayAnswer = localStorage.getItem(STORAGE_KEYS.SAY_ANSWER) !== 'false'
 
       autoMode.setInterval(savedInterval)
       autoMode.setShowAnswer(savedShowAnswer)

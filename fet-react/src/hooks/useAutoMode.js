@@ -6,7 +6,7 @@ export function useAutoMode() {
   const [isRunning, setIsRunning] = useState(false)
   const [interval, setInterval] = useState(5000)
   const [showAnswer, setShowAnswer] = useState(true)
-  const [sayAnswer, setSayAnswer] = useState(false)
+  const [sayAnswer, setSayAnswer] = useState(true)
   const autoTimerRef = useRef(null)
   const isRunningRef = useRef(false)
 
@@ -64,12 +64,16 @@ export function useAutoMode() {
     let resolutionDuration = 0
 
     // Say answer if enabled
+    console.log('🗣️ Say answer check:', {sayAnswer, hasSpeechSynthesis: 'speechSynthesis' in window})
     if (sayAnswer && 'speechSynthesis' in window) {
+      console.log('🗣️ Speaking:', targetLabel)
       const utterance = new SpeechSynthesisUtterance(targetLabel)
       utterance.rate = 0.8
       utterance.pitch = 1.0
       speechDuration = Math.max(1000, targetLabel.length * 200)
       speechSynthesis.speak(utterance)
+    } else {
+      console.log('🗣️ Not speaking - sayAnswer:', sayAnswer, 'speechSynthesis available:', 'speechSynthesis' in window)
     }
 
     // Play resolution (always enabled in auto mode for now)
