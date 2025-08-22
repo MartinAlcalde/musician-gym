@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import * as Tone from 'tone'
-import { Piano, Settings, GameControls, GameDisplay } from './components'
+import { Piano, Settings, GameControls, GameDisplay, ExerciseSelector } from './components'
 import { useAudio } from './hooks/useAudio.js'
 import { useGameState } from './hooks/useGameState.js'
 import { useKeyboard } from './hooks/useKeyboard.js'
@@ -14,6 +14,7 @@ function App() {
   const [feedback, setFeedback] = useState("Loading piano…")
   const [feedbackOk, setFeedbackOk] = useState(null)
   const [settingsVisible, setSettingsVisible] = useState(false)
+  const [exerciseSelectorVisible, setExerciseSelectorVisible] = useState(false)
   const [startEnabled, setStartEnabled] = useState(false)
   
   // Settings state
@@ -347,10 +348,12 @@ function App() {
         onStart={handleStart}
         onRepeat={handleRepeat}
         onToggleSettings={() => setSettingsVisible(!settingsVisible)}
+        onToggleExerciseSelector={() => setExerciseSelectorVisible(!exerciseSelectorVisible)}
         startEnabled={startEnabled}
         repeatEnabled={gameState.repeatEnabled}
         autoMode={autoModeEnabled}
         isAutoRunning={autoMode.isRunning}
+        currentExercise={gameState.exercise}
       />
 
       <Settings
@@ -387,6 +390,13 @@ function App() {
         attempts={gameState.attempts}
         correct={gameState.correct}
         accuracy={gameState.accuracy}
+      />
+
+      <ExerciseSelector
+        isVisible={exerciseSelectorVisible}
+        currentExercise={gameState.exercise}
+        onExerciseSelect={(exerciseNum) => handleSettingChange('exercise', exerciseNum)}
+        onClose={() => setExerciseSelectorVisible(false)}
       />
     </div>
   )

@@ -2,10 +2,12 @@ export function GameControls({
   onStart,
   onRepeat,
   onToggleSettings,
+  onToggleExerciseSelector,
   startEnabled,
   repeatEnabled,
   autoMode,
-  isAutoRunning
+  isAutoRunning,
+  currentExercise
 }) {
   const getStartButtonText = () => {
     if (autoMode && isAutoRunning) return '⏹️ Stop Auto Mode'
@@ -28,6 +30,13 @@ export function GameControls({
         disabled={!repeatEnabled}
       >
         Repeat
+      </button>
+      
+      <button 
+        onClick={onToggleExerciseSelector}
+        title="Select Exercise"
+      >
+        🎵 Ex {currentExercise}
       </button>
       
       <button 

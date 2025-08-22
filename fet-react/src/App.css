@@ -143,3 +143,220 @@ body.dark .key.black {
   background: #0a0a0a;
   border-color: #000;
 }
+
+/* Exercise Selector Modal */
+.exercise-selector-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.exercise-selector-modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.exercise-selector-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.exercise-selector-header h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  color: #333;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px 8px;
+  color: #666;
+  border-radius: 4px;
+}
+
+.close-button:hover {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.exercise-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.exercise-card {
+  border: 2px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #fafafa;
+}
+
+.exercise-card:hover {
+  border-color: #d97706;
+  background: #fff9c4;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.exercise-card.selected {
+  border-color: #d97706;
+  background: #fff9c4;
+  box-shadow: 0 0 0 1px #d97706;
+}
+
+.exercise-card-header {
+  margin-bottom: 12px;
+}
+
+.exercise-card-header h3 {
+  margin: 0 0 4px 0;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.exercise-subtitle {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+
+.exercise-description {
+  margin-bottom: 12px;
+}
+
+.solfege-notes {
+  margin: 0 0 6px 0;
+  font-weight: 600;
+  color: #d97706;
+  font-size: 14px;
+}
+
+.exercise-notes {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+}
+
+.exercise-range {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.note-count {
+  font-size: 12px;
+  color: #888;
+}
+
+.current-indicator {
+  background: #22c55e;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.exercise-selector-footer {
+  padding-top: 16px;
+  border-top: 1px solid #e5e5e5;
+}
+
+.help-text {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+  text-align: center;
+}
+
+/* Dark theme for exercise selector */
+body.dark .exercise-selector-modal {
+  background: #2a2a2a;
+  color: #e5e5e5;
+}
+
+body.dark .exercise-selector-header {
+  border-bottom-color: #404040;
+}
+
+body.dark .exercise-selector-header h2 {
+  color: #e5e5e5;
+}
+
+body.dark .close-button {
+  color: #bbb;
+}
+
+body.dark .close-button:hover {
+  background: #404040;
+  color: #e5e5e5;
+}
+
+body.dark .exercise-card {
+  background: #353535;
+  border-color: #404040;
+  color: #e5e5e5;
+}
+
+body.dark .exercise-card:hover {
+  border-color: #d97706;
+  background: #4a4a2a;
+}
+
+body.dark .exercise-card.selected {
+  background: #4a4a2a;
+  border-color: #d97706;
+}
+
+body.dark .exercise-card-header h3 {
+  color: #e5e5e5;
+}
+
+body.dark .exercise-subtitle {
+  color: #bbb;
+}
+
+body.dark .solfege-notes {
+  color: #fbbf24;
+}
+
+body.dark .exercise-notes {
+  color: #bbb;
+}
+
+body.dark .note-count {
+  color: #999;
+}
+
+body.dark .exercise-selector-footer {
+  border-top-color: #404040;
+}
+
+body.dark .help-text {
+  color: #bbb;
+}

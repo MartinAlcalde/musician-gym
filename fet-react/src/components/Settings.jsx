@@ -68,17 +68,6 @@ export function Settings({
           Auto mode (passive practice)
         </label>
         
-        <label>
-          Exercise:
-          <select 
-            value={exercise} 
-            onChange={(e) => onSettingChange('exercise', Number(e.target.value))}
-          >
-            <option value="1">Ex 1 – C to F</option>
-            <option value="2">Ex 2 – G to C (next)</option>
-            <option value="3">Ex 3 – Full octave (C–C)</option>
-          </select>
-        </label>
       </div>
       
       {autoModeEnabled && (
