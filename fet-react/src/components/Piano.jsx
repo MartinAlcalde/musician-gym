@@ -31,10 +31,14 @@ export const Piano = forwardRef(function Piano({
       })
     }
 
-    positionBlackKeys()
+    // Use timeout to ensure DOM is fully rendered
+    const timer = setTimeout(positionBlackKeys, 0)
     window.addEventListener('resize', positionBlackKeys)
     
-    return () => window.removeEventListener('resize', positionBlackKeys)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('resize', positionBlackKeys)
+    }
   }, [exerciseSet, notation])
 
   const buildPianoKeys = () => {

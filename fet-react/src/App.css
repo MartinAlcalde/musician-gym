@@ -33,6 +33,9 @@ button {
   font-weight: 600; 
 }
 
+.feedback.ok { color: #22c55e; }
+.feedback.err { color: #ef4444; }
+
 /* Piano UI */
 .piano {
   --white-w: 64px; --white-h: 160px;

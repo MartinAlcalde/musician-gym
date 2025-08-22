@@ -1,16 +1,26 @@
 import { AUTO_INTERVALS } from '../utils/constants.js'
+import { KeyMapping } from './KeyMapping.jsx'
+import { RemoteControl } from './RemoteControl.jsx'
 
 export function Settings({
   isVisible,
   settings,
   onSettingChange,
-  autoMode
+  autoMode,
+  // Key mapping props
+  exerciseSet,
+  notation,
+  getKeyForMidi,
+  startMapping,
+  clearKeymap,
+  waitingMapMidi,
+  onKeyTest
 }) {
   if (!isVisible) return null
 
   const {
     resolve,
-    notation,
+    notation: settingsNotation,
     darkTheme,
     autoMode: autoModeEnabled,
     exercise,
@@ -34,7 +44,7 @@ export function Settings({
         <label>
           <input 
             type="checkbox" 
-            checked={notation === 'solfege'} 
+            checked={settingsNotation === 'solfege'} 
             onChange={(e) => onSettingChange('notation', e.target.checked ? 'solfege' : 'letter')} 
           /> 
           Solfege labels (Do Re)
@@ -79,6 +89,19 @@ export function Settings({
           onSettingChange={onSettingChange}
         />
       )}
+
+      <KeyMapping
+        exerciseSet={exerciseSet}
+        notation={notation}
+        getKeyForMidi={getKeyForMidi}
+        startMapping={startMapping}
+        clearKeymap={clearKeymap}
+        waitingMapMidi={waitingMapMidi}
+      />
+
+      <RemoteControl
+        onKeyTest={onKeyTest}
+      />
     </div>
   )
 }

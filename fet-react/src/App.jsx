@@ -95,6 +95,9 @@ function App() {
         case 'mapping_set':
           setFeedback(`Key mapped to ${labelForMidi(result.midi, notation)}`)
           break
+        case 'no_action':
+          // Do nothing
+          break
       }
     }
 
@@ -311,6 +314,19 @@ function App() {
         settings={settings}
         onSettingChange={handleSettingChange}
         autoMode={autoModeEnabled}
+        exerciseSet={gameState.exerciseSet}
+        notation={notation}
+        getKeyForMidi={keyboard.getKeyForMidi}
+        startMapping={(midi) => {
+          keyboard.startMapping(midi)
+          setFeedback(`Press a key for ${labelForMidi(midi, notation)} (Esc to cancel)`)
+        }}
+        clearKeymap={keyboard.clearKeymap}
+        waitingMapMidi={keyboard.waitingMapMidi}
+        onKeyTest={(testData) => {
+          // Handle key test data from remote controls
+          console.log('Key test:', testData)
+        }}
       />
 
       <Piano
