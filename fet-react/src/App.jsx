@@ -157,7 +157,9 @@ function App() {
   }
 
   const startAutoRound = () => {
+    console.log('🎼 startAutoRound called, isRunning:', autoMode.isRunning)
     const newTarget = gameState.startNewRound()
+    console.log('🎵 New auto target:', newTarget)
     setFeedback("🎵 Cadence...")
     
     autoMode.runAutoRound(
@@ -165,20 +167,24 @@ function App() {
       audio.playCadence,
       audio.playTone,
       () => {
-        if (autoMode.isRunning) {
+        console.log('🔄 Auto round completed, continuing...', 'autoMode.isRunning:', autoMode.isRunning, 'isRunningRef:', autoMode.isRunningRef.current)
+        if (autoMode.isRunningRef.current) {
+          console.log('🚀 Continuing with next auto round')
           startAutoRound() // Continue the loop
+        } else {
+          console.log('❌ Auto mode stopped, not continuing')
         }
       }
     )
 
     // Show answer after delay
     setTimeout(() => {
-      if (autoMode.isRunning) {
+      if (autoMode.isRunningRef.current) {
         setFeedback("🎧 Listen...")
         
         setTimeout(() => {
           const result = autoMode.showAutoAnswer(newTarget, audio.playTone, () => {
-            if (autoMode.isRunning) {
+            if (autoMode.isRunningRef.current) {
               startAutoRound()
             }
           })
@@ -194,6 +200,8 @@ function App() {
   }
 
   const handleStart = async () => {
+    console.log('🎯 handleStart called, autoModeEnabled:', autoModeEnabled, 'isRunning:', autoMode.isRunning)
+    
     if (!audio.isReady) {
       setFeedback("Loading piano…")
       return
@@ -201,13 +209,18 @@ function App() {
     
     if (autoModeEnabled) {
       if (autoMode.isRunning) {
+        console.log('🛑 Stopping auto mode')
         autoMode.stop()
         setFeedback('Auto mode stopped')
         gameState.resetTarget()
         gameState.disableAnswers()
       } else {
+        console.log('🚀 Starting auto mode')
         autoMode.start()
-        startAutoRound()
+        // Use setTimeout to ensure state has updated
+        setTimeout(() => {
+          startAutoRound()
+        }, 0)
       }
       return
     }

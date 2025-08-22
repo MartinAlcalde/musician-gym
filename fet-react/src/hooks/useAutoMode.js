@@ -8,12 +8,16 @@ export function useAutoMode() {
   const [showAnswer, setShowAnswer] = useState(true)
   const [sayAnswer, setSayAnswer] = useState(false)
   const autoTimerRef = useRef(null)
+  const isRunningRef = useRef(false)
 
   const start = useCallback(() => {
+    console.log('🎯 useAutoMode.start() called')
+    isRunningRef.current = true
     setIsRunning(true)
   }, [])
 
   const stop = useCallback(() => {
+    isRunningRef.current = false
     setIsRunning(false)
     if (autoTimerRef.current) {
       clearTimeout(autoTimerRef.current)
@@ -22,7 +26,12 @@ export function useAutoMode() {
   }, [])
 
   const runAutoRound = useCallback((targetMidi, playCadence, playTone, onComplete) => {
-    if (!isRunning) return
+    console.log('🎼 useAutoMode.runAutoRound called, isRunning:', isRunning, 'target:', targetMidi)
+    // Remove the isRunning check here since it's checked in the caller
+    // if (!isRunning) {
+    //   console.log('❌ Auto mode not running, aborting')
+    //   return
+    // }
 
     const endCad = playCadence()
     const tTarget = endCad + 0.12
@@ -32,21 +41,25 @@ export function useAutoMode() {
     import('tone').then(Tone => {
       const ctx = Tone.getContext().rawContext
       const enableAtMs = Math.max(0, (tTarget - ctx.currentTime) * 1000) + 200
+      console.log('⏱️ Auto mode timing delay:', enableAtMs)
       
       setTimeout(() => {
-        if (!isRunning) return
-        
-        setTimeout(() => {
-          showAutoAnswer(targetMidi, playTone, onComplete)
-        }, 2000)
-      }, enableAtMs)
+        // Check current state via ref or callback instead of closure
+        console.log('🎯 Showing auto answer...')
+        showAutoAnswer(targetMidi, playTone, onComplete)
+      }, enableAtMs + 2000)
     })
   }, [isRunning])
 
   const showAutoAnswer = useCallback((targetMidi, playTone, onComplete) => {
-    if (!isRunning) return
+    console.log('🎯 showAutoAnswer called, isRunning:', isRunning, 'isRunningRef:', isRunningRef.current, 'target:', targetMidi)
+    if (!isRunningRef.current) {
+      console.log('❌ showAutoAnswer: Auto mode not running, aborting')
+      return
+    }
 
     const targetLabel = labelForMidi(targetMidi, 'solfege') // Default to solfege for auto mode
+    console.log('✨ Target label:', targetLabel)
     
     let speechDuration = 0
     let resolutionDuration = 0
@@ -64,7 +77,8 @@ export function useAutoMode() {
     const resolutionDelay = speechDuration + 300
     
     setTimeout(() => {
-      if (isRunning) {
+      console.log('🎵 Playing resolution, isRunning:', isRunning, 'isRunningRef:', isRunningRef.current)
+      if (isRunningRef.current) {
         // Import Tone for timing
         import('tone').then(Tone => {
           const ctx = Tone.getContext().rawContext
@@ -82,8 +96,12 @@ export function useAutoMode() {
     const delay = Math.max(3000, interval - usedTime)
 
     autoTimerRef.current = setTimeout(() => {
-      if (isRunning) {
+      console.log('🔄 Scheduling next round, isRunning:', isRunning, 'isRunningRef:', isRunningRef.current, 'delay was:', delay)
+      if (isRunningRef.current) {
+        console.log('✅ Calling onComplete to continue cycle')
         onComplete?.()
+      } else {
+        console.log('❌ Auto mode stopped, not continuing')
       }
     }, delay)
 
@@ -96,6 +114,7 @@ export function useAutoMode() {
 
   return {
     isRunning,
+    isRunningRef,
     interval,
     showAnswer,
     sayAnswer,
