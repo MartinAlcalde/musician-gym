@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
+import * as Tone from 'tone'
 import { Piano, Settings, GameControls, GameDisplay } from './components'
 import { useAudio } from './hooks/useAudio.js'
 import { useGameState } from './hooks/useGameState.js'
 import { useKeyboard } from './hooks/useKeyboard.js'
 import { useAutoMode } from './hooks/useAutoMode.js'
-import { labelForMidi, saveToStorage, loadFromStorage } from './utils/helpers.js'
+import { labelForMidi, saveToStorage, loadFromStorage, flashKey } from './utils/helpers.js'
 import { STORAGE_KEYS, NOTES } from './utils/constants.js'
 import './App.css'
 
@@ -32,23 +33,26 @@ function App() {
 
   // Initialize app and load settings
   useEffect(() => {
-    // Load saved preferences
-    const savedNotation = loadFromStorage(STORAGE_KEYS.NOTATION, 'solfege')
-    const savedTheme = loadFromStorage(STORAGE_KEYS.DARK_THEME, false)
-    const savedAutoMode = loadFromStorage(STORAGE_KEYS.AUTO_MODE, false)
-    const savedInterval = loadFromStorage(STORAGE_KEYS.AUTO_INTERVAL, 5000)
-    const savedShowAnswer = loadFromStorage(STORAGE_KEYS.SHOW_ANSWER, true)
-    const savedSayAnswer = loadFromStorage(STORAGE_KEYS.SAY_ANSWER, false)
+    try {
+      const savedNotation = localStorage.getItem(STORAGE_KEYS.NOTATION) || 'solfege'
+      const savedTheme = localStorage.getItem(STORAGE_KEYS.DARK_THEME) === 'true'
+      const savedAutoMode = localStorage.getItem(STORAGE_KEYS.AUTO_MODE) === 'true' 
+      const savedInterval = Number(localStorage.getItem(STORAGE_KEYS.AUTO_INTERVAL)) || 5000
+      const savedShowAnswer = localStorage.getItem(STORAGE_KEYS.SHOW_ANSWER) !== 'false'
+      const savedSayAnswer = localStorage.getItem(STORAGE_KEYS.SAY_ANSWER) === 'true'
 
-    setNotation(savedNotation)
-    setDarkTheme(savedTheme)
-    setAutoModeEnabled(savedAutoMode)
-    autoMode.setInterval(savedInterval)
-    autoMode.setShowAnswer(savedShowAnswer)
-    autoMode.setSayAnswer(savedSayAnswer)
+      setNotation(savedNotation)
+      setDarkTheme(savedTheme)
+      setAutoModeEnabled(savedAutoMode)
+      autoMode.setInterval(savedInterval)
+      autoMode.setShowAnswer(savedShowAnswer)
+      autoMode.setSayAnswer(savedSayAnswer)
 
-    if (savedTheme) {
-      document.body.classList.add('dark')
+      if (savedTheme) {
+        document.body.classList.add('dark')
+      }
+    } catch (error) {
+      console.warn('Error loading preferences:', error)
     }
   }, [])
 
@@ -63,12 +67,16 @@ function App() {
   // Dark theme effect
   useEffect(() => {
     document.body.classList.toggle('dark', darkTheme)
-    saveToStorage(STORAGE_KEYS.DARK_THEME, darkTheme)
+    try {
+      localStorage.setItem(STORAGE_KEYS.DARK_THEME, darkTheme)
+    } catch {}
   }, [darkTheme])
 
   // Auto mode effect
   useEffect(() => {
-    saveToStorage(STORAGE_KEYS.AUTO_MODE, autoModeEnabled)
+    try {
+      localStorage.setItem(STORAGE_KEYS.AUTO_MODE, autoModeEnabled)
+    } catch {}
     
     if (!autoModeEnabled && autoMode.isRunning) {
       autoMode.stop()
@@ -107,20 +115,26 @@ function App() {
 
   // Game logic functions
   const startRound = async () => {
+    console.log('🎯 startRound() called')
     await audio.startAudioContext()
     setStartEnabled(false)
     gameState.disableAnswers()
     setFeedback("Cadence…")
     setFeedbackOk(null)
     
+    console.log('🎼 Playing cadence...')
     const endCad = audio.playCadence()
     const newTarget = gameState.startNewRound()
+    console.log(`🎵 New target note: ${newTarget}`)
     
     const tTarget = endCad + 0.12
     audio.playTone(newTarget, tTarget, 0.9, "piano", 0.18)
     
-    const enableAtMs = Math.max(0, (tTarget - performance.now() / 1000) * 1000) + 120
+    const ctx = audio.isReady ? Tone.getContext().rawContext : null
+    const enableAtMs = ctx ? Math.max(0, (tTarget - ctx.currentTime) * 1000) + 120 : 1000
+    console.log(`⏱️ Will enable answers in ${enableAtMs}ms`)
     setTimeout(() => {
+      console.log('✅ Enabling answers now')
       setFeedback("Identify the note (click the key)")
       gameState.enableAnswers()
     }, enableAtMs)
@@ -155,7 +169,8 @@ function App() {
           
           setFeedback(result.message)
           if (result.shouldHighlight && pianoRef.current) {
-            Piano.highlightKey(pianoRef.current, result.targetMidi, 2000)
+            const el = pianoRef.current.querySelector(`[data-midi="${result.targetMidi}"]`)
+            if (el) flashKey(el, 'hint', 2000)
           }
         }, 2000)
       }
@@ -196,7 +211,8 @@ function App() {
     const tTarget = endCad + 0.12
     audio.playTone(gameState.targetMidi, tTarget, 0.9, 'piano', 0.18)
     
-    const enableAtMs = Math.max(0, (tTarget - performance.now() / 1000) * 1000) + 120
+    const ctx = audio.isReady ? Tone.getContext().rawContext : null
+    const enableAtMs = ctx ? Math.max(0, (tTarget - ctx.currentTime) * 1000) + 120 : 1000
     setTimeout(() => {
       setFeedback('Identify the note (click the key)')
       gameState.enableAnswers()
@@ -211,29 +227,38 @@ function App() {
     if (!result.isValid) {
       setFeedback(result.message)
       setFeedbackOk(false)
-      Piano.flashKey(keyElement, 'wrong')
+      flashKey(keyElement, 'wrong')
       return
     }
     
     setFeedback(result.message)
     setFeedbackOk(result.isCorrect)
-    Piano.flashKey(keyElement, result.isCorrect ? 'correct' : 'wrong')
+    flashKey(keyElement, result.isCorrect ? 'correct' : 'wrong')
 
     if (result.isCorrect) {
+      console.log('✅ Correct answer! Starting next round sequence...')
       let nextDelayMs = 400
+      const currentTarget = gameState.targetMidi // Save target before reset
       
       if (resolve) {
-        const t0 = performance.now() / 1000 + 0.05
-        audio.playTone(gameState.targetMidi, t0, 0.45, 'piano', 0.16)
+        console.log('🎵 Playing resolution...')
+        const ctx = Tone.getContext().rawContext
+        const t0 = ctx.currentTime + 0.05
+        audio.playTone(currentTarget, t0, 0.45, 'piano', 0.16)
         audio.playTone(NOTES.C4, t0 + 0.46, 0.8, 'piano', 0.18)
         const tEnd = t0 + 0.46 + 0.82
-        nextDelayMs = Math.max(0, (tEnd - performance.now() / 1000) * 1000) + 120
+        nextDelayMs = Math.max(0, (tEnd - ctx.currentTime) * 1000) + 120
+        console.log(`⏱️ Resolution delay: ${nextDelayMs}ms`)
+      } else {
+        console.log(`⏱️ No resolution, delay: ${nextDelayMs}ms`)
       }
       
       gameState.disableAnswers()
       gameState.resetTarget()
       
+      console.log(`⏰ Setting timeout for ${nextDelayMs}ms to start next round`)
       setTimeout(() => {
+        console.log('🚀 Timeout fired! Starting next round...')
         startRound()
       }, nextDelayMs)
     }
@@ -251,7 +276,7 @@ function App() {
         break
       case 'notation':
         setNotation(value)
-        saveToStorage(STORAGE_KEYS.NOTATION, value)
+        try { localStorage.setItem(STORAGE_KEYS.NOTATION, value) } catch {}
         break
       case 'darkTheme':
         setDarkTheme(value)
@@ -270,15 +295,15 @@ function App() {
         break
       case 'autoInterval':
         autoMode.setInterval(value)
-        saveToStorage(STORAGE_KEYS.AUTO_INTERVAL, value)
+        try { localStorage.setItem(STORAGE_KEYS.AUTO_INTERVAL, value) } catch {}
         break
       case 'showAnswer':
         autoMode.setShowAnswer(value)
-        saveToStorage(STORAGE_KEYS.SHOW_ANSWER, value)
+        try { localStorage.setItem(STORAGE_KEYS.SHOW_ANSWER, value) } catch {}
         break
       case 'sayAnswer':
         autoMode.setSayAnswer(value)
-        saveToStorage(STORAGE_KEYS.SAY_ANSWER, value)
+        try { localStorage.setItem(STORAGE_KEYS.SAY_ANSWER, value) } catch {}
         break
     }
   }

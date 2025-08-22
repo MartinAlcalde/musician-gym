@@ -54,7 +54,8 @@ export function useAudio() {
     const name = MIDI_TO_NAME[midi]
     if (!(samplerRef.current && isReady && name)) return
     
-    const delay = Math.max(0, when - Tone.now())
+    const ctx = Tone.getContext().rawContext
+    const delay = Math.max(0, when - ctx.currentTime)
     const t = Tone.now() + delay
     const vel = Math.max(0.05, Math.min(1, gainVal * 6))
     samplerRef.current.triggerAttackRelease(name, dur, t, vel)
@@ -66,7 +67,8 @@ export function useAudio() {
   }, [playTone])
 
   const playCadence = useCallback(() => {
-    const t0 = Tone.now() + 0.05
+    const ctx = Tone.getContext().rawContext
+    const t0 = ctx.currentTime + 0.05
     const step = 0.65
     
     // I: C major (C4 E4 G4)

@@ -97,15 +97,7 @@ export const Piano = forwardRef(function Piano({
     onKeyClick?.(midi, keyEl)
   }
 
-  // Expose methods for external use
-  Piano.flashKey = (element, className, duration = 250) => {
-    flashKey(element, className, duration)
-  }
-
-  Piano.highlightKey = (pianoElement, midi, duration = 300) => {
-    const el = pianoElement?.querySelector(`[data-midi="${midi}"]`)
-    if (el) flashKey(el, 'hint', duration)
-  }
+  // Helper functions are now imported directly in App.jsx
 
   return (
     <div 

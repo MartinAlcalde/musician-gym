@@ -61,9 +61,13 @@ export function useAutoMode() {
     
     setTimeout(() => {
       if (isRunning) {
-        const t0 = performance.now() / 1000 + 0.1
-        playTone(targetMidi, t0, 0.45, 'piano', 0.16)
-        playTone(NOTES.C4, t0 + 0.46, 0.8, 'piano', 0.18)
+        // Import Tone for timing
+        import('tone').then(Tone => {
+          const ctx = Tone.getContext().rawContext
+          const t0 = ctx.currentTime + 0.1
+          playTone(targetMidi, t0, 0.45, 'piano', 0.16)
+          playTone(NOTES.C4, t0 + 0.46, 0.8, 'piano', 0.18)
+        })
       }
     }, resolutionDelay)
     
