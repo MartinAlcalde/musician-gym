@@ -341,7 +341,7 @@ function App() {
 
   return (
     <div>
-      <h1>Functional Ear Training</h1>
+      <h1>Music Gym</h1>
       
       <GameControls
         onStart={handleStart}
