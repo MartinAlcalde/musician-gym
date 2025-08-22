@@ -25,13 +25,8 @@ export function useAutoMode() {
     }
   }, [])
 
-  const runAutoRound = useCallback((targetMidi, playCadence, playTone, onComplete) => {
+  const runAutoRound = useCallback((targetMidi, playCadence, playTone, onComplete, onUIUpdate) => {
     console.log('🎼 useAutoMode.runAutoRound called, isRunning:', isRunning, 'target:', targetMidi)
-    // Remove the isRunning check here since it's checked in the caller
-    // if (!isRunning) {
-    //   console.log('❌ Auto mode not running, aborting')
-    //   return
-    // }
 
     const endCad = playCadence()
     const tTarget = endCad + 0.12
@@ -44,12 +39,16 @@ export function useAutoMode() {
       console.log('⏱️ Auto mode timing delay:', enableAtMs)
       
       setTimeout(() => {
-        // Check current state via ref or callback instead of closure
         console.log('🎯 Showing auto answer...')
-        showAutoAnswer(targetMidi, playTone, onComplete)
-      }, enableAtMs + 2000)
+        onUIUpdate?.("🎧 Listen...", false, targetMidi)
+        
+        setTimeout(() => {
+          const result = showAutoAnswer(targetMidi, playTone, onComplete)
+          onUIUpdate?.(result.message, result.shouldHighlight, result.targetMidi)
+        }, 2000)
+      }, enableAtMs)
     })
-  }, [isRunning])
+  }, [isRunning, showAnswer])
 
   const showAutoAnswer = useCallback((targetMidi, playTone, onComplete) => {
     console.log('🎯 showAutoAnswer called, isRunning:', isRunning, 'isRunningRef:', isRunningRef.current, 'target:', targetMidi)

@@ -162,6 +162,7 @@ function App() {
     console.log('🎵 New auto target:', newTarget)
     setFeedback("🎵 Cadence...")
     
+    // Solo usar runAutoRound, que ya maneja todo el ciclo
     autoMode.runAutoRound(
       newTarget,
       audio.playCadence,
@@ -174,29 +175,16 @@ function App() {
         } else {
           console.log('❌ Auto mode stopped, not continuing')
         }
+      },
+      // Pasar callback para actualizar UI
+      (message, shouldHighlight, targetMidi) => {
+        setFeedback(message)
+        if (shouldHighlight && pianoRef.current) {
+          const el = pianoRef.current.querySelector(`[data-midi="${targetMidi}"]`)
+          if (el) flashKey(el, 'hint', 2000)
+        }
       }
     )
-
-    // Show answer after delay
-    setTimeout(() => {
-      if (autoMode.isRunningRef.current) {
-        setFeedback("🎧 Listen...")
-        
-        setTimeout(() => {
-          const result = autoMode.showAutoAnswer(newTarget, audio.playTone, () => {
-            if (autoMode.isRunningRef.current) {
-              startAutoRound()
-            }
-          })
-          
-          setFeedback(result.message)
-          if (result.shouldHighlight && pianoRef.current) {
-            const el = pianoRef.current.querySelector(`[data-midi="${result.targetMidi}"]`)
-            if (el) flashKey(el, 'hint', 2000)
-          }
-        }, 2000)
-      }
-    }, 200)
   }
 
   const handleStart = async () => {
