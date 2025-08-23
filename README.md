@@ -30,7 +30,7 @@ Musician Gym helps you recognize scale degrees by their function within a key. I
 **Bluetooth Controllers**: 
 - Piano controllers or keyboards (any HID device)
 - Gaming controllers (Xbox, PlayStation, etc.)
-- Cheap camera shutters (~$2) ![Camera Shutter](image.png)
+- Cheap camera shutters (~$2) <img src="ble-controller.png" alt="Camera Shutter" width="60">
 - Any HID-compatible device
 
 Configure in Settings > Key Mapping. Click "Set key" next to any note, then press your desired key or controller button.
