@@ -28,8 +28,9 @@ Musician Gym helps you recognize scale degrees by their function within a key. I
 **Keyboard Mapping**: Assign scale degrees to any keys (default: home row A-S-D-F-G-H-J-K)
 
 **Bluetooth Controllers**: 
+- Piano controllers or keyboards (any HID device)
 - Gaming controllers (Xbox, PlayStation, etc.)
-- [Cheap camera shutters](https://www.amazon.com/Wireless-Gamepad-Bluetooth-Controller-Shutter/dp/B07WFH2HB9) (~$2)
+- Cheap camera shutters (~$2) ![Camera Shutter](image.png)
 - Any HID-compatible device
 
 Configure in Settings > Key Mapping. Click "Set key" next to any note, then press your desired key or controller button.
