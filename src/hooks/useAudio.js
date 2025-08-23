@@ -11,7 +11,7 @@ export function useAudio() {
       try {
         // Load piano samples from the public file
         const script = document.createElement('script')
-        script.src = '/piano.base64.js'
+        script.src = `${import.meta.env.BASE_URL}piano.base64.js`
         script.onload = () => {
           if (window.PIANO_BASE64) {
             samplerRef.current = new Tone.Sampler({
