@@ -102,7 +102,13 @@ export function useKeyboard() {
     if (id.startsWith('code:')) return id.slice(5)
     if (id.startsWith('gamepad:')) {
       const parts = id.split(':')
-      return `🎮${parts[1]}:${parts[2]}`
+      const control = parts[2]
+      if (control.startsWith('btn')) {
+        return `🎮${parts[1]}:${control}`
+      } else if (control.startsWith('axis')) {
+        return `🕹️${parts[1]}:${control}`
+      }
+      return `🎮${parts[1]}:${control}`
     }
     return id
   }, [])

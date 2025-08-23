@@ -8,6 +8,7 @@ export function RemoteControl({ onKeyTest }) {
   const [keyTestDetail, setKeyTestDetail] = useState('')
   const [gamepadPolling, setGamepadPolling] = useState(null)
   const [lastButtonStates, setLastButtonStates] = useState({})
+  const [lastAxesStates, setLastAxesStates] = useState({})
 
   const isSecureContext = window.isSecureContext
   const hasWebHID = !!navigator.hid
@@ -44,6 +45,32 @@ export function RemoteControl({ onKeyTest }) {
             [`${i}-${j}`]: isPressed
           }))
         }
+        
+        // Check each axis (analog sticks)
+        for (let j = 0; j < gamepad.axes.length; j++) {
+          const axisValue = gamepad.axes[j]
+          const lastAxisValue = lastAxesStates[`${i}-${j}`] || 0
+          const threshold = 0.5 // Dead zone threshold
+          
+          // Check if axis moved beyond threshold
+          const wasActive = Math.abs(lastAxisValue) > threshold
+          const isActive = Math.abs(axisValue) > threshold
+          
+          if (isActive && !wasActive) {
+            console.log(`🕹️ [GAMEPAD] Axis ${j} activated on gamepad ${i}`, {
+              value: axisValue,
+              direction: axisValue > 0 ? 'positive' : 'negative'
+            })
+            const direction = axisValue > 0 ? 'pos' : 'neg'
+            setKeyTestLine(`Gamepad ${i} axis ${j} ${direction} (value: ${axisValue.toFixed(2)})`)
+            onKeyTest?.({ type: 'gamepad', gamepadIndex: i, axisIndex: j, axisDirection: direction, value: axisValue })
+          }
+          
+          setLastAxesStates(prev => ({
+            ...prev,
+            [`${i}-${j}`]: axisValue
+          }))
+        }
       }
     }
     
@@ -58,6 +85,7 @@ export function RemoteControl({ onKeyTest }) {
       setGamepadPolling(null)
     }
     setLastButtonStates({})
+    setLastAxesStates({})
   }
 
   const connectHID = async () => {
