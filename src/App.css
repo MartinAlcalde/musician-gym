@@ -360,3 +360,78 @@ body.dark .exercise-selector-footer {
 body.dark .help-text {
   color: #bbb;
 }
+
+/* Mobile landscape fixes */
+@media screen and (orientation: landscape) and (max-height: 500px) {
+  body {
+    margin: 8px auto;
+    max-width: none;
+    padding: 0 16px;
+  }
+  
+  h1 {
+    font-size: 1rem;
+    margin-bottom: 4px;
+  }
+  
+  .row {
+    margin: 6px 0;
+    gap: 6px;
+  }
+  
+  button {
+    padding: 6px 10px;
+    font-size: 14px;
+  }
+  
+  .piano {
+    --white-w: 36px; 
+    --white-h: 100px; 
+    --black-w: 22px; 
+    --black-h: 64px; 
+    --gap: 1px;
+    margin-top: 6px;
+  }
+  
+  .key .label {
+    font-size: 10px;
+  }
+  
+  .key.black .label {
+    font-size: 9px;
+  }
+  
+  .feedback {
+    height: 20px;
+    margin-top: 4px;
+    font-size: 14px;
+  }
+  
+  .stat {
+    margin-top: 4px;
+    font-size: 12px;
+  }
+  
+  .panel {
+    padding: 6px;
+  }
+}
+
+/* Very small landscape screens */
+@media screen and (orientation: landscape) and (max-height: 400px) {
+  body {
+    margin: 4px auto;
+  }
+  
+  .piano {
+    --white-w: 32px; 
+    --white-h: 80px; 
+    --black-w: 20px; 
+    --black-h: 52px;
+  }
+  
+  .feedback {
+    height: 16px;
+    font-size: 12px;
+  }
+}
