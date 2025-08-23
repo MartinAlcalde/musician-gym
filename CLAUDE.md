@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **Functional Ear Training** web application that helps users recognize scale degrees by their function within a key. The app presents a cadence (I-IV-V-I in C major) followed by a target note, and users identify the scale degree relative to the tonic.
+**Musician Gym** is a **Functional Ear Training** web application that helps users recognize scale degrees by their function within a key. The app presents a cadence (I-IV-V-I in C major) followed by a target note, and users identify the scale degree relative to the tonic.
 
 ## Architecture
 

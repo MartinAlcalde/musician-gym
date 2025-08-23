@@ -1,6 +1,6 @@
-# Music Gym
+# Musician Gym
 
-A **functional ear training** web application that helps users recognize scale degrees by their function within a key. The app presents a cadence (I-IV-V-I in C major) followed by a target note, and users identify the scale degree relative to the tonic.
+**Musician Gym** is a **functional ear training** web application that helps users recognize scale degrees by their function within a key. The app presents a cadence (I-IV-V-I in C major) followed by a target note, and users identify the scale degree relative to the tonic.
 
 ## Features
 
@@ -37,7 +37,7 @@ A **functional ear training** web application that helps users recognize scale d
 1. Clone the repository
 ```bash
 git clone <repository-url>
-cd fet
+cd musician-gym
 ```
 
 2. Install dependencies
