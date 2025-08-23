@@ -4,7 +4,14 @@ import { STORAGE_KEYS, NOTES } from '../utils/constants.js'
 
 export function useKeyboard() {
   const [waitingMapMidi, setWaitingMapMidi] = useState(null)
+  const waitingMapMidiRef = useRef(null)
   const keymapRef = useRef({})
+
+  // Debug: Track when waitingMapMidi changes
+  useEffect(() => {
+    console.log('🎮 waitingMapMidi state changed to:', waitingMapMidi)
+    waitingMapMidiRef.current = waitingMapMidi
+  }, [waitingMapMidi])
 
   // Load keymap from localStorage on mount
   useEffect(() => {
@@ -50,6 +57,29 @@ export function useKeyboard() {
     saveKeymap()
   }, [saveKeymap])
 
+  const setKeymapFromGamepad = useCallback((midi, gamepadId) => {
+    console.log('🎮 setKeymapFromGamepad called:', { midi, gamepadId })
+    console.log('🎮 Current keymap before:', keymapRef.current)
+    
+    // Remove existing mappings for this midi and this gamepad button
+    Object.keys(keymapRef.current).forEach(k => {
+      if (keymapRef.current[k] === midi || k === gamepadId) {
+        console.log('🎮 Removing existing mapping:', k, '->', keymapRef.current[k])
+        delete keymapRef.current[k]
+      }
+    })
+
+    // Add new mapping
+    keymapRef.current[gamepadId] = midi
+    console.log('🎮 Added new mapping:', gamepadId, '->', midi)
+    console.log('🎮 Current keymap after:', keymapRef.current)
+    saveKeymap()
+  }, [saveKeymap])
+
+  const getMidiForGamepadId = useCallback((gamepadId) => {
+    return keymapRef.current[gamepadId] || null
+  }, [])
+
   const clearKeymap = useCallback((midi) => {
     Object.keys(keymapRef.current).forEach(k => {
       if (keymapRef.current[k] === midi) {
@@ -64,11 +94,16 @@ export function useKeyboard() {
     if (entries.length === 0) return ''
     
     const simple = entries.find(([k]) => k.length === 1)
-    const chosen = simple || entries[0]
+    const gamepad = entries.find(([k]) => k.startsWith('gamepad:'))
+    const chosen = simple || gamepad || entries[0]
     const id = chosen[0]
     
     if (id.startsWith('key:')) return id.slice(4)
     if (id.startsWith('code:')) return id.slice(5)
+    if (id.startsWith('gamepad:')) {
+      const parts = id.split(':')
+      return `🎮${parts[1]}:${parts[2]}`
+    }
     return id
   }, [])
 
@@ -83,11 +118,16 @@ export function useKeyboard() {
   }, [])
 
   const startMapping = useCallback((midi) => {
+    console.log('🎮 startMapping called with midi:', midi)
+    console.log('🎮 Current waitingMapMidi before set:', waitingMapMidi)
     setWaitingMapMidi(midi)
-  }, [])
+    waitingMapMidiRef.current = midi // Update ref immediately
+    console.log('🎮 setWaitingMapMidi called with:', midi)
+  }, [waitingMapMidi])
 
   const cancelMapping = useCallback(() => {
     setWaitingMapMidi(null)
+    waitingMapMidiRef.current = null
   }, [])
 
   const handleKeyDown = useCallback((event, onMidiTriggered) => {
@@ -121,9 +161,12 @@ export function useKeyboard() {
 
   return {
     waitingMapMidi,
+    waitingMapMidiRef,
     startMapping,
     cancelMapping,
     setKeymapFromEvent,
+    setKeymapFromGamepad,
+    getMidiForGamepadId,
     clearKeymap,
     getKeyForMidi,
     getMidiForEvent,

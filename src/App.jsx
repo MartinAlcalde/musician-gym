@@ -371,8 +371,31 @@ function App() {
         clearKeymap={keyboard.clearKeymap}
         waitingMapMidi={keyboard.waitingMapMidi}
         onKeyTest={(testData) => {
-          // Handle key test data from remote controls
           console.log('Key test:', testData)
+          console.log('waitingMapMidi (state):', keyboard.waitingMapMidi)
+          console.log('waitingMapMidiRef (ref):', keyboard.waitingMapMidiRef?.current)
+          
+          // Handle gamepad mapping - use ref for immediate state
+          const waitingMidiValue = keyboard.waitingMapMidiRef?.current
+          if (testData.type === 'gamepad' && waitingMidiValue !== null) {
+            console.log('🎮 Mapping gamepad button to midi:', waitingMidiValue)
+            const gamepadId = `gamepad:${testData.gamepadIndex}:${testData.buttonIndex}`
+            console.log('🎮 Gamepad ID:', gamepadId)
+            keyboard.setKeymapFromGamepad(waitingMidiValue, gamepadId)
+            keyboard.cancelMapping()
+            setFeedback(`Gamepad button mapped to ${labelForMidi(waitingMidiValue, notation)}`)
+            return
+          }
+          
+          // Handle gamepad key press (when not mapping)
+          if (testData.type === 'gamepad') {
+            const gamepadId = `gamepad:${testData.gamepadIndex}:${testData.buttonIndex}`
+            const midi = keyboard.getMidiForGamepadId(gamepadId)
+            console.log('🎮 Looking for gamepad mapping:', gamepadId, '-> midi:', midi)
+            if (midi !== null) {
+              clickMidi(midi)
+            }
+          }
         }}
       />
 

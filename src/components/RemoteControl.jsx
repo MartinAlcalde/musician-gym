@@ -6,10 +6,59 @@ export function RemoteControl({ onKeyTest }) {
   const [gamepadStatus, setGamepadStatus] = useState('Not detected')
   const [keyTestLine, setKeyTestLine] = useState('Press a key or your remote…')
   const [keyTestDetail, setKeyTestDetail] = useState('')
+  const [gamepadPolling, setGamepadPolling] = useState(null)
+  const [lastButtonStates, setLastButtonStates] = useState({})
 
   const isSecureContext = window.isSecureContext
   const hasWebHID = !!navigator.hid
   const hasWebBluetooth = !!navigator.bluetooth
+
+  const startGamepadPolling = () => {
+    console.log('🎮 [GAMEPAD] Starting polling...')
+    if (gamepadPolling) return
+    
+    const poll = () => {
+      const gamepads = navigator.getGamepads()
+      
+      for (let i = 0; i < gamepads.length; i++) {
+        const gamepad = gamepads[i]
+        if (!gamepad) continue
+        
+        // Check each button
+        for (let j = 0; j < gamepad.buttons.length; j++) {
+          const button = gamepad.buttons[j]
+          const wasPressed = lastButtonStates[`${i}-${j}`] || false
+          const isPressed = button.pressed
+          
+          if (isPressed && !wasPressed) {
+            console.log(`🎮 [GAMEPAD] Button ${j} pressed on gamepad ${i}`, {
+              value: button.value,
+              touched: button.touched
+            })
+            setKeyTestLine(`Gamepad ${i} button ${j} pressed (value: ${button.value.toFixed(2)})`)
+            onKeyTest?.({ type: 'gamepad', gamepadIndex: i, buttonIndex: j, value: button.value })
+          }
+          
+          setLastButtonStates(prev => ({
+            ...prev,
+            [`${i}-${j}`]: isPressed
+          }))
+        }
+      }
+    }
+    
+    const intervalId = setInterval(poll, 100) // Poll every 100ms
+    setGamepadPolling(intervalId)
+  }
+  
+  const stopGamepadPolling = () => {
+    console.log('🎮 [GAMEPAD] Stopping polling...')
+    if (gamepadPolling) {
+      clearInterval(gamepadPolling)
+      setGamepadPolling(null)
+    }
+    setLastButtonStates({})
+  }
 
   const connectHID = async () => {
     if (!hasWebHID || !isSecureContext) return
@@ -103,27 +152,40 @@ export function RemoteControl({ onKeyTest }) {
   }
 
   const detectGamepad = () => {
+    console.log('🎮 [GAMEPAD] detectGamepad called')
     const gamepads = navigator.getGamepads()
+    console.log('🎮 [GAMEPAD] Found gamepads:', gamepads.length)
     
     for (let i = 0; i < gamepads.length; i++) {
       const gamepad = gamepads[i]
       if (gamepad) {
+        console.log(`🎮 [GAMEPAD] Gamepad ${i}:`, {
+          id: gamepad.id,
+          buttons: gamepad.buttons.length,
+          axes: gamepad.axes.length,
+          connected: gamepad.connected
+        })
         setGamepadStatus(`Connected: ${gamepad.id} (${gamepad.buttons.length} buttons, ${gamepad.axes.length} axes)`)
         return true
       }
     }
     
+    console.log('🎮 [GAMEPAD] No gamepads found')
     setGamepadStatus('No gamepad detected - press a button first')
     return false
   }
 
   useEffect(() => {
     const handleGamepadConnected = (e) => {
+      console.log('🎮 [GAMEPAD] Connected:', e.gamepad)
       setGamepadStatus(`Connected: ${e.gamepad.id}`)
+      startGamepadPolling()
     }
     
-    const handleGamepadDisconnected = () => {
+    const handleGamepadDisconnected = (e) => {
+      console.log('🎮 [GAMEPAD] Disconnected:', e.gamepad)
       setGamepadStatus('Disconnected')
+      stopGamepadPolling()
     }
 
     window.addEventListener('gamepadconnected', handleGamepadConnected)
@@ -132,6 +194,7 @@ export function RemoteControl({ onKeyTest }) {
     return () => {
       window.removeEventListener('gamepadconnected', handleGamepadConnected)
       window.removeEventListener('gamepaddisconnected', handleGamepadDisconnected)
+      stopGamepadPolling()
     }
   }, [])
 
