@@ -28,21 +28,24 @@ export const getWhiteKeys = () => {
 // Keyboard mapping helpers
 export const idsFromEvent = (e) => {
   const ids = []
-  const k = (e.key || '').toLowerCase()
-  const c = (e.code || '').toLowerCase()
+  if (!e) return ids
   
-  if (k && k !== 'unidentified') {
+  const k = (e.key || '').toString().toLowerCase()
+  const c = (e.code || '').toString().toLowerCase()
+  
+  if (k && k !== 'unidentified' && k !== 'undefined') {
     ids.push(k)
     ids.push(`key:${k}`)
   }
-  if (c && c !== 'unidentified') {
+  if (c && c !== 'unidentified' && c !== 'undefined') {
     ids.push(`code:${c}`)
   }
   
-  return ids
+  return ids.filter(id => id && typeof id === 'string')
 }
 
 export const isReservedKeyId = (id) => {
+  if (!id || typeof id !== 'string') return false
   const v = id.replace(/^key:|^code:/, '')
   return ['escape', 'shift', 'control', 'alt', 'meta', 'tab'].includes(v)
 }

@@ -34,10 +34,11 @@ export function useAudio() {
                 setIsReady(false)
               }
             }).toDestination()
+          } else {
+            setIsReady(false)
           }
         }
         script.onerror = () => {
-          console.error('Failed to load piano samples script')
           setIsReady(false)
         }
         document.head.appendChild(script)
