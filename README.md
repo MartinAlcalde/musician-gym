@@ -12,21 +12,27 @@ Musician Gym helps you recognize scale degrees by their function within a key. I
 
 **🎼 Functional Training** - Learn scale degrees in tonal context rather than isolated intervals.
 
+**🌙 Dark Theme** - Easy on the eyes for practice in bed or low-light environments.
+
+**⌨️ Custom Key Mapping** - Map scale degrees to any keyboard keys or Bluetooth device buttons for personalized practice.
+
 ## Getting Started
 
-1. **[Open Musician Gym](https://yourusername.github.io/musician-gym/)**
+1. **[Open Musician Gym](https://martinalcalde.github.io/musician-gym/)**
 2. Click "Start" to hear a cadence + target note  
 3. Identify the scale degree on the piano
 4. Track your progress over time
 
-### Remote Control Setup
+### Custom Controls
 
-Works with any Bluetooth controller:
+**Keyboard Mapping**: Assign scale degrees to any keys (default: home row A-S-D-F-G-H-J-K)
+
+**Bluetooth Controllers**: 
 - Gaming controllers (Xbox, PlayStation, etc.)
 - [Cheap camera shutters](https://www.amazon.com/Wireless-Gamepad-Bluetooth-Controller-Shutter/dp/B07WFH2HB9) (~$2)
-- Custom HID devices
+- Any HID-compatible device
 
-Map buttons to scale degrees in Settings > Remote Control.
+Configure in Settings > Key Mapping. Click "Set key" next to any note, then press your desired key or controller button.
 
 ### Auto Mode
 
