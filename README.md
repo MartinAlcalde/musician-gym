@@ -1,41 +1,112 @@
-Functional Ear Training
+# Music Gym
 
-What Is Functional Ear Training
-- Focus: recognizing scale degrees by their function within a key, not by absolute pitch or isolated intervals.
-- Context first: you always hear a short cadence that establishes the tonic (here: C major).
-- Task: after the cadence, a single target note plays. You identify its degree relative to the tonic (1=Do, 2=Re, 3=Mi, 4=Fa).
-- Feedback: immediate correct/incorrect response, optionally followed by a resolution back to the tonic to reinforce the sound.
+A **functional ear training** web application that helps users recognize scale degrees by their function within a key. The app presents a cadence (I-IV-V-I in C major) followed by a target note, and users identify the scale degree relative to the tonic.
 
-App Overview (This Project)
-- Key: fixed C major for v1.
-- Range: first half‑octave C–F (Do–Fa) as the answer set; the keyboard UI shows C4–C5 for familiarity.
-- Cadence: I–IV–V–I triads (simple voicings) to establish context.
-- Audio: real piano using Tone.js Sampler with locally embedded samples (no CDN, no server required).
+## Features
 
-How To Use
-- Open `index.html` directly (double‑click) — works with `file://` offline.
-- Click `Start / Next` to begin a round: hear the cadence, then the target note.
-- Answer by clicking a white key C, D, E, or F (or use number keys 1–4).
-- See immediate feedback and optional resolution to C. Click `Start / Next` for the next round.
+- **Interactive Piano Interface**: Click on piano keys to identify target notes
+- **Multiple Exercises**: 
+  - Exercise 1: C-F (Do-Fa) - first half octave
+  - Exercise 2: G-C (Sol-Do) - second half octave  
+  - Exercise 3: Full octave C-C
+- **Auto Mode**: Passive practice mode with automated playback and answers
+- **Customizable Settings**:
+  - Notation style (Solfege/Letter names)
+  - Dark theme
+  - Resolution playback
+  - Auto mode configuration
+- **Audio Engine**: Built on Tone.js with high-quality piano samples
+- **Keyboard Shortcuts**: Customizable key mappings for piano notes
+- **Progress Tracking**: Accuracy and attempt statistics
 
-Controls
-- `Start / Next`: plays cadence and presents a new target.
-- `Resolve to C` (checkbox): when enabled, plays target→tonic after you answer.
-- Piano UI: C4–C5, with black keys for visual realism (only C–F are valid answers in v1).
-- Shortcuts: `Enter` to start; `1..4` map to C–F.
+## Technology Stack
 
-Stats
-- Tracks attempts, correct answers, and accuracy for the current session (no persistence yet).
+- **Frontend**: React + Vite
+- **Audio**: Tone.js with embedded base64 piano samples
+- **Styling**: Pure CSS with responsive design
+- **Storage**: LocalStorage for user preferences
 
-Tech Notes
-- 100% local: `assets/lib/Tone.js` is vendored and piano samples are embedded as base64 in `assets/piano.base64.js`.
-- No network or HTTP server needed; works offline from the filesystem.
-- Simple, deterministic audio scheduling; volumes kept conservative to avoid clipping.
+## Getting Started
 
-Roadmap Ideas (Optional)
-- Expand degrees (add G–B and octave C) and adaptive weighting by performance.
-- Add replay buttons (cadence/target), auto‑advance, and Do/Re/Mi/Fa label toggle.
-- Export minimal session stats.
+### Prerequisites
+- Node.js (v16 or higher)
+- npm or yarn
 
-Credits
-- Piano samples adapted from the Salamander set as used in Tone.js demos (trimmed and embedded for local use).
+### Installation
+
+1. Clone the repository
+```bash
+git clone <repository-url>
+cd fet
+```
+
+2. Install dependencies
+```bash
+npm install
+```
+
+3. Start the development server
+```bash
+npm run dev
+```
+
+4. Open your browser and navigate to `http://localhost:5173`
+
+### Building for Production
+
+```bash
+npm run build
+```
+
+The built files will be in the `dist` directory.
+
+## How to Use
+
+1. **Start Training**: Click "Start" to begin a new round
+2. **Listen**: The app will play a I-IV-V-I cadence followed by a target note
+3. **Identify**: Click the corresponding piano key to identify the target note
+4. **Progress**: The app shows your accuracy and tracks your attempts
+
+### Auto Mode
+
+Enable "Auto mode" in settings for passive practice:
+- Automatically plays cadences and target notes
+- Shows/speaks answers based on your preferences  
+- Configurable interval between rounds
+- Perfect for ear training without active participation
+
+## Project Structure
+
+```
+src/
+├── components/          # React components
+│   ├── Piano.jsx       # Piano keyboard interface
+│   ├── Settings.jsx    # Configuration panel
+│   ├── GameControls.jsx # Start/Repeat buttons
+│   └── GameDisplay.jsx # Feedback and statistics
+├── hooks/              # Custom React hooks
+│   ├── useAudio.js     # Audio engine and Tone.js wrapper
+│   ├── useGameState.js # Game logic and state management
+│   ├── useKeyboard.js  # Keyboard shortcuts
+│   └── useAutoMode.js  # Auto mode functionality
+├── utils/              # Utility functions
+│   ├── constants.js    # Musical constants and configurations
+│   └── helpers.js      # Helper functions
+├── App.jsx             # Main application component
+└── main.jsx           # React entry point
+```
+
+## Audio Implementation
+
+- Uses **Tone.js** for Web Audio API integration
+- **Piano samples**: Embedded as base64 (Salamander Grand Piano)
+- **Real-time scheduling**: Precise audio timing for musical accuracy
+- **Volume control**: Conservative levels to prevent distortion
+
+## Contributing
+
+This project migrated from a single HTML file to React + Vite for better maintainability while preserving 100% of the original functionality.
+
+## License
+
+[Add your license information here]
