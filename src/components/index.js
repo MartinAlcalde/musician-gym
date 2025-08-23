@@ -1,0 +1,7 @@
+export { Piano } from './Piano.jsx'
+export { Settings } from './Settings.jsx'
+export { GameControls } from './GameControls.jsx'
+export { GameDisplay } from './GameDisplay.jsx'
+export { KeyMapping } from './KeyMapping.jsx'
+export { RemoteControl } from './RemoteControl.jsx'
+export { ExerciseSelector } from './ExerciseSelector.jsx'
