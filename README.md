@@ -58,7 +58,7 @@ Enable in settings for passive practice:
 ## Development
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/MartinAlcalde/musician-gym
 cd musician-gym
 npm install
 npm run dev
