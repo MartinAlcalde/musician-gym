@@ -63,3 +63,7 @@ cd musician-gym
 npm install
 npm run dev
 ```
+
+## License
+
+MIT License - see [LICENSE](LICENSE) file for details.
