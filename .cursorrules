@@ -1,0 +1,190 @@
+# Musician Gym - Cursor Rules
+
+## Project Overview
+Musician Gym is a functional ear training web app built with React + Vite. It helps users recognize scale degrees in tonal context using I-IV-V-I cadences. The app works offline, uses Tone.js for audio, and supports custom keyboard/Bluetooth controller mapping.
+
+## Architecture Patterns
+
+### Component Structure
+- **Components** (`src/components/`): Presentational React components
+- **Hooks** (`src/hooks/`): Custom hooks for business logic (useAudio, useGameState, useKeyboard, useAutoMode)
+- **Utils** (`src/utils/`): Pure utility functions and constants
+- Use functional components with hooks (no class components)
+- Prefer composition over inheritance
+
+### State Management
+- Use React hooks (`useState`, `useRef`, `useEffect`, `useCallback`) for local state
+- Custom hooks encapsulate complex logic (audio, game state, keyboard mapping, auto mode)
+- LocalStorage for persistent settings (notation, theme, auto mode preferences, keymap)
+- No external state management library required
+
+### File Conventions
+- Use `.jsx` for components, `.js` for hooks and utilities
+- Use named exports for utilities and constants
+- Use default exports for React components
+- Keep components small and focused
+
+## Code Style
+
+### JavaScript/React
+- Use modern ES6+ syntax
+- Prefer `const` and `let` over `var`
+- Use arrow functions for callbacks
+- Use template literals for strings with variables
+- Destructure props and state when beneficial
+- Use optional chaining (`?.`) and nullish coalescing (`??`)
+
+### React Patterns
+- Use functional components exclusively
+- Extract reusable logic into custom hooks
+- Use `forwardRef` when refs are needed
+- Use `useCallback` for functions passed as props or dependencies
+- Use `useRef` for DOM references and mutable values that don't trigger re-renders
+- Clean up event listeners and timers in `useEffect` return functions
+
+### Naming Conventions
+- Components: PascalCase (`Piano.jsx`, `GameControls.jsx`)
+- Hooks: camelCase starting with "use" (`useAudio.js`, `useGameState.js`)
+- Functions: camelCase (`playCadence`, `handleKeyDown`)
+- Constants: UPPER_SNAKE_CASE (`STORAGE_KEYS`, `NOTES`)
+- Variables: camelCase (`targetMidi`, `feedbackOk`)
+
+## Audio & MIDI
+
+### Tone.js Integration
+- All audio operations use Tone.js
+- Audio context must be started with user interaction (`Tone.start()`)
+- Use `Tone.getContext().rawContext` for timing calculations
+- Use `Tone.now()` and scheduling for precise timing
+- Piano samples loaded from base64 JavaScript file in `public/`
+
+### MIDI Notes
+- MIDI note 60 = C4 (middle C)
+- Notes defined in `src/utils/constants.js` as `NOTES` object
+- Use MIDI numbers (55-74) for note representation internally
+- Convert to note names using `MIDI_TO_NAME` for Tone.js playback
+- Use pitch class (PC) for solfege/letter notation conversion
+
+## Game Logic
+
+### Exercise System
+- Three exercises defined in `EXERCISES` constant
+- Exercise 1: C4-F4 (lower tetrachord)
+- Exercise 2: G4-C5 (upper tetrachord)
+- Exercise 3: Full octave C4-C5
+- Only notes in exercise set are playable
+
+### Answer Flow
+- Cadence plays first (I-IV-V-I)
+- Target note plays after cadence
+- Answers enabled after target note finishes
+- Feedback shown with visual key flash (correct/wrong)
+- Optional resolution plays C4 when correct
+
+### Auto Mode
+- Passive training mode with automatic playback
+- Configurable intervals (3s, 5s, 8s, 10s, 15s)
+- Optional answer display and audio feedback
+- Controlled by `useAutoMode` hook
+
+## Input & Controls
+
+### Keyboard Mapping
+- Custom key mapping via `useKeyboard` hook
+- Default: home row keys (A-S-D-F-G-H-J-K)
+- Supports any keyboard key or HID device
+- Mapping stored in localStorage
+
+### Bluetooth/Gamepad Support
+- Supports any HID-compatible device (gamepads, camera shutters, etc.)
+- Gamepad IDs format: `gamepad:{index}:btn{button}` or `gamepad:{index}:axis{index}{direction}`
+- Handled through standard HID gamepad API
+
+## Settings & Persistence
+
+### LocalStorage Keys
+- All prefixed with `fet-` (functional ear training)
+- Keys defined in `STORAGE_KEYS` constant
+- Settings: notation, dark theme, auto mode, intervals, keymap
+
+### Notation
+- Two modes: `'solfege'` (do, re, mi...) or `'letter'` (C, D, E...)
+- Stored in localStorage
+- Applied globally to piano labels and feedback
+
+## UI/UX
+
+### Theme
+- Dark theme support via CSS class on `body` element
+- Toggle via settings
+- Persisted in localStorage
+
+### Feedback System
+- Text feedback shown in `GameDisplay` component
+- Visual feedback via key flashing (`flashKey` helper)
+- Colors: green (correct), red (wrong), blue (hint)
+
+### Accessibility
+- Use semantic HTML
+- Add `aria-label` attributes for interactive elements
+- Support keyboard navigation
+
+## Error Handling
+- Use try-catch for localStorage operations (may fail in private browsing)
+- Log errors to console with descriptive messages
+- Gracefully degrade when audio fails to load
+- Show user-friendly feedback messages
+
+## Performance
+- Lazy load audio samples (loaded on demand)
+- Use `useCallback` to memoize expensive functions
+- Avoid unnecessary re-renders with proper dependency arrays
+- Clean up event listeners and timers
+
+## Testing Considerations
+- Components should be testable in isolation
+- Extract business logic to hooks for easier testing
+- Use pure functions in utils when possible
+
+## Common Patterns to Follow
+
+### Component Props
+```javascript
+// Good: Destructure props
+function Component({ prop1, prop2, onAction }) {
+  // ...
+}
+
+// Good: Use default parameters
+function Component({ disabled = false, className = '' }) {
+  // ...
+}
+```
+
+### Event Handlers
+```javascript
+// Good: Use useCallback for handlers passed as props
+const handleClick = useCallback((midi) => {
+  // ...
+}, [dependencies])
+
+// Good: Inline for simple handlers
+<div onClick={() => setVisible(!visible)} />
+```
+
+### Audio Timing
+```javascript
+// Good: Calculate timing from audio context
+const ctx = Tone.getContext().rawContext
+const delay = Math.max(0, when - ctx.currentTime)
+const t = Tone.now() + delay
+```
+
+## When Adding Features
+- Consider offline-first approach (works without internet)
+- Maintain mobile responsiveness
+- Keep audio timing precise
+- Preserve user preferences (localStorage)
+- Add proper error handling
+- Update TypeScript-style JSDoc comments if adding complex functions
+
