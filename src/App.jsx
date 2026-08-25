@@ -5,7 +5,8 @@ import { useAudio } from './hooks/useAudio.js'
 import { useGameState } from './hooks/useGameState.js'
 import { useKeyboard } from './hooks/useKeyboard.js'
 import { useAutoMode } from './hooks/useAutoMode.js'
-import { labelForMidi, saveToStorage, loadFromStorage, flashKey } from './utils/helpers.js'
+import { useScreenWakeLock } from './hooks/useScreenWakeLock.js'
+import { labelForMidi, flashKey } from './utils/helpers.js'
 import { STORAGE_KEYS, NOTES } from './utils/constants.js'
 import './App.css'
 
@@ -31,6 +32,22 @@ function App() {
   const gameState = useGameState()
   const keyboard = useKeyboard()
   const autoMode = useAutoMode()
+  const screenWakeLock = useScreenWakeLock()
+  const {
+    isRunning: isAutoRunning,
+    stop: stopAutoMode
+  } = autoMode
+  const {
+    resetTarget,
+    disableAnswers
+  } = gameState
+  const {
+    isSupported: isWakeLockSupported,
+    isActive: isWakeLockActive,
+    error: wakeLockError,
+    request: requestWakeLock,
+    release: releaseWakeLock
+  } = screenWakeLock
 
   // Initialize app and load settings
   useEffect(() => {
@@ -95,13 +112,21 @@ function App() {
 
   // Auto mode effect - only handle state changes, don't save here  
   useEffect(() => {
-    if (!autoModeEnabled && autoMode.isRunning) {
-      autoMode.stop()
+    if (!autoModeEnabled && isAutoRunning) {
+      stopAutoMode()
+      void releaseWakeLock()
       setFeedback('Auto mode disabled')
-      gameState.resetTarget()
-      gameState.disableAnswers()
+      resetTarget()
+      disableAnswers()
     }
-  }, [autoModeEnabled, autoMode, gameState])
+  }, [
+    autoModeEnabled,
+    isAutoRunning,
+    stopAutoMode,
+    resetTarget,
+    disableAnswers,
+    releaseWakeLock
+  ])
 
   // Keyboard event handler
   useEffect(() => {
@@ -200,16 +225,22 @@ function App() {
       if (autoMode.isRunning) {
         console.log('🛑 Stopping auto mode')
         autoMode.stop()
+        void releaseWakeLock()
         setFeedback('Auto mode stopped')
         gameState.resetTarget()
         gameState.disableAnswers()
       } else {
         console.log('🚀 Starting auto mode')
+        const wakeLockPromise = requestWakeLock()
+        await audio.startAudioContext()
         autoMode.start()
-        // Use setTimeout to ensure state has updated
-        setTimeout(() => {
-          startAutoRound()
-        }, 0)
+        const wakeLockAcquired = await wakeLockPromise
+
+        if (!wakeLockAcquired) {
+          console.warn('Auto mode started without a screen wake lock')
+        }
+
+        startAutoRound()
       }
       return
     }
@@ -370,6 +401,11 @@ function App() {
         }}
         clearKeymap={keyboard.clearKeymap}
         waitingMapMidi={keyboard.waitingMapMidi}
+        screenWakeLock={{
+          isSupported: isWakeLockSupported,
+          isActive: isWakeLockActive,
+          error: wakeLockError
+        }}
         onKeyTest={(testData) => {
           // Handle gamepad mapping - use ref for immediate state
           const waitingMidiValue = keyboard.waitingMapMidiRef?.current

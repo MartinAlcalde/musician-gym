@@ -14,7 +14,8 @@ export function Settings({
   startMapping,
   clearKeymap,
   waitingMapMidi,
-  onKeyTest
+  onKeyTest,
+  screenWakeLock
 }) {
   if (!isVisible) return null
 
@@ -75,6 +76,7 @@ export function Settings({
           autoInterval={autoInterval}
           showAnswer={showAnswer}
           sayAnswer={sayAnswer}
+          screenWakeLock={screenWakeLock}
           onSettingChange={onSettingChange}
         />
       )}
@@ -95,7 +97,7 @@ export function Settings({
   )
 }
 
-function AutoModeSettings({ autoInterval, showAnswer, sayAnswer, onSettingChange }) {
+function AutoModeSettings({ autoInterval, showAnswer, sayAnswer, screenWakeLock, onSettingChange }) {
   return (
     <div className="panel" style={{marginTop: '8px', padding: '8px'}}>
       <div style={{fontWeight: 600, marginBottom: '6px'}}>Auto Mode Settings</div>
@@ -129,6 +131,15 @@ function AutoModeSettings({ autoInterval, showAnswer, sayAnswer, onSettingChange
           /> 
           Say answer (if available)
         </label>
+      </div>
+      <div className="muted" style={{marginTop: '8px', fontSize: '12px'}}>
+        {screenWakeLock.error
+          ? '⚠️ Android may suspend audio. Disable battery saving or keep the screen on.'
+          : screenWakeLock.isSupported
+          ? screenWakeLock.isActive
+            ? '🔆 Screen will stay awake while Auto Mode is running.'
+            : 'The screen will stay awake after Auto Mode starts.'
+          : '⚠️ Keep the screen on: this browser cannot prevent Android from suspending audio.'}
       </div>
     </div>
   )
