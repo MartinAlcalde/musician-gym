@@ -34,11 +34,13 @@ export const AUTO_INTERVALS = {
 
 // Local storage keys
 export const STORAGE_KEYS = {
+  RESOLVE: 'fet-resolve',
   NOTATION: 'fet-notation',
   DARK_THEME: 'fet-dark-theme',
   AUTO_MODE: 'fet-auto-mode',
   AUTO_INTERVAL: 'fet-auto-interval',
   SHOW_ANSWER: 'fet-show-answer',
   SAY_ANSWER: 'fet-say-answer',
-  KEYMAP: 'fet-keymap'
+  KEYMAP: 'fet-keymap',
+  STATS: 'fet-stats'
 }

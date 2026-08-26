@@ -1,14 +1,47 @@
-import { useState, useEffect, useRef } from 'react'
-import * as Tone from 'tone'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Piano, Settings, GameControls, GameDisplay, ExerciseSelector } from './components'
 import { useAudio } from './hooks/useAudio.js'
 import { useGameState } from './hooks/useGameState.js'
 import { useKeyboard } from './hooks/useKeyboard.js'
 import { useAutoMode } from './hooks/useAutoMode.js'
 import { useScreenWakeLock } from './hooks/useScreenWakeLock.js'
+import { useManagedTimeouts } from './hooks/useManagedTimeouts.js'
 import { labelForMidi, flashKey } from './utils/helpers.js'
 import { STORAGE_KEYS, NOTES } from './utils/constants.js'
 import './App.css'
+
+const savePreference = (key, value) => {
+  try {
+    localStorage.setItem(key, String(value))
+  } catch (error) {
+    console.warn(`Could not save preference ${key}:`, error)
+  }
+}
+
+const loadPreference = (key, fallback) => {
+  try {
+    const saved = localStorage.getItem(key)
+    return saved === null ? fallback : saved
+  } catch (error) {
+    console.warn(`Could not load preference ${key}:`, error)
+    return fallback
+  }
+}
+
+const loadBooleanPreference = (key, fallback) => {
+  return loadPreference(key, String(fallback)) === 'true'
+}
+
+const legacyGamepadInputId = testData => {
+  if (testData.type !== 'gamepad') return null
+  if (testData.buttonIndex !== undefined) {
+    return `gamepad:${testData.gamepadIndex}:btn${testData.buttonIndex}`
+  }
+  if (testData.axisIndex !== undefined) {
+    return `gamepad:${testData.gamepadIndex}:axis${testData.axisIndex}${testData.axisDirection}`
+  }
+  return null
+}
 
 function App() {
   // Main app state
@@ -16,13 +49,20 @@ function App() {
   const [feedbackOk, setFeedbackOk] = useState(null)
   const [settingsVisible, setSettingsVisible] = useState(false)
   const [exerciseSelectorVisible, setExerciseSelectorVisible] = useState(false)
-  const [startEnabled, setStartEnabled] = useState(false)
+  const [manualSessionStarted, setManualSessionStarted] = useState(false)
   
   // Settings state
-  const [resolve, setResolve] = useState(true)
-  const [notation, setNotation] = useState('solfege')
-  const [darkTheme, setDarkTheme] = useState(false)
-  const [autoModeEnabled, setAutoModeEnabled] = useState(false)
+  const [resolve, setResolve] = useState(() => loadBooleanPreference(STORAGE_KEYS.RESOLVE, true))
+  const [notation, setNotation] = useState(() => loadPreference(STORAGE_KEYS.NOTATION, 'solfege'))
+  const [darkTheme, setDarkTheme] = useState(() => loadBooleanPreference(STORAGE_KEYS.DARK_THEME, false))
+  const [autoModeEnabled, setAutoModeEnabled] = useState(() => (
+    loadBooleanPreference(STORAGE_KEYS.AUTO_MODE, false)
+  ))
+  const [initialAutoSettings] = useState(() => ({
+    interval: Number(loadPreference(STORAGE_KEYS.AUTO_INTERVAL, '5000')) || 5000,
+    showAnswer: loadBooleanPreference(STORAGE_KEYS.SHOW_ANSWER, true),
+    sayAnswer: loadBooleanPreference(STORAGE_KEYS.SAY_ANSWER, true)
+  }))
 
   // Refs
   const pianoRef = useRef(null)
@@ -31,16 +71,14 @@ function App() {
   const audio = useAudio()
   const gameState = useGameState()
   const keyboard = useKeyboard()
-  const autoMode = useAutoMode()
+  const autoMode = useAutoMode({
+    notation,
+    initialInterval: initialAutoSettings.interval,
+    initialShowAnswer: initialAutoSettings.showAnswer,
+    initialSayAnswer: initialAutoSettings.sayAnswer
+  })
   const screenWakeLock = useScreenWakeLock()
-  const {
-    isRunning: isAutoRunning,
-    stop: stopAutoMode
-  } = autoMode
-  const {
-    resetTarget,
-    disableAnswers
-  } = gameState
+  const manualTimers = useManagedTimeouts()
   const {
     isSupported: isWakeLockSupported,
     isActive: isWakeLockActive,
@@ -49,89 +87,22 @@ function App() {
     release: releaseWakeLock
   } = screenWakeLock
 
-  // Initialize app and load settings
-  useEffect(() => {
-    try {
-      const savedNotation = localStorage.getItem(STORAGE_KEYS.NOTATION) || 'solfege'
-      const savedThemeRaw = localStorage.getItem(STORAGE_KEYS.DARK_THEME)
-      const savedAutoModeRaw = localStorage.getItem(STORAGE_KEYS.AUTO_MODE)
-      
-      const savedTheme = savedThemeRaw === 'true'
-      const savedAutoMode = savedAutoModeRaw === 'true'
-
-      console.log('🔧 Loading saved preferences:', { 
-        savedNotation, 
-        savedThemeRaw, 
-        savedTheme, 
-        savedAutoModeRaw, 
-        savedAutoMode 
-      })
-
-      setNotation(savedNotation)
-      setDarkTheme(savedTheme)
-      setAutoModeEnabled(savedAutoMode)
-
-      // Apply dark theme immediately to body
-      if (savedTheme) {
-        document.body.classList.add('dark')
-      } else {
-        document.body.classList.remove('dark')
-      }
-    } catch (error) {
-      console.warn('Error loading preferences:', error)
-    }
-  }, [])
-
-  // Load auto mode settings separately after auto mode hook is ready
-  useEffect(() => {
-    try {
-      const savedInterval = Number(localStorage.getItem(STORAGE_KEYS.AUTO_INTERVAL)) || 5000
-      const savedShowAnswer = localStorage.getItem(STORAGE_KEYS.SHOW_ANSWER) !== 'false'
-      const savedSayAnswer = localStorage.getItem(STORAGE_KEYS.SAY_ANSWER) !== 'false'
-
-      autoMode.setInterval(savedInterval)
-      autoMode.setShowAnswer(savedShowAnswer)
-      autoMode.setSayAnswer(savedSayAnswer)
-    } catch (error) {
-      console.warn('Error loading auto mode preferences:', error)
-    }
-  }, [autoMode])
-
-  // Audio ready effect
-  useEffect(() => {
-    if (audio.isReady) {
-      setFeedback("Ready. Press Start")
-      setStartEnabled(true)
-    }
-  }, [audio.isReady])
-
   // Dark theme effect - only apply to DOM, don't save here
   useEffect(() => {
     document.body.classList.toggle('dark', darkTheme)
   }, [darkTheme])
 
-  // Auto mode effect - only handle state changes, don't save here  
-  useEffect(() => {
-    if (!autoModeEnabled && isAutoRunning) {
-      stopAutoMode()
-      void releaseWakeLock()
-      setFeedback('Auto mode disabled')
-      resetTarget()
-      disableAnswers()
-    }
-  }, [
-    autoModeEnabled,
-    isAutoRunning,
-    stopAutoMode,
-    resetTarget,
-    disableAnswers,
-    releaseWakeLock
-  ])
+  const clickMidi = useCallback((midi) => {
+    const element = pianoRef.current?.querySelector(`[data-midi="${midi}"]`)
+    element?.click()
+  }, [])
+
+  const handleKeyboardKeyDown = keyboard.handleKeyDown
 
   // Keyboard event handler
   useEffect(() => {
     const handleKeyDown = (event) => {
-      const result = keyboard.handleKeyDown(event, (midi) => {
+      const result = handleKeyboardKeyDown(event, (midi) => {
         clickMidi(midi)
       })
 
@@ -153,39 +124,35 @@ function App() {
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [keyboard, notation])
+  }, [clickMidi, handleKeyboardKeyDown, notation])
 
   // Game logic functions
   const startRound = async () => {
-    console.log('🎯 startRound() called')
+    manualTimers.clearAll()
     await audio.startAudioContext()
-    setStartEnabled(false)
+    setManualSessionStarted(true)
     gameState.disableAnswers()
     setFeedback("Cadence…")
     setFeedbackOk(null)
     
-    console.log('🎼 Playing cadence...')
     const endCad = audio.playCadence()
     const newTarget = gameState.startNewRound()
-    console.log(`🎵 New target note: ${newTarget}`)
     
     const tTarget = endCad + 0.12
     audio.playTone(newTarget, tTarget, 0.9, "piano", 0.18)
     
-    const ctx = audio.isReady ? Tone.getContext().rawContext : null
-    const enableAtMs = ctx ? Math.max(0, (tTarget - ctx.currentTime) * 1000) + 120 : 1000
-    console.log(`⏱️ Will enable answers in ${enableAtMs}ms`)
-    setTimeout(() => {
-      console.log('✅ Enabling answers now')
+    const currentTime = audio.getCurrentTime()
+    const enableAtMs = currentTime !== null
+      ? Math.max(0, (tTarget - currentTime) * 1000) + 120
+      : 1000
+    manualTimers.schedule(() => {
       setFeedback("Identify the note (click the key)")
       gameState.enableAnswers()
     }, enableAtMs)
   }
 
   const startAutoRound = () => {
-    console.log('🎼 startAutoRound called, isRunning:', autoMode.isRunning)
     const newTarget = gameState.startNewRound()
-    console.log('🎵 New auto target:', newTarget)
     setFeedback("🎵 Cadence...")
     
     // Solo usar runAutoRound, que ya maneja todo el ciclo
@@ -193,13 +160,10 @@ function App() {
       newTarget,
       audio.playCadence,
       audio.playTone,
+      audio.getCurrentTime,
       () => {
-        console.log('🔄 Auto round completed, continuing...', 'autoMode.isRunning:', autoMode.isRunning, 'isRunningRef:', autoMode.isRunningRef.current)
         if (autoMode.isRunningRef.current) {
-          console.log('🚀 Continuing with next auto round')
           startAutoRound() // Continue the loop
-        } else {
-          console.log('❌ Auto mode stopped, not continuing')
         }
       },
       // Pasar callback para actualizar UI
@@ -214,8 +178,6 @@ function App() {
   }
 
   const handleStart = async () => {
-    console.log('🎯 handleStart called, autoModeEnabled:', autoModeEnabled, 'isRunning:', autoMode.isRunning)
-    
     if (!audio.isReady) {
       setFeedback("Loading piano…")
       return
@@ -223,14 +185,13 @@ function App() {
     
     if (autoModeEnabled) {
       if (autoMode.isRunning) {
-        console.log('🛑 Stopping auto mode')
         autoMode.stop()
         void releaseWakeLock()
         setFeedback('Auto mode stopped')
         gameState.resetTarget()
         gameState.disableAnswers()
       } else {
-        console.log('🚀 Starting auto mode')
+        manualTimers.clearAll()
         const wakeLockPromise = requestWakeLock()
         await audio.startAudioContext()
         autoMode.start()
@@ -260,9 +221,11 @@ function App() {
     const tTarget = endCad + 0.12
     audio.playTone(gameState.targetMidi, tTarget, 0.9, 'piano', 0.18)
     
-    const ctx = audio.isReady ? Tone.getContext().rawContext : null
-    const enableAtMs = ctx ? Math.max(0, (tTarget - ctx.currentTime) * 1000) + 120 : 1000
-    setTimeout(() => {
+    const currentTime = audio.getCurrentTime()
+    const enableAtMs = currentTime !== null
+      ? Math.max(0, (tTarget - currentTime) * 1000) + 120
+      : 1000
+    manualTimers.schedule(() => {
       setFeedback('Identify the note (click the key)')
       gameState.enableAnswers()
     }, enableAtMs)
@@ -285,76 +248,79 @@ function App() {
     flashKey(keyElement, result.isCorrect ? 'correct' : 'wrong')
 
     if (result.isCorrect) {
-      console.log('✅ Correct answer! Starting next round sequence...')
       let nextDelayMs = 400
       const currentTarget = gameState.targetMidi // Save target before reset
       
       if (resolve) {
-        console.log('🎵 Playing resolution...')
-        const ctx = Tone.getContext().rawContext
-        const t0 = ctx.currentTime + 0.05
-        audio.playTone(currentTarget, t0, 0.45, 'piano', 0.16)
-        audio.playTone(NOTES.C4, t0 + 0.46, 0.8, 'piano', 0.18)
-        const tEnd = t0 + 0.46 + 0.82
-        nextDelayMs = Math.max(0, (tEnd - ctx.currentTime) * 1000) + 120
-        console.log(`⏱️ Resolution delay: ${nextDelayMs}ms`)
-      } else {
-        console.log(`⏱️ No resolution, delay: ${nextDelayMs}ms`)
+        const currentTime = audio.getCurrentTime()
+        if (currentTime !== null) {
+          const t0 = currentTime + 0.05
+          audio.playTone(currentTarget, t0, 0.45, 'piano', 0.16)
+          audio.playTone(NOTES.C4, t0 + 0.46, 0.8, 'piano', 0.18)
+          const tEnd = t0 + 0.46 + 0.82
+          nextDelayMs = Math.max(0, (tEnd - currentTime) * 1000) + 120
+        }
       }
       
       gameState.disableAnswers()
       gameState.resetTarget()
       
-      console.log(`⏰ Setting timeout for ${nextDelayMs}ms to start next round`)
-      setTimeout(() => {
-        console.log('🚀 Timeout fired! Starting next round...')
-        startRound()
+      manualTimers.schedule(() => {
+        void startRound()
       }, nextDelayMs)
     }
-  }
-
-  const clickMidi = (midi) => {
-    const el = pianoRef.current?.querySelector(`[data-midi="${midi}"]`)
-    if (el) el.click()
   }
 
   const handleSettingChange = (setting, value) => {
     switch (setting) {
       case 'resolve':
         setResolve(value)
+        savePreference(STORAGE_KEYS.RESOLVE, value)
         break
       case 'notation':
         setNotation(value)
-        try { localStorage.setItem(STORAGE_KEYS.NOTATION, value) } catch {}
+        savePreference(STORAGE_KEYS.NOTATION, value)
         break
       case 'darkTheme':
         setDarkTheme(value)
-        try { localStorage.setItem(STORAGE_KEYS.DARK_THEME, String(value)) } catch {}
+        savePreference(STORAGE_KEYS.DARK_THEME, value)
         break
       case 'autoMode':
+        manualTimers.clearAll()
+        if (!value && autoMode.isRunning) {
+          autoMode.stop()
+          void releaseWakeLock()
+        }
+        gameState.resetTarget()
+        gameState.disableAnswers()
+        setManualSessionStarted(false)
+        setFeedback(value ? 'Auto mode ready. Press Start' : 'Manual mode ready. Press Start')
         setAutoModeEnabled(value)
-        try { localStorage.setItem(STORAGE_KEYS.AUTO_MODE, String(value)) } catch {}
+        savePreference(STORAGE_KEYS.AUTO_MODE, value)
         break
       case 'exercise':
-        gameState.setExercise(value)
-        if (gameState.targetMidi) {
-          gameState.resetTarget()
-          gameState.disableAnswers()
-          setStartEnabled(true)
-          setFeedback('Exercise changed. Press Start')
+        manualTimers.clearAll()
+        if (autoMode.isRunning) {
+          autoMode.stop()
+          void releaseWakeLock()
         }
+        gameState.setExercise(value)
+        gameState.resetTarget()
+        gameState.disableAnswers()
+        setManualSessionStarted(false)
+        setFeedback('Exercise changed. Press Start')
         break
       case 'autoInterval':
         autoMode.setInterval(value)
-        try { localStorage.setItem(STORAGE_KEYS.AUTO_INTERVAL, String(value)) } catch {}
+        savePreference(STORAGE_KEYS.AUTO_INTERVAL, value)
         break
       case 'showAnswer':
         autoMode.setShowAnswer(value)
-        try { localStorage.setItem(STORAGE_KEYS.SHOW_ANSWER, String(value)) } catch {}
+        savePreference(STORAGE_KEYS.SHOW_ANSWER, value)
         break
       case 'sayAnswer':
         autoMode.setSayAnswer(value)
-        try { localStorage.setItem(STORAGE_KEYS.SAY_ANSWER, String(value)) } catch {}
+        savePreference(STORAGE_KEYS.SAY_ANSWER, value)
         break
     }
   }
@@ -365,11 +331,15 @@ function App() {
     notation,
     darkTheme,
     autoMode: autoModeEnabled,
-    exercise: gameState.exercise,
     autoInterval: autoMode.interval,
     showAnswer: autoMode.showAnswer,
     sayAnswer: autoMode.sayAnswer
   }
+
+  const startEnabled = audio.isReady && (autoModeEnabled || !manualSessionStarted)
+  const displayedFeedback = feedback === 'Loading piano…' && audio.isReady
+    ? 'Ready. Press Start'
+    : feedback
 
   return (
     <div>
@@ -391,7 +361,6 @@ function App() {
         isVisible={settingsVisible}
         settings={settings}
         onSettingChange={handleSettingChange}
-        autoMode={autoModeEnabled}
         exerciseSet={gameState.exerciseSet}
         notation={notation}
         getKeyForMidi={keyboard.getKeyForMidi}
@@ -406,41 +375,28 @@ function App() {
           isActive: isWakeLockActive,
           error: wakeLockError
         }}
+        onResetProgress={() => {
+          gameState.resetStats()
+          setFeedback('Progress reset')
+          setFeedbackOk(null)
+        }}
         onKeyTest={(testData) => {
-          // Handle gamepad mapping - use ref for immediate state
+          const inputId = testData.inputId
+          if (!inputId) return
+
           const waitingMidiValue = keyboard.waitingMapMidiRef?.current
-          if (testData.type === 'gamepad' && waitingMidiValue !== null) {
-            let gamepadId
-            if (testData.buttonIndex !== undefined) {
-              gamepadId = `gamepad:${testData.gamepadIndex}:btn${testData.buttonIndex}`
-            } else if (testData.axisIndex !== undefined) {
-              gamepadId = `gamepad:${testData.gamepadIndex}:axis${testData.axisIndex}${testData.axisDirection}`
-            }
-            
-            if (gamepadId) {
-              keyboard.setKeymapFromGamepad(waitingMidiValue, gamepadId)
-              keyboard.cancelMapping()
-              setFeedback(`Gamepad control mapped to ${labelForMidi(waitingMidiValue, notation)}`)
-            }
+          if (waitingMidiValue !== null) {
+            keyboard.setExternalInputMapping(waitingMidiValue, inputId)
+            keyboard.cancelMapping()
+            setFeedback(`External control mapped to ${labelForMidi(waitingMidiValue, notation)}`)
             return
           }
-          
-          // Handle gamepad key press (when not mapping)
-          if (testData.type === 'gamepad') {
-            let gamepadId
-            if (testData.buttonIndex !== undefined) {
-              gamepadId = `gamepad:${testData.gamepadIndex}:btn${testData.buttonIndex}`
-            } else if (testData.axisIndex !== undefined) {
-              gamepadId = `gamepad:${testData.gamepadIndex}:axis${testData.axisIndex}${testData.axisDirection}`
-            }
-            
-            if (gamepadId) {
-              const midi = keyboard.getMidiForGamepadId(gamepadId)
-              if (midi !== null) {
-                clickMidi(midi)
-              }
-            }
-          }
+
+          const legacyInputId = legacyGamepadInputId(testData)
+          const midi = keyboard.getMidiForExternalInput(inputId) ?? (
+            legacyInputId ? keyboard.getMidiForExternalInput(legacyInputId) : null
+          )
+          if (midi !== null) clickMidi(midi)
         }}
       />
 
@@ -453,7 +409,7 @@ function App() {
       />
 
       <GameDisplay
-        feedback={feedback}
+        feedback={displayedFeedback}
         feedbackOk={feedbackOk}
         attempts={gameState.attempts}
         correct={gameState.correct}

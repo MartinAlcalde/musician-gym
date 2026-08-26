@@ -1,15 +1,33 @@
 import { useState, useMemo, useCallback } from 'react'
-import { getExerciseSet, pickRandomTargetMidi, labelForMidi } from '../utils/helpers.js'
+import {
+  getExerciseSet,
+  pickRandomTargetMidi,
+  labelForMidi,
+  loadFromStorage,
+  saveToStorage
+} from '../utils/helpers.js'
+import { STORAGE_KEYS } from '../utils/constants.js'
+
+const loadStats = () => {
+  const saved = loadFromStorage(STORAGE_KEYS.STATS, { attempts: 0, correct: 0 })
+  const attempts = Number.isFinite(saved?.attempts) ? Math.max(0, saved.attempts) : 0
+  const correct = Number.isFinite(saved?.correct)
+    ? Math.min(attempts, Math.max(0, saved.correct))
+    : 0
+
+  return { attempts, correct }
+}
 
 export function useGameState() {
-  const [attempts, setAttempts] = useState(0)
-  const [correct, setCorrect] = useState(0)
+  const [stats, setStats] = useState(loadStats)
   const [targetMidi, setTargetMidi] = useState(null)
   const [exercise, setExercise] = useState(1)
   const [answersEnabled, setAnswersEnabled] = useState(false)
   const [repeatEnabled, setRepeatEnabled] = useState(false)
 
-  const accuracy = useMemo(() => 
+  const { attempts, correct } = stats
+
+  const accuracy = useMemo(() =>
     attempts ? Math.round((100 * correct) / attempts) : 0
   , [attempts, correct])
 
@@ -29,8 +47,14 @@ export function useGameState() {
     }
     
     const isCorrect = midi === targetMidi
-    setAttempts(prev => prev + 1)
-    if (isCorrect) setCorrect(prev => prev + 1)
+    setStats(previousStats => {
+      const nextStats = {
+        attempts: previousStats.attempts + 1,
+        correct: previousStats.correct + (isCorrect ? 1 : 0)
+      }
+      saveToStorage(STORAGE_KEYS.STATS, nextStats)
+      return nextStats
+    })
     
     return {
       isValid: true,
@@ -61,6 +85,12 @@ export function useGameState() {
     setTargetMidi(null)
   }, [])
 
+  const resetStats = useCallback(() => {
+    const emptyStats = { attempts: 0, correct: 0 }
+    setStats(emptyStats)
+    saveToStorage(STORAGE_KEYS.STATS, emptyStats)
+  }, [])
+
   return {
     // State
     attempts,
@@ -78,6 +108,7 @@ export function useGameState() {
     startNewRound,
     enableAnswers,
     disableAnswers,
-    resetTarget
+    resetTarget,
+    resetStats
   }
 }

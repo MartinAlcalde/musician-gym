@@ -45,7 +45,13 @@ button {
   overflow-x: auto; padding-bottom: 4px;
 }
 .piano.disabled { pointer-events: none; opacity: 0.7; }
-.key { position: relative; cursor: pointer; }
+.key {
+  position: relative;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+  appearance: none;
+}
 .key.white { width: var(--white-w); height: var(--white-h); background: #fff; border: 1px solid #ccc; box-shadow: inset 0 -2px 0 rgba(0,0,0,0.06); }
 .key.black {
   position: absolute;
@@ -55,6 +61,11 @@ button {
 }
 .key.black::after { content: ""; position: absolute; inset: 0; box-shadow: inset 0 -2px 0 rgba(255,255,255,0.06); }
 .key.active { outline: 2px solid #3b82f6; }
+.key:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: -4px;
+  z-index: 4;
+}
 .key.correct { box-shadow: 0 0 0 2px #16a34a inset; }
 .key.wrong { box-shadow: 0 0 0 2px #dc2626 inset; }
 .key.hint { box-shadow: 0 0 0 2px #f59e0b inset; }
@@ -81,6 +92,33 @@ button {
 .map-note { font-weight: 600; }
 .map-key { min-width: 24px; text-align: center; font-family: ui-monospace, monospace; }
 .muted { color: #6b7280; }
+.reset-progress-button { margin-top: 10px; }
+
+.remote-heading {
+  margin: 10px 0 6px;
+  font-size: 1rem;
+}
+
+.remote-control-panel {
+  margin-top: 0;
+}
+
+.remote-control-row {
+  margin: 0;
+  gap: 10px;
+  align-items: center;
+}
+
+.remote-control-row + .remote-control-row {
+  margin-top: 6px;
+}
+
+.remote-note,
+.remote-input-id {
+  margin: 6px 0 0;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
 
 /* Dark theme */
 body.dark {
@@ -211,9 +249,13 @@ body.dark .key.black {
   border: 2px solid #e5e5e5;
   border-radius: 8px;
   padding: 16px;
+  width: 100%;
   cursor: pointer;
   transition: all 0.2s ease;
   background: #fafafa;
+  color: #222;
+  font: inherit;
+  text-align: left;
 }
 
 .exercise-card:hover {
@@ -229,13 +271,21 @@ body.dark .key.black {
   box-shadow: 0 0 0 1px #d97706;
 }
 
+.exercise-card:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
 .exercise-card-header {
+  display: block;
   margin-bottom: 12px;
 }
 
-.exercise-card-header h3 {
+.exercise-card-title {
+  display: block;
   margin: 0 0 4px 0;
   font-size: 1.1rem;
+  font-weight: 700;
   color: #333;
 }
 
@@ -246,10 +296,12 @@ body.dark .key.black {
 }
 
 .exercise-description {
+  display: block;
   margin-bottom: 12px;
 }
 
 .solfege-notes {
+  display: block;
   margin: 0 0 6px 0;
   font-weight: 600;
   color: #d97706;
@@ -257,6 +309,7 @@ body.dark .key.black {
 }
 
 .exercise-notes {
+  display: block;
   margin: 0;
   font-size: 13px;
   color: #666;
@@ -333,7 +386,7 @@ body.dark .exercise-card.selected {
   border-color: #d97706;
 }
 
-body.dark .exercise-card-header h3 {
+body.dark .exercise-card-title {
   color: #e5e5e5;
 }
 
@@ -359,6 +412,16 @@ body.dark .exercise-selector-footer {
 
 body.dark .help-text {
   color: #bbb;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .exercise-card {
+    transition: none;
+  }
+
+  .exercise-card:hover {
+    transform: none;
+  }
 }
 
 /* Mobile landscape fixes */

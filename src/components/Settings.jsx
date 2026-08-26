@@ -6,7 +6,6 @@ export function Settings({
   isVisible,
   settings,
   onSettingChange,
-  autoMode,
   // Key mapping props
   exerciseSet,
   notation,
@@ -15,7 +14,8 @@ export function Settings({
   clearKeymap,
   waitingMapMidi,
   onKeyTest,
-  screenWakeLock
+  screenWakeLock,
+  onResetProgress
 }) {
   if (!isVisible) return null
 
@@ -24,7 +24,6 @@ export function Settings({
     notation: settingsNotation,
     darkTheme,
     autoMode: autoModeEnabled,
-    exercise,
     autoInterval,
     showAnswer,
     sayAnswer
@@ -89,6 +88,10 @@ export function Settings({
         clearKeymap={clearKeymap}
         waitingMapMidi={waitingMapMidi}
       />
+
+      <button type="button" className="reset-progress-button" onClick={onResetProgress}>
+        Reset saved progress
+      </button>
 
       <RemoteControl
         onKeyTest={onKeyTest}

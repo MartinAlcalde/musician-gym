@@ -46,7 +46,7 @@ export const idsFromEvent = (e) => {
 
 export const isReservedKeyId = (id) => {
   if (!id || typeof id !== 'string') return false
-  const v = id.replace(/^key:|^code:/, '')
+  const v = id.replace(/^key:|^code:/i, '').toLowerCase()
   return ['escape', 'shift', 'control', 'alt', 'meta', 'tab'].includes(v)
 }
 

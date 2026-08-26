@@ -16,6 +16,10 @@ Musician Gym helps you recognize scale degrees by their function within a key. I
 
 **⌨️ Custom Key Mapping** - Map scale degrees to any keyboard keys or Bluetooth device buttons for personalized practice.
 
+**📲 Installable & Offline** - Install it as a PWA and keep practicing after the first successful online load.
+
+**📊 Persistent Progress** - Attempts, correct answers, and accuracy remain available between sessions.
+
 ## Getting Started
 
 1. **[Open Musician Gym](https://martinalcalde.github.io/musician-gym/)**
@@ -40,6 +44,7 @@ Configure in Settings > Key Mapping. Click "Set key" next to any note, then pres
 Enable in settings for passive practice:
 - Adjustable intervals
 - Optional audio feedback
+- Screen wake lock on supported mobile browsers
 - Perfect for background learning
 
 ## Exercises
@@ -60,9 +65,19 @@ Enable in settings for passive practice:
 ```bash
 git clone https://github.com/MartinAlcalde/musician-gym
 cd musician-gym
-npm install
+npm ci
 npm run dev
 ```
+
+Quality checks:
+
+```bash
+npm run lint
+npm test
+npm run build
+```
+
+The production workflow runs all three checks before publishing GitHub Pages.
 
 ## License
 

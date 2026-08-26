@@ -1,97 +1,122 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import * as Tone from 'tone'
 import { MIDI_TO_NAME, NOTES } from '../utils/constants.js'
+
+const SAMPLE_NOTES = ['A2', 'A3', 'A4', 'A5', 'C3', 'C4', 'C5', 'C6']
 
 export function useAudio() {
   const [isReady, setIsReady] = useState(false)
+  const toneRef = useRef(null)
   const samplerRef = useRef(null)
 
   useEffect(() => {
+    let cancelled = false
+    let sampleScript = null
+
+    const createSampler = Tone => {
+      if (cancelled || !window.PIANO_BASE64) return
+
+      const urls = Object.fromEntries(
+        SAMPLE_NOTES.map(note => [note, window.PIANO_BASE64[note]])
+      )
+
+      samplerRef.current = new Tone.Sampler({
+        urls,
+        release: 1.2,
+        onload: () => {
+          if (!cancelled) setIsReady(true)
+        },
+        onerror: error => {
+          console.error('Error loading piano samples:', error)
+          if (!cancelled) setIsReady(false)
+        }
+      }).toDestination()
+    }
+
     const initAudio = async () => {
       try {
-        // Load piano samples from the public file
-        const script = document.createElement('script')
-        script.src = `${import.meta.env.BASE_URL}piano.base64.js`
-        script.onload = () => {
-          if (window.PIANO_BASE64) {
-            samplerRef.current = new Tone.Sampler({
-              urls: {
-                A2: window.PIANO_BASE64.A2,
-                A3: window.PIANO_BASE64.A3,
-                A4: window.PIANO_BASE64.A4,
-                A5: window.PIANO_BASE64.A5,
-                C3: window.PIANO_BASE64.C3,
-                C4: window.PIANO_BASE64.C4,
-                C5: window.PIANO_BASE64.C5,
-                C6: window.PIANO_BASE64.C6,
-              },
-              release: 1.2,
-              onload: () => {
-                setIsReady(true)
-              },
-              onerror: (e) => {
-                console.error('Error loading piano samples:', e)
-                setIsReady(false)
-              }
-            }).toDestination()
-          } else {
-            setIsReady(false)
-          }
+        const Tone = await import('tone')
+        if (cancelled) return
+
+        toneRef.current = Tone
+        if (window.PIANO_BASE64) {
+          createSampler(Tone)
+          return
         }
-        script.onerror = () => {
-          setIsReady(false)
+
+        sampleScript = document.createElement('script')
+        sampleScript.src = `${import.meta.env.BASE_URL}piano.base64.js`
+        sampleScript.onload = () => createSampler(Tone)
+        sampleScript.onerror = () => {
+          if (!cancelled) setIsReady(false)
         }
-        document.head.appendChild(script)
+        document.head.appendChild(sampleScript)
       } catch (error) {
         console.error('Audio initialization error:', error)
-        setIsReady(false)
+        if (!cancelled) setIsReady(false)
       }
     }
 
-    initAudio()
+    void initAudio()
+
+    return () => {
+      cancelled = true
+      sampleScript?.remove()
+      samplerRef.current?.dispose()
+      samplerRef.current = null
+      toneRef.current = null
+    }
   }, [])
 
-  const playTone = useCallback((midi, when, dur = 0.6, type = "sine", gainVal = 0.15) => {
-    const name = MIDI_TO_NAME[midi]
-    if (!(samplerRef.current && isReady && name)) return
-    
-    const ctx = Tone.getContext().rawContext
-    const delay = Math.max(0, when - ctx.currentTime)
-    const t = Tone.now() + delay
-    const vel = Math.max(0.05, Math.min(1, gainVal * 6))
-    samplerRef.current.triggerAttackRelease(name, dur, t, vel)
-  }, [isReady])
+  const getCurrentTime = useCallback(() => {
+    return toneRef.current?.getContext().rawContext.currentTime ?? null
+  }, [])
 
-  const playChord = useCallback((midis, when, dur = 0.7, type = "piano", chordGain = 0.24) => {
+  const playTone = useCallback((midi, when, duration = 0.6, _type = 'piano', gain = 0.15) => {
+    const Tone = toneRef.current
+    const sampler = samplerRef.current
+    const name = MIDI_TO_NAME[midi]
+    if (!Tone || !sampler || !name) return
+
+    const currentTime = Tone.getContext().rawContext.currentTime
+    const delay = Math.max(0, when - currentTime)
+    const toneTime = Tone.now() + delay
+    const velocity = Math.max(0.05, Math.min(1, gain * 6))
+    sampler.triggerAttackRelease(name, duration, toneTime, velocity)
+  }, [])
+
+  const playChord = useCallback((midis, when, duration = 0.7, type = 'piano', chordGain = 0.24) => {
     const perVoice = chordGain / Math.max(1, midis.length)
-    midis.forEach(m => playTone(m, when, dur, type, perVoice))
+    midis.forEach(midi => playTone(midi, when, duration, type, perVoice))
   }, [playTone])
 
   const playCadence = useCallback(() => {
-    const ctx = Tone.getContext().rawContext
-    const t0 = ctx.currentTime + 0.05
+    const currentTime = getCurrentTime()
+    if (currentTime === null) return 0
+
+    const startTime = currentTime + 0.05
     const step = 0.65
-    
-    // I: C major (C4 E4 G4)
-    playChord([NOTES.C4, NOTES.E4, NOTES.G4], t0, step, "piano")
-    // IV: F major voiced with common tone C4 (C4 F4 A4)
-    playChord([NOTES.C4, NOTES.F4, NOTES.A4], t0 + step, step, "piano")
-    // V: G major (B3 D4 G4) for smooth motion
-    playChord([NOTES.B3, NOTES.D4, NOTES.G4], t0 + 2*step, step, "piano")
-    // I: C major return
-    playChord([NOTES.C4, NOTES.E4, NOTES.G4], t0 + 3*step, step, "piano")
-    
-    return t0 + 4*step // end time
-  }, [playChord])
+
+    playChord([NOTES.C4, NOTES.E4, NOTES.G4], startTime, step)
+    playChord([NOTES.C4, NOTES.F4, NOTES.A4], startTime + step, step)
+    playChord([NOTES.B3, NOTES.D4, NOTES.G4], startTime + 2 * step, step)
+    playChord([NOTES.C4, NOTES.E4, NOTES.G4], startTime + 3 * step, step)
+
+    return startTime + 4 * step
+  }, [getCurrentTime, playChord])
 
   const startAudioContext = useCallback(async () => {
-    if (Tone.context.state !== 'running') {
+    const Tone = toneRef.current
+    if (!Tone) return false
+
+    if (Tone.getContext().state !== 'running') {
       await Tone.start()
     }
+    return true
   }, [])
 
   return {
     isReady,
+    getCurrentTime,
     playTone,
     playChord,
     playCadence,
