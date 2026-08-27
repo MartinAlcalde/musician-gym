@@ -83,6 +83,27 @@ describe('accessible game controls', () => {
     expect(onRegisterChange).toHaveBeenCalledWith('high')
   })
 
+  it('visually distinguishes scale notes on black keys after transposition', () => {
+    const { container } = render(
+      <Piano
+        exerciseSet={[69, 71, 73, 74, 76, 78, 80, 81]}
+        tonicMidi={69}
+        notation="solfege"
+        disabled={false}
+        onKeyClick={vi.fn()}
+      />
+    )
+
+    const scaleTone = container.querySelector('[data-midi="73"]')
+    const chromaticTone = container.querySelector('[data-midi="72"]')
+
+    expect(scaleTone.classList.contains('black')).toBe(true)
+    expect(scaleTone.classList.contains('in-scope')).toBe(true)
+    expect(scaleTone.querySelector('.label').textContent).toBe('mi')
+    expect(chromaticTone.classList.contains('out-of-scope')).toBe(true)
+    expect(chromaticTone.querySelector('.label').textContent).toBe('')
+  })
+
   it('emits one stable gamepad event per press edge and stops polling on unmount', () => {
     const callbacks = new Map()
     let nextFrameId = 1
