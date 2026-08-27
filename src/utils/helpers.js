@@ -3,6 +3,8 @@ import {
   PC_TO_LETTER,
   SCALE_SOLFEGE,
   SCALE_LETTERS,
+  SCALE_TYPES,
+  TONIC_NAMES_BY_SCALE,
   EXERCISE_INTERVALS,
   SCALE_EXERCISE_INTERVALS,
   NOTES,
@@ -11,10 +13,39 @@ import {
 
 export const normalizePitchClass = value => ((value % 12) + 12) % 12
 
+export const displayNoteName = note => note.replaceAll('b', '♭').replaceAll('#', '♯')
+
 // Musical helper functions
 const safeScaleType = scaleType => (
   SCALE_EXERCISE_INTERVALS[scaleType] ? scaleType : 'major'
 )
+
+export const getTonicName = (tonicPc = 0, scaleType = 'major') => {
+  const selectedScaleType = safeScaleType(scaleType)
+  return TONIC_NAMES_BY_SCALE[selectedScaleType][normalizePitchClass(tonicPc)]
+}
+
+export const getTonalityLabel = (tonicPc = 0, scaleType = 'major') => {
+  const selectedScaleType = safeScaleType(scaleType)
+  return `${displayNoteName(getTonicName(tonicPc, selectedScaleType))} ${SCALE_TYPES[selectedScaleType].label}`
+}
+
+export const getScaleNoteNames = (tonicPc = 0, scaleType = 'major') => {
+  const selectedScaleType = safeScaleType(scaleType)
+  const safeTonicPc = normalizePitchClass(tonicPc)
+  return SCALE_TYPES[selectedScaleType].intervals.map(interval => (
+    SCALE_LETTERS[selectedScaleType][safeTonicPc][interval]
+  ))
+}
+
+export const pitchClassForNoteName = note => {
+  if (!/^[A-G](?:#{1,2}|b{1,2})?$/.test(note)) return null
+  const naturalPitchClasses = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }
+  const accidentalOffset = [...note.slice(1)].reduce((total, accidental) => (
+    total + (accidental === '#' ? 1 : -1)
+  ), 0)
+  return normalizePitchClass(naturalPitchClasses[note[0]] + accidentalOffset)
+}
 
 export const labelForMidi = (midi, notation = 'solfege', tonicPc = 0, scaleType = 'major') => {
   const pitchClass = normalizePitchClass(midi)
@@ -63,14 +94,8 @@ export const fromCanonicalDegreeMidi = (canonicalMidi, tonicMidi, scaleType = 'm
   return tonicMidi + SCALE_EXERCISE_INTERVALS[safeScaleType(scaleType)][3][degreeIndex]
 }
 
-const CADENCE_INTERVALS = {
-  major: [[0, 4, 7], [0, 5, 9], [-1, 2, 7], [0, 4, 7]],
-  naturalMinor: [[0, 3, 7], [0, 5, 8], [-2, 2, 7], [0, 3, 7]],
-  harmonicMinor: [[0, 3, 7], [0, 5, 8], [-1, 2, 7], [0, 3, 7]]
-}
-
 export const getCadenceChords = (tonicMidi, scaleType = 'major') => {
-  return CADENCE_INTERVALS[safeScaleType(scaleType)].map(chord => (
+  return SCALE_TYPES[safeScaleType(scaleType)].cadence.map(chord => (
     chord.map(interval => tonicMidi + interval)
   ))
 }

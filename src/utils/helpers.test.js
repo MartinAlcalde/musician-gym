@@ -3,18 +3,20 @@ import {
   getExerciseSet,
   getCadenceChords,
   getTonicMidi,
+  getScaleNoteNames,
   getWhiteKeys,
   hasSharpAfter,
   idsFromEvent,
   isReservedKeyId,
   labelForMidi,
   midiToNoteName,
+  pitchClassForNoteName,
   fromCanonicalDegreeMidi,
   toCanonicalDegreeMidi,
   loadFromStorage,
   saveToStorage
 } from './helpers.js'
-import { EXERCISES } from './constants.js'
+import { EXERCISES, SCALE_TYPES, TONALITIES, TONIC_NAMES_BY_SCALE } from './constants.js'
 
 describe('musical helpers', () => {
   it('labels MIDI notes in solfege and letter notation', () => {
@@ -51,6 +53,54 @@ describe('musical helpers', () => {
     expect(getExerciseSet(3, 69, 'harmonicMinor')).toEqual([69, 71, 72, 74, 76, 77, 80, 81])
     expect(getCadenceChords(69, 'naturalMinor')[2]).toEqual([67, 71, 76])
     expect(getCadenceChords(69, 'harmonicMinor')[2]).toEqual([68, 71, 76])
+  })
+
+  it('builds all Greek modes with the expected interval formulas', () => {
+    const expected = {
+      major: [0, 2, 4, 5, 7, 9, 11],
+      naturalMinor: [0, 2, 3, 5, 7, 8, 10],
+      harmonicMinor: [0, 2, 3, 5, 7, 8, 11],
+      dorian: [0, 2, 3, 5, 7, 9, 10],
+      phrygian: [0, 1, 3, 5, 7, 8, 10],
+      lydian: [0, 2, 4, 6, 7, 9, 11],
+      mixolydian: [0, 2, 4, 5, 7, 9, 10],
+      locrian: [0, 1, 3, 5, 6, 8, 10]
+    }
+
+    expect(Object.fromEntries(
+      Object.entries(SCALE_TYPES).map(([id, scale]) => [id, scale.intervals])
+    )).toEqual(expected)
+  })
+
+  it('validates the spelling and pitch of every note in all 96 tonal contexts', () => {
+    expect(TONALITIES).toHaveLength(96)
+    expect(new Set(TONALITIES.map(option => option.id)).size).toBe(96)
+
+    for (const [scaleType, scale] of Object.entries(SCALE_TYPES)) {
+      for (let tonicPc = 0; tonicPc < 12; tonicPc += 1) {
+        const tonicName = TONIC_NAMES_BY_SCALE[scaleType][tonicPc]
+        const noteNames = getScaleNoteNames(tonicPc, scaleType)
+        const tonicLetterIndex = 'CDEFGAB'.indexOf(tonicName[0])
+
+        expect(pitchClassForNoteName(tonicName)).toBe(tonicPc)
+        expect(noteNames).toHaveLength(7)
+        noteNames.forEach((note, degreeIndex) => {
+          expect(note[0]).toBe('CDEFGAB'[(tonicLetterIndex + degreeIndex) % 7])
+          expect(pitchClassForNoteName(note)).toBe((tonicPc + scale.intervals[degreeIndex]) % 12)
+        })
+        expect(getExerciseSet(3, 60 + tonicPc, scaleType)).toEqual([
+          ...scale.intervals.map(interval => 60 + tonicPc + interval),
+          72 + tonicPc
+        ])
+      }
+    }
+  })
+
+  it('distinguishes relative major and natural minor despite their shared notes', () => {
+    const cMajorPcs = getExerciseSet(3, 60, 'major').slice(0, 7).map(midi => midi % 12).sort((a, b) => a - b)
+    const aMinorPcs = getExerciseSet(3, 57, 'naturalMinor').slice(0, 7).map(midi => midi % 12).sort((a, b) => a - b)
+    expect(cMajorPcs).toEqual(aMinorPcs)
+    expect(getCadenceChords(60, 'major')[0]).not.toEqual(getCadenceChords(57, 'naturalMinor')[0])
   })
 
   it('keeps key mappings attached to scale degrees across scale types', () => {

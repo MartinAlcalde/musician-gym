@@ -5,6 +5,8 @@ import { GameControls } from './GameControls.jsx'
 import { GameDisplay } from './GameDisplay.jsx'
 import { Piano } from './Piano.jsx'
 import { RemoteControl } from './RemoteControl.jsx'
+import { Settings } from './Settings.jsx'
+import { TrainingSetup } from './TrainingSetup.jsx'
 
 describe('accessible game controls', () => {
   afterEach(() => vi.unstubAllGlobals())
@@ -48,9 +50,18 @@ describe('accessible game controls', () => {
 
   it('exposes transposed scale degrees and training-range selectors', () => {
     const onTonicChange = vi.fn()
+    const onScaleTypeChange = vi.fn()
     const onRegisterChange = vi.fn()
     render(
       <>
+        <TrainingSetup
+          tonicPc={2}
+          scaleType="major"
+          register="middle"
+          onTonicChange={onTonicChange}
+          onScaleTypeChange={onScaleTypeChange}
+          onRegisterChange={onRegisterChange}
+        />
         <GameControls
           onStart={vi.fn()}
           onRepeat={vi.fn()}
@@ -61,11 +72,7 @@ describe('accessible game controls', () => {
           autoMode={false}
           isAutoRunning={false}
           currentExercise={1}
-          tonicPc={2}
-          scaleType="major"
-          register="middle"
-          onTonicChange={onTonicChange}
-          onRegisterChange={onRegisterChange}
+          contextLabel="D Major · Ionian"
         />
         <Piano
           exerciseSet={[62, 64, 66, 67]}
@@ -78,13 +85,54 @@ describe('accessible game controls', () => {
     )
 
     expect(screen.getByRole('button', { name: /do, D4, in current exercise/i })).toBeTruthy()
-    const tonalitySelect = screen.getByLabelText('Tonality')
-    expect(tonalitySelect.querySelectorAll('option')).toHaveLength(36)
-    expect(tonalitySelect.querySelectorAll('optgroup')).toHaveLength(3)
-    fireEvent.change(tonalitySelect, { target: { value: 'naturalMinor:7' } })
+    const scaleSelect = screen.getByLabelText('Scale or mode')
+    expect(scaleSelect.querySelectorAll('option')).toHaveLength(8)
+    expect(scaleSelect.querySelectorAll('optgroup')).toHaveLength(2)
+    expect(screen.getByLabelText('Tonal center').querySelectorAll('option')).toHaveLength(12)
+    fireEvent.change(scaleSelect, { target: { value: 'dorian' } })
+    fireEvent.change(screen.getByLabelText('Tonal center'), { target: { value: '7' } })
     fireEvent.change(screen.getByLabelText('Register'), { target: { value: 'high' } })
-    expect(onTonicChange).toHaveBeenCalledWith(7, 'naturalMinor')
+    expect(onScaleTypeChange).toHaveBeenCalledWith('dorian')
+    expect(onTonicChange).toHaveBeenCalledWith(7)
     expect(onRegisterChange).toHaveBeenCalledWith('high')
+  })
+
+  it('organizes settings into clear sections and explains control mapping', () => {
+    const onClose = vi.fn()
+    render(
+      <Settings
+        isVisible
+        onClose={onClose}
+        settings={{
+          resolve: true,
+          notation: 'solfege',
+          darkTheme: false,
+          autoMode: false,
+          autoInterval: 5000,
+          showAnswer: true,
+          sayAnswer: true
+        }}
+        onSettingChange={vi.fn()}
+        exerciseSet={[60, 62, 64, 65]}
+        tonicMidi={60}
+        scaleType="major"
+        notation="solfege"
+        getKeyForMidi={() => null}
+        startMapping={vi.fn()}
+        clearKeymap={vi.fn()}
+        waitingMapMidi={null}
+        onKeyTest={vi.fn()}
+        screenWakeLock={{ isSupported: true, isActive: false, error: null }}
+        onResetProgress={vi.fn()}
+      />
+    )
+
+    expect(screen.getByRole('dialog', { name: 'Settings' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /controls/i }))
+    expect(screen.getByText('Why add controls?')).toBeTruthy()
+    expect(screen.getByText(/same buttons work in every key and mode/i)).toBeTruthy()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(onClose).toHaveBeenCalledTimes(1)
   })
 
   it('visually distinguishes scale notes on black keys after transposition', () => {
