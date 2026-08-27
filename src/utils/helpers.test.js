@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   getExerciseSet,
+  getCadenceChords,
   getTonicMidi,
   getWhiteKeys,
   hasSharpAfter,
@@ -8,6 +9,8 @@ import {
   isReservedKeyId,
   labelForMidi,
   midiToNoteName,
+  fromCanonicalDegreeMidi,
+  toCanonicalDegreeMidi,
   loadFromStorage,
   saveToStorage
 } from './helpers.js'
@@ -21,6 +24,10 @@ describe('musical helpers', () => {
     expect(labelForMidi(66, 'solfege', 2)).toBe('mi')
     expect(labelForMidi(65, 'letter', 1)).toBe('F')
     expect(labelForMidi(70, 'letter', 5)).toBe('Bb')
+    expect(labelForMidi(72, 'solfege', 9, 'naturalMinor')).toBe('mi♭')
+    expect(labelForMidi(79, 'solfege', 9, 'naturalMinor')).toBe('si♭')
+    expect(labelForMidi(80, 'solfege', 9, 'harmonicMinor')).toBe('si')
+    expect(labelForMidi(80, 'letter', 9, 'harmonicMinor')).toBe('G#')
     expect(midiToNoteName(85)).toBe('C#6')
   })
 
@@ -37,6 +44,19 @@ describe('musical helpers', () => {
     expect(getTonicMidi(11, 'high')).toBe(83)
     expect(getExerciseSet(3, 62)).toEqual([62, 64, 66, 67, 69, 71, 73, 74])
     expect(getWhiteKeys(61)).toEqual([60, 62, 64, 65, 67, 69, 71, 72, 74])
+  })
+
+  it('builds natural and harmonic minor scales and cadences', () => {
+    expect(getExerciseSet(3, 69, 'naturalMinor')).toEqual([69, 71, 72, 74, 76, 77, 79, 81])
+    expect(getExerciseSet(3, 69, 'harmonicMinor')).toEqual([69, 71, 72, 74, 76, 77, 80, 81])
+    expect(getCadenceChords(69, 'naturalMinor')[2]).toEqual([67, 71, 76])
+    expect(getCadenceChords(69, 'harmonicMinor')[2]).toEqual([68, 71, 76])
+  })
+
+  it('keeps key mappings attached to scale degrees across scale types', () => {
+    expect(toCanonicalDegreeMidi(72, 69, 'naturalMinor')).toBe(64)
+    expect(fromCanonicalDegreeMidi(64, 69, 'naturalMinor')).toBe(72)
+    expect(fromCanonicalDegreeMidi(71, 69, 'harmonicMinor')).toBe(80)
   })
 })
 

@@ -1,8 +1,10 @@
 import {
   PC_TO_SOLFEGE,
   PC_TO_LETTER,
-  KEY_SCALE_LETTERS,
+  SCALE_SOLFEGE,
+  SCALE_LETTERS,
   EXERCISE_INTERVALS,
+  SCALE_EXERCISE_INTERVALS,
   NOTES,
   REGISTERS
 } from './constants.js'
@@ -10,12 +12,17 @@ import {
 export const normalizePitchClass = value => ((value % 12) + 12) % 12
 
 // Musical helper functions
-export const labelForMidi = (midi, notation = 'solfege', tonicPc = 0) => {
+const safeScaleType = scaleType => (
+  SCALE_EXERCISE_INTERVALS[scaleType] ? scaleType : 'major'
+)
+
+export const labelForMidi = (midi, notation = 'solfege', tonicPc = 0, scaleType = 'major') => {
   const pitchClass = normalizePitchClass(midi)
   const relativePitchClass = normalizePitchClass(pitchClass - tonicPc)
+  const selectedScaleType = safeScaleType(scaleType)
   return notation === 'solfege'
-    ? (PC_TO_SOLFEGE[relativePitchClass] || '')
-    : (KEY_SCALE_LETTERS[normalizePitchClass(tonicPc)]?.[relativePitchClass] || PC_TO_LETTER[pitchClass] || '')
+    ? (SCALE_SOLFEGE[selectedScaleType]?.[relativePitchClass] || PC_TO_SOLFEGE[relativePitchClass] || '')
+    : (SCALE_LETTERS[selectedScaleType]?.[normalizePitchClass(tonicPc)]?.[relativePitchClass] || PC_TO_LETTER[pitchClass] || '')
 }
 
 export const midiToNoteName = midi => {
@@ -33,14 +40,39 @@ export const getTonicMidi = (tonicPc = 0, register = 'middle') => {
   return baseMidi + safePitchClass
 }
 
-export const getExerciseSet = (exercise, tonicMidi = NOTES.C4) => {
-  const intervals = EXERCISE_INTERVALS[exercise] || EXERCISE_INTERVALS[1]
+export const getExerciseSet = (exercise, tonicMidi = NOTES.C4, scaleType = 'major') => {
+  const exerciseIntervals = SCALE_EXERCISE_INTERVALS[safeScaleType(scaleType)]
+  const intervals = exerciseIntervals[exercise] || exerciseIntervals[1]
   return intervals.map(interval => tonicMidi + interval)
 }
 
-export const pickRandomTargetMidi = (exercise, tonicMidi = NOTES.C4) => {
-  const set = getExerciseSet(exercise, tonicMidi)
+export const pickRandomTargetMidi = (exercise, tonicMidi = NOTES.C4, scaleType = 'major') => {
+  const set = getExerciseSet(exercise, tonicMidi, scaleType)
   return set[Math.floor(Math.random() * set.length)]
+}
+
+export const toCanonicalDegreeMidi = (midi, tonicMidi, scaleType = 'major') => {
+  const scaleIntervals = SCALE_EXERCISE_INTERVALS[safeScaleType(scaleType)][3]
+  const degreeIndex = scaleIntervals.indexOf(midi - tonicMidi)
+  return degreeIndex === -1 ? null : NOTES.C4 + EXERCISE_INTERVALS[3][degreeIndex]
+}
+
+export const fromCanonicalDegreeMidi = (canonicalMidi, tonicMidi, scaleType = 'major') => {
+  const degreeIndex = EXERCISE_INTERVALS[3].indexOf(canonicalMidi - NOTES.C4)
+  if (degreeIndex === -1) return null
+  return tonicMidi + SCALE_EXERCISE_INTERVALS[safeScaleType(scaleType)][3][degreeIndex]
+}
+
+const CADENCE_INTERVALS = {
+  major: [[0, 4, 7], [0, 5, 9], [-1, 2, 7], [0, 4, 7]],
+  naturalMinor: [[0, 3, 7], [0, 5, 8], [-2, 2, 7], [0, 3, 7]],
+  harmonicMinor: [[0, 3, 7], [0, 5, 8], [-1, 2, 7], [0, 3, 7]]
+}
+
+export const getCadenceChords = (tonicMidi, scaleType = 'major') => {
+  return CADENCE_INTERVALS[safeScaleType(scaleType)].map(chord => (
+    chord.map(interval => tonicMidi + interval)
+  ))
 }
 
 // Piano layout helpers

@@ -6,8 +6,13 @@ import { useKeyboard } from './hooks/useKeyboard.js'
 import { useAutoMode } from './hooks/useAutoMode.js'
 import { useScreenWakeLock } from './hooks/useScreenWakeLock.js'
 import { useManagedTimeouts } from './hooks/useManagedTimeouts.js'
-import { labelForMidi, flashKey, getTonicMidi } from './utils/helpers.js'
-import { STORAGE_KEYS, NOTES, REGISTERS, TONALITIES } from './utils/constants.js'
+import {
+  labelForMidi,
+  flashKey,
+  fromCanonicalDegreeMidi,
+  getTonicMidi
+} from './utils/helpers.js'
+import { STORAGE_KEYS, REGISTERS, SCALE_TYPES, TONALITIES } from './utils/constants.js'
 import './App.css'
 
 const savePreference = (key, value) => {
@@ -62,6 +67,10 @@ function App() {
     const saved = Number(loadPreference(STORAGE_KEYS.TONIC_PC, '0'))
     return Number.isInteger(saved) && saved >= 0 && saved <= 11 ? saved : 0
   })
+  const [scaleType, setScaleType] = useState(() => {
+    const saved = loadPreference(STORAGE_KEYS.SCALE_TYPE, 'major')
+    return SCALE_TYPES[saved] ? saved : 'major'
+  })
   const [register, setRegister] = useState(() => {
     const saved = loadPreference(STORAGE_KEYS.REGISTER, 'middle')
     return REGISTERS[saved] ? saved : 'middle'
@@ -78,7 +87,7 @@ function App() {
 
   // Custom hooks
   const audio = useAudio()
-  const gameState = useGameState({ tonicMidi })
+  const gameState = useGameState({ tonicMidi, scaleType })
   const keyboard = useKeyboard()
   const autoMode = useAutoMode({
     notation,
@@ -106,13 +115,18 @@ function App() {
     element?.click()
   }, [])
 
+  const actualMidiForMapping = useCallback((mappingMidi) => (
+    fromCanonicalDegreeMidi(mappingMidi, tonicMidi, scaleType)
+  ), [scaleType, tonicMidi])
+
   const handleKeyboardKeyDown = keyboard.handleKeyDown
 
   // Keyboard event handler
   useEffect(() => {
     const handleKeyDown = (event) => {
       const result = handleKeyboardKeyDown(event, (midi) => {
-        clickMidi(tonicMidi + (midi - NOTES.C4))
+        const actualMidi = actualMidiForMapping(midi)
+        if (actualMidi !== null) clickMidi(actualMidi)
       })
 
       switch (result.type) {
@@ -122,13 +136,17 @@ function App() {
         case 'mapping_cancelled':
           setFeedback('Mapping cancelled')
           break
-        case 'mapping_set':
+        case 'mapping_set': {
+          const actualMidi = actualMidiForMapping(result.midi)
+          if (actualMidi === null) break
           setFeedback(`Key mapped to ${labelForMidi(
-            tonicMidi + (result.midi - NOTES.C4),
+            actualMidi,
             notation,
-            tonicPc
+            tonicPc,
+            scaleType
           )}`)
           break
+        }
         case 'no_action':
           // Do nothing
           break
@@ -137,7 +155,7 @@ function App() {
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [clickMidi, handleKeyboardKeyDown, notation, tonicMidi, tonicPc])
+  }, [actualMidiForMapping, clickMidi, handleKeyboardKeyDown, notation, scaleType, tonicPc])
 
   // Game logic functions
   const startRound = async () => {
@@ -148,7 +166,7 @@ function App() {
     setFeedback("Cadence…")
     setFeedbackOk(null)
     
-    const endCad = audio.playCadence(tonicMidi)
+    const endCad = audio.playCadence(tonicMidi, scaleType)
     const newTarget = gameState.startNewRound()
     
     const tTarget = endCad + 0.12
@@ -172,6 +190,7 @@ function App() {
     autoMode.runAutoRound(
       newTarget,
       tonicMidi,
+      scaleType,
       audio.playCadence,
       audio.playTone,
       audio.getCurrentTime,
@@ -231,7 +250,7 @@ function App() {
     setFeedback('Cadence…')
     setFeedbackOk(null)
     
-    const endCad = audio.playCadence(tonicMidi)
+    const endCad = audio.playCadence(tonicMidi, scaleType)
     const tTarget = endCad + 0.12
     audio.playTone(gameState.targetMidi, tTarget, 0.9, 'piano', 0.18)
     
@@ -325,9 +344,10 @@ function App() {
         setFeedback('Exercise changed. Press Start')
         setFeedbackOk(null)
         break
-      case 'tonicPc': {
-        const nextTonicPc = Number(value)
-        if (!Number.isInteger(nextTonicPc) || nextTonicPc < 0 || nextTonicPc > 11) break
+      case 'tonality': {
+        const nextTonicPc = Number(value.tonicPc)
+        const nextScaleType = SCALE_TYPES[value.scaleType] ? value.scaleType : null
+        if (!Number.isInteger(nextTonicPc) || nextTonicPc < 0 || nextTonicPc > 11 || !nextScaleType) break
         manualTimers.clearAll()
         if (autoMode.isRunningRef.current) {
           autoMode.stop()
@@ -339,7 +359,9 @@ function App() {
         setFeedback('Tonality changed. Press Start')
         setFeedbackOk(null)
         setTonicPc(nextTonicPc)
+        setScaleType(nextScaleType)
         savePreference(STORAGE_KEYS.TONIC_PC, nextTonicPc)
+        savePreference(STORAGE_KEYS.SCALE_TYPE, nextScaleType)
         break
       }
       case 'register':
@@ -403,8 +425,12 @@ function App() {
         isAutoRunning={autoMode.isRunning}
         currentExercise={gameState.exercise}
         tonicPc={tonicPc}
+        scaleType={scaleType}
         register={register}
-        onTonicChange={value => handleSettingChange('tonicPc', value)}
+        onTonicChange={(value, nextScaleType) => handleSettingChange('tonality', {
+          tonicPc: value,
+          scaleType: nextScaleType
+        })}
         onRegisterChange={value => handleSettingChange('register', value)}
       />
 
@@ -414,12 +440,15 @@ function App() {
         onSettingChange={handleSettingChange}
         exerciseSet={gameState.exerciseSet}
         tonicMidi={tonicMidi}
+        scaleType={scaleType}
         notation={notation}
         getKeyForMidi={keyboard.getKeyForMidi}
         startMapping={(mappingMidi) => {
           keyboard.startMapping(mappingMidi)
-          const actualMidi = tonicMidi + (mappingMidi - NOTES.C4)
-          setFeedback(`Press a key for ${labelForMidi(actualMidi, notation, tonicPc)} (Esc to cancel)`)
+          const actualMidi = actualMidiForMapping(mappingMidi)
+          if (actualMidi !== null) {
+            setFeedback(`Press a key for ${labelForMidi(actualMidi, notation, tonicPc, scaleType)} (Esc to cancel)`)
+          }
         }}
         clearKeymap={keyboard.clearKeymap}
         waitingMapMidi={keyboard.waitingMapMidi}
@@ -441,8 +470,10 @@ function App() {
           if (waitingMidiValue !== null) {
             keyboard.setExternalInputMapping(waitingMidiValue, inputId)
             keyboard.cancelMapping()
-            const actualMidi = tonicMidi + (waitingMidiValue - NOTES.C4)
-            setFeedback(`External control mapped to ${labelForMidi(actualMidi, notation, tonicPc)}`)
+            const actualMidi = actualMidiForMapping(waitingMidiValue)
+            if (actualMidi !== null) {
+              setFeedback(`External control mapped to ${labelForMidi(actualMidi, notation, tonicPc, scaleType)}`)
+            }
             return
           }
 
@@ -450,7 +481,10 @@ function App() {
           const midi = keyboard.getMidiForExternalInput(inputId) ?? (
             legacyInputId ? keyboard.getMidiForExternalInput(legacyInputId) : null
           )
-          if (midi !== null) clickMidi(tonicMidi + (midi - NOTES.C4))
+          if (midi !== null) {
+            const actualMidi = actualMidiForMapping(midi)
+            if (actualMidi !== null) clickMidi(actualMidi)
+          }
         }}
       />
 
@@ -458,6 +492,7 @@ function App() {
         ref={pianoRef}
         exerciseSet={gameState.exerciseSet}
         tonicMidi={tonicMidi}
+        scaleType={scaleType}
         notation={notation}
         disabled={!gameState.answersEnabled}
         onKeyClick={handlePianoClick}
@@ -474,7 +509,11 @@ function App() {
       <ExerciseSelector
         isVisible={exerciseSelectorVisible}
         currentExercise={gameState.exercise}
-        tonalityLabel={TONALITIES.find(option => option.value === tonicPc)?.label}
+        tonalityLabel={TONALITIES.find(option => (
+          option.value === tonicPc && option.scaleType === scaleType
+        ))?.label}
+        tonicMidi={tonicMidi}
+        scaleType={scaleType}
         onExerciseSelect={(exerciseNum) => handleSettingChange('exercise', exerciseNum)}
         onClose={() => setExerciseSelectorVisible(false)}
       />

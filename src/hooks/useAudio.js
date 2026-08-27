@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { midiToNoteName } from '../utils/helpers.js'
+import { getCadenceChords, midiToNoteName } from '../utils/helpers.js'
 
 const SAMPLE_NOTES = ['A2', 'A3', 'A4', 'A5', 'C3', 'C4', 'C5', 'C6']
 
@@ -89,17 +89,16 @@ export function useAudio() {
     midis.forEach(midi => playTone(midi, when, duration, type, perVoice))
   }, [playTone])
 
-  const playCadence = useCallback((tonicMidi = 60) => {
+  const playCadence = useCallback((tonicMidi = 60, scaleType = 'major') => {
     const currentTime = getCurrentTime()
     if (currentTime === null) return 0
 
     const startTime = currentTime + 0.05
     const step = 0.65
 
-    playChord([tonicMidi, tonicMidi + 4, tonicMidi + 7], startTime, step)
-    playChord([tonicMidi, tonicMidi + 5, tonicMidi + 9], startTime + step, step)
-    playChord([tonicMidi - 1, tonicMidi + 2, tonicMidi + 7], startTime + 2 * step, step)
-    playChord([tonicMidi, tonicMidi + 4, tonicMidi + 7], startTime + 3 * step, step)
+    getCadenceChords(tonicMidi, scaleType).forEach((chord, index) => {
+      playChord(chord, startTime + index * step, step)
+    })
 
     return startTime + 4 * step
   }, [getCurrentTime, playChord])

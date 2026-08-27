@@ -25,6 +25,7 @@ describe('useAutoMode', () => {
       result.current.runAutoRound(
         60,
         60,
+        'major',
         playCadence,
         playTone,
         getCurrentTime,
@@ -72,6 +73,7 @@ describe('useAutoMode', () => {
       result.current.runAutoRound(
         62,
         60,
+        'major',
         () => 0.1,
         vi.fn(),
         () => 0,
@@ -98,6 +100,7 @@ describe('useAutoMode', () => {
       result.current.runAutoRound(
         66,
         62,
+        'major',
         () => 0.1,
         playTone,
         () => 0,
@@ -111,5 +114,30 @@ describe('useAutoMode', () => {
 
     await act(() => vi.advanceTimersByTimeAsync(1000))
     expect(playTone.mock.calls.some(call => call[0] === 62)).toBe(true)
+  })
+
+  it('announces altered degrees in natural minor', async () => {
+    const { result } = renderHook(() => useAutoMode({
+      initialInterval: 3000,
+      initialSayAnswer: false
+    }))
+    const onUIUpdate = vi.fn()
+
+    act(() => {
+      result.current.start()
+      result.current.runAutoRound(
+        72,
+        69,
+        'naturalMinor',
+        () => 0.1,
+        vi.fn(),
+        () => 0,
+        vi.fn(),
+        onUIUpdate
+      )
+    })
+
+    await act(() => vi.advanceTimersByTimeAsync(2500))
+    expect(onUIUpdate).toHaveBeenCalledWith('✨ Answer: mi♭', true, 72)
   })
 })

@@ -1,23 +1,20 @@
 import { useEffect, useRef } from 'react'
-import { EXERCISES } from '../utils/constants.js'
+import { getExerciseSet, labelForMidi } from '../utils/helpers.js'
 
 const EXERCISE_INFO = {
   1: {
     title: 'Exercise 1',
     subtitle: 'Degrees 1 to 4',
-    description: 'Do - Re - Mi - Fa',
     notes: 'First half octave'
   },
   2: {
     title: 'Exercise 2', 
     subtitle: 'Degrees 5 to 8',
-    description: 'Sol - La - Si - Do',
     notes: 'Second half octave'
   },
   3: {
     title: 'Exercise 3',
     subtitle: 'Full Octave',
-    description: 'Do - Re - Mi - Fa - Sol - La - Si - Do',
     notes: 'Complete octave'
   }
 }
@@ -26,6 +23,8 @@ export function ExerciseSelector({
   isVisible, 
   currentExercise, 
   tonalityLabel = 'C major',
+  tonicMidi = 60,
+  scaleType = 'major',
   onExerciseSelect,
   onClose 
 }) {
@@ -109,7 +108,11 @@ export function ExerciseSelector({
         <div className="exercise-grid">
           {Object.entries(EXERCISE_INFO).map(([exerciseNum, info]) => {
             const isSelected = currentExercise === Number(exerciseNum)
-            const exerciseNotes = EXERCISES[exerciseNum]
+            const exerciseNotes = getExerciseSet(Number(exerciseNum), tonicMidi, scaleType)
+            const description = exerciseNotes
+              .map(midi => labelForMidi(midi, 'solfege', tonicMidi % 12, scaleType))
+              .map(label => label.charAt(0).toUpperCase() + label.slice(1))
+              .join(' - ')
             
             return (
               <button
@@ -130,7 +133,7 @@ export function ExerciseSelector({
                 </span>
                 
                 <span className="exercise-description" id={`exercise-${exerciseNum}-description`}>
-                  <span className="solfege-notes">{info.description}</span>
+                  <span className="solfege-notes">{description}</span>
                   <span className="exercise-notes">{info.notes}</span>
                 </span>
                 

@@ -1,4 +1,4 @@
-import { REGISTER_OPTIONS, TONALITIES } from '../utils/constants.js'
+import { REGISTER_OPTIONS, SCALE_TYPES, TONALITIES } from '../utils/constants.js'
 
 export function GameControls({
   onStart,
@@ -11,6 +11,7 @@ export function GameControls({
   isAutoRunning,
   currentExercise,
   tonicPc,
+  scaleType,
   register,
   onTonicChange,
   onRegisterChange
@@ -21,7 +22,9 @@ export function GameControls({
     return 'Start / Next'
   }
 
-  const tonality = TONALITIES.find(option => option.value === tonicPc) || TONALITIES[0]
+  const tonality = TONALITIES.find(option => (
+    option.value === tonicPc && option.scaleType === scaleType
+  )) || TONALITIES[0]
 
   return (
     <>
@@ -60,9 +63,19 @@ export function GameControls({
       <div className="training-range" aria-label="Training tonality and register">
         <label>
           Tonality
-          <select value={tonicPc} onChange={event => onTonicChange(Number(event.target.value))}>
-            {TONALITIES.map(option => (
-              <option key={option.value} value={option.value}>{option.label}</option>
+          <select
+            value={`${scaleType}:${tonicPc}`}
+            onChange={event => {
+              const [nextScaleType, nextTonicPc] = event.target.value.split(':')
+              onTonicChange(Number(nextTonicPc), nextScaleType)
+            }}
+          >
+            {Object.values(SCALE_TYPES).map(scale => (
+              <optgroup key={scale.id} label={scale.label}>
+                {TONALITIES.filter(option => option.scaleType === scale.id).map(option => (
+                  <option key={option.id} value={option.id}>{option.label}</option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </label>

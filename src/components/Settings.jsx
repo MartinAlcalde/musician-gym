@@ -9,6 +9,7 @@ export function Settings({
   // Key mapping props
   exerciseSet,
   tonicMidi,
+  scaleType,
   notation,
   getKeyForMidi,
   startMapping,
@@ -84,6 +85,7 @@ export function Settings({
       <KeyMapping
         exerciseSet={exerciseSet}
         tonicMidi={tonicMidi}
+        scaleType={scaleType}
         notation={notation}
         getKeyForMidi={getKeyForMidi}
         startMapping={startMapping}

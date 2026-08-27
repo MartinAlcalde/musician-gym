@@ -2,7 +2,7 @@
 
 **Functional ear training focused on scale degrees and tonal context.**
 
-Musician Gym helps you recognize scale degrees by their function within a key. Instead of abstract interval training, you learn to hear notes in harmonic context using I-IV-V-I cadences.
+Musician Gym helps you recognize scale degrees by their function within a key. Instead of abstract interval training, you learn to hear notes in harmonic context using major and minor cadences.
 
 ## Key Features
 
@@ -12,7 +12,7 @@ Musician Gym helps you recognize scale degrees by their function within a key. I
 
 **🎼 Functional Training** - Learn scale degrees in tonal context rather than isolated intervals.
 
-**🎹 12 Tonalities & 3 Registers** - Transpose the cadence and exercises to every major key and practice in low, middle, or high registers.
+**🎹 36 Tonalities & 3 Registers** - Practice every major, natural-minor, and harmonic-minor key in low, middle, or high registers.
 
 **🌙 Dark Theme** - Easy on the eyes for practice in bed or low-light environments.
 
@@ -24,7 +24,7 @@ Musician Gym helps you recognize scale degrees by their function within a key. I
 
 ## Getting Started
 
-1. **[Open Musician Gym](https://martinalcalde.github.io/musician-gym/)**
+1. **[Open Musician Gym](https://musician-gym.vercel.app/)**
 2. Click "Start" to hear a cadence + target note  
 3. Identify the scale degree on the piano
 4. Track your progress over time
@@ -51,7 +51,11 @@ Enable in settings for passive practice:
 
 ## Training range
 
-Choose any of the 12 major tonalities and one of three registers. Solfege stays relative to the selected tonic (Do is always degree 1), while letter notation shows the sounding pitch.
+Choose any of 36 tonalities—12 major, 12 natural minor, and 12 harmonic minor—and one of three registers. Solfege stays relative to the selected tonic (Do is always degree 1), while letter notation shows the sounding pitch.
+
+- Major uses an I-IV-V-I cadence.
+- Natural minor uses i-iv-v-i and includes the lowered seventh.
+- Harmonic minor uses i-iv-V-i and includes the raised seventh.
 
 ## Exercises
 
