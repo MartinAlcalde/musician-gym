@@ -1,3 +1,5 @@
+import { useI18n } from '../i18n/I18nContext.jsx'
+
 export function GameControls({
   onStart,
   onRepeat,
@@ -9,10 +11,11 @@ export function GameControls({
   currentExercise,
   contextLabel
 }) {
+  const { t } = useI18n()
   const getStartButtonText = () => {
-    if (autoMode && isAutoRunning) return '⏹️ Stop Auto Mode'
-    if (autoMode) return 'Start Auto Mode'
-    return 'Start / Next'
+    if (autoMode && isAutoRunning) return t('game.stopAuto')
+    if (autoMode) return t('game.startAuto')
+    return t('game.startNext')
   }
 
   return (
@@ -29,14 +32,14 @@ export function GameControls({
           onClick={onRepeat}
           disabled={!repeatEnabled}
         >
-          Repeat
+          {t('game.repeat')}
         </button>
 
         <button
           onClick={onToggleExerciseSelector}
-          title="Select Exercise"
+          title={t('game.selectExercise')}
         >
-          🎵 Ex {currentExercise} · {contextLabel}
+          🎵 {t('game.exerciseShort', { number: currentExercise })} · {contextLabel}
         </button>
 
       </div>

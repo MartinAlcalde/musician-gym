@@ -206,6 +206,7 @@ export const STORAGE_KEYS = {
   TONIC_PC: 'fet-tonic-pc',
   SCALE_TYPE: 'fet-scale-type',
   REGISTER: 'fet-register',
+  LANGUAGE: 'musician-gym-language',
   KEYMAP: 'fet-keymap',
   STATS: 'fet-stats'
 }

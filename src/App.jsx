@@ -23,6 +23,7 @@ import {
   getTonalityLabel
 } from './utils/helpers.js'
 import { STORAGE_KEYS, REGISTERS, SCALE_TYPES } from './utils/constants.js'
+import { useI18n } from './i18n/I18nContext.jsx'
 import './App.css'
 
 const savePreference = (key, value) => {
@@ -59,8 +60,9 @@ const legacyGamepadInputId = testData => {
 }
 
 function App() {
+  const { locale, setLocale, t, speechLocale } = useI18n()
   // Main app state
-  const [feedback, setFeedback] = useState("Loading piano…")
+  const [feedback, setFeedback] = useState({ key: 'feedback.loading' })
   const [feedbackOk, setFeedbackOk] = useState(null)
   const [settingsVisible, setSettingsVisible] = useState(false)
   const [exerciseSelectorVisible, setExerciseSelectorVisible] = useState(false)
@@ -98,13 +100,15 @@ function App() {
 
   // Custom hooks
   const audio = useAudio()
-  const gameState = useGameState({ tonicMidi, scaleType })
+  const gameState = useGameState({ tonicMidi, scaleType, translate: t })
   const keyboard = useKeyboard()
   const autoMode = useAutoMode({
     notation,
     initialInterval: initialAutoSettings.interval,
     initialShowAnswer: initialAutoSettings.showAnswer,
-    initialSayAnswer: initialAutoSettings.sayAnswer
+    initialSayAnswer: initialAutoSettings.sayAnswer,
+    translate: t,
+    speechLocale
   })
   const screenWakeLock = useScreenWakeLock()
   const manualTimers = useManagedTimeouts()
@@ -145,17 +149,15 @@ function App() {
           document.getElementById("start")?.click()
           break
         case 'mapping_cancelled':
-          setFeedback('Mapping cancelled')
+          setFeedback({ key: 'feedback.mappingCancelled' })
           break
         case 'mapping_set': {
           const actualMidi = actualMidiForMapping(result.midi)
           if (actualMidi === null) break
-          setFeedback(`Key mapped to ${labelForMidi(
-            actualMidi,
-            notation,
-            tonicPc,
-            scaleType
-          )}`)
+          setFeedback({
+            key: 'feedback.keyMapped',
+            variables: { note: labelForMidi(actualMidi, notation, tonicPc, scaleType) }
+          })
           break
         }
         case 'no_action':
@@ -174,7 +176,7 @@ function App() {
     await audio.startAudioContext()
     setManualSessionStarted(true)
     gameState.disableAnswers()
-    setFeedback("Cadence…")
+    setFeedback({ key: 'feedback.cadence' })
     setFeedbackOk(null)
     
     const endCad = audio.playCadence(tonicMidi, scaleType)
@@ -188,14 +190,14 @@ function App() {
       ? Math.max(0, (tTarget - currentTime) * 1000) + 120
       : 1000
     manualTimers.schedule(() => {
-      setFeedback("Identify the note (click the key)")
+      setFeedback({ key: 'feedback.identify' })
       gameState.enableAnswers()
     }, enableAtMs)
   }
 
   const startAutoRound = () => {
     const newTarget = gameState.startNewRound()
-    setFeedback("🎵 Cadence...")
+    setFeedback({ key: 'feedback.cadence' })
     
     // Solo usar runAutoRound, que ya maneja todo el ciclo
     autoMode.runAutoRound(
@@ -223,7 +225,7 @@ function App() {
 
   const handleStart = async () => {
     if (!audio.isReady) {
-      setFeedback("Loading piano…")
+      setFeedback({ key: 'feedback.loading' })
       return
     }
     
@@ -231,7 +233,7 @@ function App() {
       if (autoMode.isRunning) {
         autoMode.stop()
         void releaseWakeLock()
-        setFeedback('Auto mode stopped')
+        setFeedback({ key: 'feedback.autoStopped' })
         gameState.resetTarget()
         gameState.disableAnswers()
       } else {
@@ -258,7 +260,7 @@ function App() {
     if (!gameState.targetMidi) return
     
     gameState.disableAnswers()
-    setFeedback('Cadence…')
+    setFeedback({ key: 'feedback.cadence' })
     setFeedbackOk(null)
     
     const endCad = audio.playCadence(tonicMidi, scaleType)
@@ -270,7 +272,7 @@ function App() {
       ? Math.max(0, (tTarget - currentTime) * 1000) + 120
       : 1000
     manualTimers.schedule(() => {
-      setFeedback('Identify the note (click the key)')
+      setFeedback({ key: 'feedback.identify' })
       gameState.enableAnswers()
     }, enableAtMs)
   }
@@ -338,7 +340,7 @@ function App() {
         gameState.resetTarget()
         gameState.disableAnswers()
         setManualSessionStarted(false)
-        setFeedback(value ? 'Auto mode ready. Press Start' : 'Manual mode ready. Press Start')
+        setFeedback({ key: value ? 'feedback.autoReady' : 'feedback.manualReady' })
         setAutoModeEnabled(value)
         savePreference(STORAGE_KEYS.AUTO_MODE, value)
         break
@@ -352,7 +354,7 @@ function App() {
         gameState.resetTarget()
         gameState.disableAnswers()
         setManualSessionStarted(false)
-        setFeedback('Exercise changed. Press Start')
+        setFeedback({ key: 'feedback.exerciseChanged' })
         setFeedbackOk(null)
         break
       case 'tonality': {
@@ -367,7 +369,7 @@ function App() {
         gameState.resetTarget()
         gameState.disableAnswers()
         setManualSessionStarted(false)
-        setFeedback('Tonality changed. Press Start')
+        setFeedback({ key: 'feedback.tonalityChanged' })
         setFeedbackOk(null)
         setTonicPc(nextTonicPc)
         setScaleType(nextScaleType)
@@ -385,7 +387,7 @@ function App() {
         gameState.resetTarget()
         gameState.disableAnswers()
         setManualSessionStarted(false)
-        setFeedback('Register changed. Press Start')
+        setFeedback({ key: 'feedback.registerChanged' })
         setFeedbackOk(null)
         setRegister(value)
         savePreference(STORAGE_KEYS.REGISTER, value)
@@ -417,10 +419,17 @@ function App() {
   }
 
   const startEnabled = audio.isReady && (autoModeEnabled || !manualSessionStarted)
-  const displayedFeedback = feedback === 'Loading piano…' && audio.isReady
-    ? 'Ready. Press Start'
-    : feedback
-  const tonalityLabel = getTonalityLabel(tonicPc, scaleType)
+  const displayedFeedback = feedback.key === 'feedback.loading' && audio.isReady
+    ? t('feedback.ready')
+    : typeof feedback === 'string'
+      ? feedback
+      : t(feedback.key, feedback.variables)
+  const tonalityLabel = getTonalityLabel(tonicPc, scaleType, t(`scale.${scaleType}.label`))
+
+  const handleLanguageChange = nextLocale => {
+    setLocale(nextLocale)
+    setFeedback({ key: 'feedback.ready' })
+  }
 
   const handleAreaChange = nextArea => {
     if (nextArea === activeArea) return
@@ -432,7 +441,7 @@ function App() {
     setManualSessionStarted(false)
     setExerciseSelectorVisible(false)
     setFeedbackOk(null)
-    setFeedback('Ready. Press Start')
+    setFeedback({ key: 'feedback.ready' })
     setActiveArea(nextArea)
   }
 
@@ -440,27 +449,37 @@ function App() {
     <main className="app-shell">
       <header className="app-header">
         <div>
-          <p className="eyebrow">Daily music practice</p>
+          <p className="eyebrow">{t('app.eyebrow')}</p>
           <h1>Musician Gym</h1>
         </div>
-        <button
-          type="button"
-          className="settings-button"
-          onClick={() => setSettingsVisible(true)}
-          aria-label="Open settings"
-        >
-          <span aria-hidden="true">⚙</span> Settings
-        </button>
+        <div className="header-actions">
+          <label className="language-selector">
+            <span aria-hidden="true">🌐</span>
+            <span className="sr-only">{t('language.label')}</span>
+            <select value={locale} onChange={event => handleLanguageChange(event.target.value)}>
+              <option value="en">{t('language.english')}</option>
+              <option value="es">{t('language.spanish')}</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            className="settings-button"
+            onClick={() => setSettingsVisible(true)}
+            aria-label={t('settings.open')}
+          >
+            <span aria-hidden="true">⚙</span> {t('settings.button')}
+          </button>
+        </div>
       </header>
 
-      <nav className="practice-tabs" aria-label="Practice area">
+      <nav className="practice-tabs" aria-label={t('nav.label')}>
         <button
           type="button"
           className={activeArea === 'ear' ? 'active' : ''}
           aria-current={activeArea === 'ear' ? 'page' : undefined}
           onClick={() => handleAreaChange('ear')}
         >
-          Ear training
+          {t('nav.ear')}
         </button>
         <button
           type="button"
@@ -468,7 +487,7 @@ function App() {
           aria-current={activeArea === 'singing' ? 'page' : undefined}
           onClick={() => handleAreaChange('singing')}
         >
-          Singing practice
+          {t('nav.singing')}
         </button>
         <button
           type="button"
@@ -476,7 +495,7 @@ function App() {
           aria-current={activeArea === 'tinnitus' ? 'page' : undefined}
           onClick={() => handleAreaChange('tinnitus')}
         >
-          Tinnitus
+          {t('nav.tinnitus')}
         </button>
       </nav>
 
@@ -505,7 +524,10 @@ function App() {
           keyboard.startMapping(mappingMidi)
           const actualMidi = actualMidiForMapping(mappingMidi)
           if (actualMidi !== null) {
-            setFeedback(`Press a key for ${labelForMidi(actualMidi, notation, tonicPc, scaleType)} (Esc to cancel)`)
+            setFeedback({
+              key: 'feedback.pressKeyFor',
+              variables: { note: labelForMidi(actualMidi, notation, tonicPc, scaleType) }
+            })
           }
         }}
         clearKeymap={keyboard.clearKeymap}
@@ -517,7 +539,7 @@ function App() {
         }}
         onResetProgress={() => {
           gameState.resetStats()
-          setFeedback('Progress reset')
+          setFeedback({ key: 'feedback.progressReset' })
           setFeedbackOk(null)
         }}
         onKeyTest={(testData) => {
@@ -530,7 +552,10 @@ function App() {
             keyboard.cancelMapping()
             const actualMidi = actualMidiForMapping(waitingMidiValue)
             if (actualMidi !== null) {
-              setFeedback(`External control mapped to ${labelForMidi(actualMidi, notation, tonicPc, scaleType)}`)
+              setFeedback({
+                key: 'feedback.externalMapped',
+                variables: { note: labelForMidi(actualMidi, notation, tonicPc, scaleType) }
+              })
             }
             return
           }
@@ -547,7 +572,7 @@ function App() {
       />
 
       {activeArea === 'ear' ? (
-        <section className="practice-content" aria-label="Ear training">
+        <section className="practice-content" aria-label={t('nav.ear')}>
           <GameControls
             onStart={handleStart}
             onRepeat={handleRepeat}

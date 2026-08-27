@@ -1,4 +1,7 @@
+import { useI18n } from '../i18n/I18nContext.jsx'
+
 export function GameDisplay({ feedback, feedbackOk, attempts, correct, accuracy }) {
+  const { t } = useI18n()
   return (
     <>
       <div
@@ -12,9 +15,9 @@ export function GameDisplay({ feedback, feedbackOk, attempts, correct, accuracy 
       
       <div
         className="stat"
-        aria-label={`${attempts} attempts, ${correct} correct, ${accuracy} percent accuracy`}
+        aria-label={t('stats.aria', { attempts, correct, accuracy })}
       >
-        Attempts: {attempts} | Correct: {correct} | Accuracy: {accuracy}%
+        {t('stats.visible', { attempts, correct, accuracy })}
       </div>
     </>
   )

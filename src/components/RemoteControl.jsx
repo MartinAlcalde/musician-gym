@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useI18n } from '../i18n/I18nContext.jsx'
 
 const AXIS_THRESHOLD = 0.5
 
@@ -21,10 +22,11 @@ function hidDeviceId(device) {
 }
 
 export function RemoteControl({ onKeyTest }) {
-  const [hidStatus, setHidStatus] = useState('Not connected')
-  const [bluetoothStatus, setBluetoothStatus] = useState('Not connected')
-  const [gamepadStatus, setGamepadStatus] = useState('Not detected')
-  const [keyTestLine, setKeyTestLine] = useState('Press a key or your remote…')
+  const { t } = useI18n()
+  const [hidStatus, setHidStatus] = useState({ key: 'remote.notConnected' })
+  const [bluetoothStatus, setBluetoothStatus] = useState({ key: 'remote.notConnected' })
+  const [gamepadStatus, setGamepadStatus] = useState({ key: 'remote.notDetected' })
+  const [keyTestLine, setKeyTestLine] = useState({ key: 'remote.testPrompt' })
   const [keyTestDetail, setKeyTestDetail] = useState('')
 
   const animationFrameRef = useRef(null)
@@ -69,7 +71,10 @@ export function RemoteControl({ onKeyTest }) {
           if (button.pressed && !wasPressed) {
             const deviceId = gamepadDeviceId(gamepad)
             const inputId = `${deviceId}:button:${buttonIndex}`
-            setKeyTestLine(`Gamepad ${gamepad.index} button ${buttonIndex} pressed`)
+            setKeyTestLine({
+              key: 'remote.gamepadButton',
+              variables: { gamepad: gamepad.index, button: buttonIndex }
+            })
             setKeyTestDetail(inputId)
             onKeyTestRef.current?.({
               type: 'gamepad',
@@ -95,7 +100,10 @@ export function RemoteControl({ onKeyTest }) {
           if (direction && direction !== previousDirection) {
             const deviceId = gamepadDeviceId(gamepad)
             const inputId = `${deviceId}:axis:${axisIndex}:${direction}`
-            setKeyTestLine(`Gamepad ${gamepad.index} axis ${axisIndex} ${direction}`)
+            setKeyTestLine({
+              key: 'remote.gamepadAxis',
+              variables: { gamepad: gamepad.index, axis: axisIndex, direction }
+            })
             setKeyTestDetail(inputId)
             onKeyTestRef.current?.({
               type: 'gamepad',
@@ -152,7 +160,7 @@ export function RemoteControl({ onKeyTest }) {
       })
 
       if (!devices.length) {
-        setHidStatus('No device selected')
+        setHidStatus({ key: 'remote.noDevice' })
         return
       }
 
@@ -175,7 +183,7 @@ export function RemoteControl({ onKeyTest }) {
           const deviceId = hidDeviceId(device)
           const inputId = `${deviceId}:report:${event.reportId}:${data}`
 
-          setKeyTestLine(`HID report ${event.reportId}: ${data}`)
+          setKeyTestLine({ key: 'remote.hidReport', variables: { report: event.reportId, data } })
           setKeyTestDetail(inputId)
           onKeyTestRef.current?.({
             type: 'hid',
@@ -194,21 +202,21 @@ export function RemoteControl({ onKeyTest }) {
         connectedCount += 1
       }
 
-      setHidStatus(`Connected: ${connectedCount} device(s)`)
+      setHidStatus({ key: 'remote.connectedCount', variables: { count: connectedCount } })
     } catch (error) {
-      if (mountedRef.current) setHidStatus(`Failed: ${error.message}`)
+      if (mountedRef.current) setHidStatus({ key: 'remote.failed', variables: { error: error.message } })
     }
   }
 
   const connectBluetooth = async () => {
     if (!hasWebBluetooth) {
-      setBluetoothStatus('Bluetooth not supported')
+      setBluetoothStatus({ key: 'remote.bluetoothUnsupported' })
       return
     }
 
     try {
       closeBluetoothConnection()
-      setBluetoothStatus('Requesting device...')
+      setBluetoothStatus({ key: 'remote.requesting' })
 
       const device = await navigator.bluetooth.requestDevice({
         acceptAllDevices: true,
@@ -218,15 +226,15 @@ export function RemoteControl({ onKeyTest }) {
           '0000180a-0000-1000-8000-00805f9b34fb'
         ]
       })
-      const deviceName = device.name || 'Unnamed device'
+      const deviceName = device.name || t('remote.unnamed')
 
       if (!mountedRef.current) return
-      setBluetoothStatus(`Connecting to ${deviceName}...`)
+      setBluetoothStatus({ key: 'remote.connecting', variables: { device: deviceName } })
 
       const disconnectHandler = () => {
         if (bluetoothConnectionRef.current?.device !== device) return
         bluetoothConnectionRef.current = null
-        if (mountedRef.current) setBluetoothStatus('Disconnected')
+        if (mountedRef.current) setBluetoothStatus({ key: 'remote.disconnected' })
       }
       device.addEventListener('gattserverdisconnected', disconnectHandler)
       bluetoothConnectionRef.current = {
@@ -251,7 +259,7 @@ export function RemoteControl({ onKeyTest }) {
       }
 
       if (!characteristic) {
-        setBluetoothStatus(`Connected to ${deviceName}, but no input was found`)
+        setBluetoothStatus({ key: 'remote.noInput', variables: { device: deviceName } })
         return
       }
 
@@ -260,7 +268,7 @@ export function RemoteControl({ onKeyTest }) {
         const deviceId = `bluetooth:${safeIdPart(device.id)}`
         const inputId = `${deviceId}:characteristic:${safeIdPart(characteristic.uuid)}:${data}`
 
-        setKeyTestLine(`Bluetooth data: ${data}`)
+        setKeyTestLine({ key: 'remote.bluetoothData', variables: { data } })
         setKeyTestDetail(inputId)
         onKeyTestRef.current?.({
           type: 'bluetooth',
@@ -281,16 +289,16 @@ export function RemoteControl({ onKeyTest }) {
       }
       characteristic.addEventListener('characteristicvaluechanged', valueHandler)
       bluetoothConnectionRef.current = { device, characteristic, valueHandler, disconnectHandler }
-      setBluetoothStatus(`Connected: ${deviceName}`)
+      setBluetoothStatus({ key: 'remote.connectedDevice', variables: { device: deviceName } })
     } catch (error) {
       closeBluetoothConnection()
-      if (mountedRef.current) setBluetoothStatus(`Failed: ${error.message}`)
+      if (mountedRef.current) setBluetoothStatus({ key: 'remote.failed', variables: { error: error.message } })
     }
   }
 
   const detectGamepad = () => {
     if (!hasGamepadApi) {
-      setGamepadStatus('Gamepad API not supported')
+      setGamepadStatus({ key: 'remote.gamepadUnsupported' })
       return
     }
 
@@ -298,9 +306,12 @@ export function RemoteControl({ onKeyTest }) {
     const gamepad = Array.from(navigator.getGamepads()).find(Boolean)
 
     if (gamepad) {
-      setGamepadStatus(`Connected: ${gamepad.id} (${gamepad.buttons.length} buttons, ${gamepad.axes.length} axes)`)
+      setGamepadStatus({
+        key: 'remote.gamepadConnected',
+        variables: { device: gamepad.id, buttons: gamepad.buttons.length, axes: gamepad.axes.length }
+      })
     } else {
-      setGamepadStatus('Listening — press a gamepad button')
+      setGamepadStatus({ key: 'remote.listening' })
     }
   }
 
@@ -308,7 +319,7 @@ export function RemoteControl({ onKeyTest }) {
     mountedRef.current = true
 
     const handleGamepadConnected = (event) => {
-      setGamepadStatus(`Connected: ${event.gamepad.id}`)
+      setGamepadStatus({ key: 'remote.connectedDevice', variables: { device: event.gamepad.id } })
       startGamepadPolling()
     }
 
@@ -320,7 +331,7 @@ export function RemoteControl({ onKeyTest }) {
       for (const key of lastAxisDirectionsRef.current.keys()) {
         if (key.startsWith(statePrefix)) lastAxisDirectionsRef.current.delete(key)
       }
-      setGamepadStatus('Disconnected')
+      setGamepadStatus({ key: 'remote.disconnected' })
     }
 
     const handleHidDisconnected = (event) => {
@@ -328,7 +339,7 @@ export function RemoteControl({ onKeyTest }) {
       if (!inputHandler) return
       event.device.removeEventListener('inputreport', inputHandler)
       hidConnectionsRef.current.delete(event.device)
-      setHidStatus('Disconnected')
+      setHidStatus({ key: 'remote.disconnected' })
     }
 
     window.addEventListener('gamepadconnected', handleGamepadConnected)
@@ -347,41 +358,43 @@ export function RemoteControl({ onKeyTest }) {
   }, [closeBluetoothConnection, closeHidConnections, startGamepadPolling, stopGamepadPolling])
 
   const hidNote = !hasWebHID || !isSecureContext
-    ? 'WebHID requires a secure context (https or localhost).'
-    : 'Connect your shutter, then press a button to test or map it.'
+    ? t('remote.hidSecure')
+    : t('remote.hidHelp')
+
+  const statusText = status => t(status.key, status.variables)
 
   return (
     <>
-      <h3 className="remote-heading">External controls</h3>
+      <h3 className="remote-heading">{t('remote.title')}</h3>
       <div className="panel remote-control-panel">
         <div className="row remote-control-row">
           <button type="button" onClick={connectHID} disabled={!hasWebHID || !isSecureContext}>
-            Connect HID
+            {t('remote.connectHid')}
           </button>
-          <span className="muted" role="status" aria-live="polite">{hidStatus}</span>
+          <span className="muted" role="status" aria-live="polite">{statusText(hidStatus)}</span>
         </div>
 
         <div className="row remote-control-row">
           <button type="button" onClick={connectBluetooth} disabled={!hasWebBluetooth}>
-            🔵 Connect Bluetooth
+            {t('remote.connectBluetooth')}
           </button>
-          <span className="muted" role="status" aria-live="polite">{bluetoothStatus}</span>
+          <span className="muted" role="status" aria-live="polite">{statusText(bluetoothStatus)}</span>
         </div>
 
         <div className="row remote-control-row">
           <button type="button" onClick={detectGamepad} disabled={!hasGamepadApi}>
-            🎮 Detect Gamepad
+            {t('remote.detectGamepad')}
           </button>
-          <span className="muted" role="status" aria-live="polite">{gamepadStatus}</span>
+          <span className="muted" role="status" aria-live="polite">{statusText(gamepadStatus)}</span>
         </div>
 
         <p className="muted remote-note">{hidNote}</p>
       </div>
 
-      <h3 className="remote-heading">Input tester</h3>
+      <h3 className="remote-heading">{t('remote.tester')}</h3>
       <div className="panel remote-control-panel" role="status" aria-live="polite" aria-atomic="true">
-        <div>{keyTestLine}</div>
-        {keyTestDetail && <div className="muted remote-input-id">Input ID: {keyTestDetail}</div>}
+        <div>{statusText(keyTestLine)}</div>
+        {keyTestDetail && <div className="muted remote-input-id">{t('remote.inputId', { id: keyTestDetail })}</div>}
       </div>
     </>
   )

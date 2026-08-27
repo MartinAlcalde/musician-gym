@@ -1,4 +1,5 @@
 import { labelForMidi, toCanonicalDegreeMidi } from '../utils/helpers.js'
+import { useI18n } from '../i18n/I18nContext.jsx'
 
 export function KeyMapping({ 
   exerciseSet, 
@@ -35,19 +36,20 @@ export function KeyMapping({
 }
 
 function KeyMappingRow({ midi, tonicMidi, scaleType, notation, mappedKey, onStartMapping, onClearMapping, isWaiting }) {
+  const { t } = useI18n()
   return (
     <>
       <div className="map-row map-note">
         {labelForMidi(midi, notation, tonicMidi % 12, scaleType)}
       </div>
       <button className="btn" onClick={onStartMapping}>
-        {isWaiting ? 'Press key...' : 'Set key'}
+        {isWaiting ? t('mapping.pressKey') : t('settings.controls.setKey')}
       </button>
       <div className="map-key">
         {mappedKey || '—'}
       </div>
       <button className="btn" onClick={onClearMapping}>
-        Clear
+        {t('mapping.clear')}
       </button>
     </>
   )

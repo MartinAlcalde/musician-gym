@@ -34,9 +34,9 @@ export const getTonicName = (tonicPc = 0, scaleType = 'major') => {
   return TONIC_NAMES_BY_SCALE[selectedScaleType][normalizePitchClass(tonicPc)]
 }
 
-export const getTonalityLabel = (tonicPc = 0, scaleType = 'major') => {
+export const getTonalityLabel = (tonicPc = 0, scaleType = 'major', scaleLabel) => {
   const selectedScaleType = safeScaleType(scaleType)
-  return `${displayNoteName(getTonicName(tonicPc, selectedScaleType))} ${SCALE_TYPES[selectedScaleType].label}`
+  return `${displayNoteName(getTonicName(tonicPc, selectedScaleType))} ${scaleLabel || SCALE_TYPES[selectedScaleType].label}`
 }
 
 export const getScaleNoteNames = (tonicPc = 0, scaleType = 'major') => {

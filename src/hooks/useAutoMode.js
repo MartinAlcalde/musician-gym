@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { labelForMidi } from '../utils/helpers.js'
+import { translate as translateMessage } from '../i18n/I18nContext.jsx'
 
 const ANSWER_DELAY_MS = 2000
 const SPEECH_WATCHDOG_MS = 15000
@@ -12,7 +13,9 @@ export function useAutoMode({
   notation = 'solfege',
   initialInterval = 5000,
   initialShowAnswer = true,
-  initialSayAnswer = true
+  initialSayAnswer = true,
+  translate,
+  speechLocale = 'en-US'
 } = {}) {
   const [isRunning, setIsRunning] = useState(false)
   const [interval, setIntervalState] = useState(initialInterval)
@@ -24,6 +27,8 @@ export function useAutoMode({
   const showAnswerRef = useRef(showAnswer)
   const sayAnswerRef = useRef(sayAnswer)
   const notationRef = useRef(notation)
+  const translateRef = useRef(translate || ((key, variables) => translateMessage('en', key, variables)))
+  const speechLocaleRef = useRef(speechLocale)
   const timersRef = useRef(new Set())
   const utteranceRef = useRef(null)
   const sessionRef = useRef(0)
@@ -33,6 +38,11 @@ export function useAutoMode({
   useEffect(() => {
     notationRef.current = notation
   }, [notation])
+
+  useEffect(() => {
+    translateRef.current = translate || ((key, variables) => translateMessage('en', key, variables))
+    speechLocaleRef.current = speechLocale
+  }, [speechLocale, translate])
 
   const clearTimer = useCallback((timerId) => {
     if (timerId === null || timerId === undefined) return
@@ -175,8 +185,8 @@ export function useAutoMode({
     const targetLabel = labelForMidi(targetMidi, notationRef.current, tonicMidi % 12, scaleType)
     const result = {
       message: showAnswerRef.current
-        ? `✨ Answer: ${targetLabel}`
-        : '🎵 (Answer hidden)',
+        ? translateRef.current('feedback.auto.answer', { note: targetLabel })
+        : translateRef.current('feedback.auto.hidden'),
       shouldHighlight: showAnswerRef.current,
       targetMidi
     }
@@ -203,10 +213,13 @@ export function useAutoMode({
     }
 
     cancelSpeech()
+    const spanishSpeech = speechLocaleRef.current.toLowerCase().startsWith('es')
     const spokenLabel = targetLabel
-      .replaceAll('♭', ' bemol')
-      .replaceAll('#', ' sostenido')
+      .replaceAll('♭', spanishSpeech ? ' bemol' : ' flat')
+      .replaceAll('♯', spanishSpeech ? ' sostenido' : ' sharp')
+      .replaceAll('#', spanishSpeech ? ' sostenido' : ' sharp')
     const utterance = new Utterance(spokenLabel)
+    utterance.lang = speechLocaleRef.current
     utterance.rate = 0.8
     utterance.pitch = 1.0
     utteranceRef.current = utterance
@@ -269,7 +282,7 @@ export function useAutoMode({
 
     const beginAnswerSequence = (audioDelayMs) => {
       schedule(() => {
-        onUIUpdate?.('🎧 Listen...', false, targetMidi)
+        onUIUpdate?.(translateRef.current('feedback.auto.listen'), false, targetMidi)
 
         schedule(() => {
           const result = showAutoAnswer(

@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { clampTinnitusFrequency, getNotchQ } from '../utils/notchedAudio.js'
+import { translate as translateMessage } from '../i18n/I18nContext.jsx'
 
-export function useNotchedAudio({ frequency, widthInOctaves, filterEnabled, volume }) {
+export function useNotchedAudio({ frequency, widthInOctaves, filterEnabled, volume, translate }) {
   const [fileName, setFileName] = useState('')
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
-  const [error, setError] = useState('')
+  const [errorKey, setErrorKey] = useState('')
   const audioRef = useRef(null)
   const objectUrlRef = useRef(null)
   const contextRef = useRef(null)
@@ -27,7 +28,7 @@ export function useNotchedAudio({ frequency, widthInOctaves, filterEnabled, volu
     const handlePlay = () => setIsPlaying(true)
     const handlePause = () => setIsPlaying(false)
     const handleEnded = () => setIsPlaying(false)
-    const handleError = () => setError('This audio file could not be played by the browser.')
+    const handleError = () => setErrorKey('audio.error.file')
 
     audio.addEventListener('timeupdate', updateTime)
     audio.addEventListener('loadedmetadata', updateDuration)
@@ -62,7 +63,7 @@ export function useNotchedAudio({ frequency, widthInOctaves, filterEnabled, volu
 
   const ensureContext = useCallback(async () => {
     if (!isSupported) {
-      setError('Real-time audio filtering is not supported in this browser.')
+      setErrorKey('audio.error.unsupported')
       return null
     }
 
@@ -114,7 +115,7 @@ export function useNotchedAudio({ frequency, widthInOctaves, filterEnabled, volu
   const loadFile = useCallback(file => {
     if (!file) return
     if (file.type && !file.type.startsWith('audio/')) {
-      setError('Choose an audio file such as MP3, M4A, WAV, or OGG.')
+      setErrorKey('audio.error.type')
       return
     }
 
@@ -129,7 +130,7 @@ export function useNotchedAudio({ frequency, widthInOctaves, filterEnabled, volu
     setFileName(file.name)
     setCurrentTime(0)
     setDuration(0)
-    setError('')
+    setErrorKey('')
   }, [])
 
   const play = useCallback(async () => {
@@ -137,11 +138,11 @@ export function useNotchedAudio({ frequency, widthInOctaves, filterEnabled, volu
     try {
       if (!await ensureGraph()) return false
       await audioRef.current.play()
-      setError('')
+      setErrorKey('')
       return true
     } catch (audioError) {
       console.warn('Notched audio playback failed:', audioError)
-      setError('Playback could not start. Try selecting the file again.')
+      setErrorKey('audio.error.playback')
       return false
     }
   }, [ensureGraph, fileName])
@@ -194,7 +195,9 @@ export function useNotchedAudio({ frequency, widthInOctaves, filterEnabled, volu
     isPlaying,
     currentTime,
     duration,
-    error,
+    error: errorKey
+      ? (translate?.(errorKey) ?? translateMessage('en', errorKey))
+      : '',
     loadFile,
     play,
     pause,

@@ -1,6 +1,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAutoMode } from './useAutoMode.js'
+import { translate } from '../i18n/I18nContext.jsx'
 
 describe('useAutoMode', () => {
   beforeEach(() => {
@@ -139,5 +140,30 @@ describe('useAutoMode', () => {
 
     await act(() => vi.advanceTimersByTimeAsync(2500))
     expect(onUIUpdate).toHaveBeenCalledWith('✨ Answer: do', true, 72)
+  })
+
+  it('localizes automatic feedback and speech for Spanish', async () => {
+    class UtteranceMock {
+      constructor(text) {
+        this.text = text
+      }
+    }
+    Object.defineProperty(globalThis, 'SpeechSynthesisUtterance', {
+      configurable: true,
+      value: UtteranceMock
+    })
+    const { result } = renderHook(() => useAutoMode({
+      initialInterval: 3000,
+      initialSayAnswer: true,
+      translate: (key, variables) => translate('es', key, variables),
+      speechLocale: 'es-UY'
+    }))
+    const callbacks = startRound(result)
+
+    await act(() => vi.advanceTimersByTimeAsync(2500))
+
+    expect(callbacks.onUIUpdate).toHaveBeenCalledWith('✨ Respuesta: do', true, 60)
+    const utterance = globalThis.speechSynthesis.speak.mock.calls[0][0]
+    expect(utterance.lang).toBe('es-UY')
   })
 })

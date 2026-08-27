@@ -6,6 +6,7 @@ import {
   WARMUP_KEY_COUNTS,
   WARMUP_TEMPOS
 } from '../utils/vocalWarmups.js'
+import { useI18n } from '../i18n/I18nContext.jsx'
 
 export function SingingPractice({
   audio,
@@ -14,6 +15,7 @@ export function SingingPractice({
   notation,
   screenWakeLock
 }) {
+  const { t } = useI18n()
   const [warmupId, setWarmupId] = useState(VOCAL_WARMUPS[0].id)
   const [tempo, setTempo] = useState(72)
   const [keyCount, setKeyCount] = useState(5)
@@ -64,13 +66,13 @@ export function SingingPractice({
   return (
     <section className="singing-practice" aria-labelledby="singing-heading">
       <div className="section-intro">
-        <p className="eyebrow">Voice training</p>
-        <h2 id="singing-heading">Real-time vocal warm-up</h2>
-        <p>Listen to each piano note and sing it on the suggested syllable. Each round moves up one semitone.</p>
+        <p className="eyebrow">{t('singing.eyebrow')}</p>
+        <h2 id="singing-heading">{t('singing.title')}</h2>
+        <p>{t('singing.intro')}</p>
       </div>
 
       <fieldset className="warmup-picker" disabled={warmup.isRunning}>
-        <legend>1. Choose an exercise</legend>
+        <legend>{t('singing.choose')}</legend>
         <div className="warmup-grid">
           {VOCAL_WARMUPS.map(option => (
             <label key={option.id} className={`warmup-card ${warmupId === option.id ? 'selected' : ''}`}>
@@ -81,29 +83,29 @@ export function SingingPractice({
                 checked={warmupId === option.id}
                 onChange={() => setWarmupId(option.id)}
               />
-              <strong>{option.label}</strong>
-              <span>{option.description}</span>
-              <small>Sing on “{option.syllable}”</small>
+              <strong>{t(`warmup.${option.id}.label`)}</strong>
+              <span>{t(`warmup.${option.id}.description`)}</span>
+              <small>{t('singing.singOn', { syllable: option.syllable })}</small>
             </label>
           ))}
         </div>
       </fieldset>
 
       <fieldset className="warmup-options" disabled={warmup.isRunning}>
-        <legend>2. Set the pace and range</legend>
+        <legend>{t('singing.options')}</legend>
         <label>
-          Tempo
+          {t('singing.tempo')}
           <select value={tempo} onChange={event => setTempo(Number(event.target.value))}>
             {WARMUP_TEMPOS.map(option => (
-              <option key={option.value} value={option.value}>{option.label}</option>
+              <option key={option.value} value={option.value}>{t(`tempo.${option.value}`)}</option>
             ))}
           </select>
         </label>
         <label>
-          Ascending keys
+          {t('singing.keys')}
           <select value={keyCount} onChange={event => setKeyCount(Number(event.target.value))}>
             {WARMUP_KEY_COUNTS.map(value => (
-              <option key={value} value={value}>{value} keys</option>
+              <option key={value} value={value}>{t('singing.keyCount', { count: value })}</option>
             ))}
           </select>
         </label>
@@ -111,12 +113,18 @@ export function SingingPractice({
 
       <div className="warmup-player">
         <div className="warmup-now" aria-live="polite">
-          <span className="muted">{warmup.isRunning ? `Sing “${selectedWarmup.syllable}”` : 'Current note'}</span>
+          <span className="muted">{warmup.isRunning
+            ? t('singing.sing', { syllable: selectedWarmup.syllable })
+            : t('singing.currentNote')}</span>
           <strong>{primaryLabel}</strong>
           <span>{secondaryLabel}</span>
           {currentEvent && (
             <small>
-              Key {currentEvent.cycleIndex + 1}/{keyCount} · {displayNoteName(getTonicName(currentTonicPc, scaleType))}
+              {t('singing.keyProgress', {
+                current: currentEvent.cycleIndex + 1,
+                total: keyCount,
+                key: displayNoteName(getTonicName(currentTonicPc, scaleType))
+              })}
             </small>
           )}
         </div>
@@ -128,23 +136,23 @@ export function SingingPractice({
             onClick={handleStart}
             disabled={!audio.isReady}
           >
-            {warmup.isRunning ? '■ Stop warm-up' : audio.isReady ? '▶ Start warm-up' : 'Loading piano…'}
+            {warmup.isRunning ? t('singing.stop') : audio.isReady ? t('singing.start') : t('singing.loading')}
           </button>
-          <div className="progress-track" role="progressbar" aria-label="Warm-up progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow={warmup.progress}>
+          <div className="progress-track" role="progressbar" aria-label={t('singing.progress')} aria-valuemin="0" aria-valuemax="100" aria-valuenow={warmup.progress}>
             <span style={{ width: `${warmup.progress}%` }} />
           </div>
           <p className="warmup-status">
             {warmup.completed
-              ? 'Warm-up complete.'
+              ? t('singing.complete')
               : warmup.isRunning
-                ? `Note ${warmup.step} of ${warmup.totalSteps}`
-                : 'Ready when you are.'}
+                ? t('singing.noteProgress', { current: warmup.step, total: warmup.totalSteps })
+                : t('singing.ready')}
           </p>
         </div>
       </div>
 
       <div className="voice-safety" role="note">
-        <strong>Sing comfortably.</strong> Lower the register if notes feel tight, and stop if you feel strain. Pitch detection is not used yet: this first version is a live guide with piano accompaniment.
+        <strong>{t('singing.safetyTitle')}</strong> {t('singing.safety')}
       </div>
     </section>
   )
