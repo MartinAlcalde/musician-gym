@@ -194,6 +194,43 @@ describe('accessible game controls', () => {
     expect(container.querySelector('[data-midi="75"] .label').textContent).toBe('mi♭')
   })
 
+  it('keeps the same physical piano when the tonality changes', () => {
+    const pianoProps = {
+      notation: 'solfege',
+      disabled: false,
+      onKeyClick: vi.fn()
+    }
+    const { container, rerender } = render(
+      <Piano
+        {...pianoProps}
+        exerciseSet={[60, 62, 64, 65]}
+        tonicMidi={60}
+        scaleType="major"
+      />
+    )
+    const physicalLayout = Array.from(container.querySelectorAll('[data-midi]')).map(key => ({
+      midi: key.dataset.midi,
+      color: key.classList.contains('black') ? 'black' : 'white'
+    }))
+
+    rerender(
+      <Piano
+        {...pianoProps}
+        exerciseSet={[70, 72, 73, 75]}
+        tonicMidi={70}
+        scaleType="naturalMinor"
+      />
+    )
+
+    const transposedLayout = Array.from(container.querySelectorAll('[data-midi]')).map(key => ({
+      midi: key.dataset.midi,
+      color: key.classList.contains('black') ? 'black' : 'white'
+    }))
+    expect(transposedLayout).toEqual(physicalLayout)
+    expect(container.querySelectorAll('.key.white')).toHaveLength(15)
+    expect(container.querySelectorAll('.key.black')).toHaveLength(10)
+  })
+
   it('emits one stable gamepad event per press edge and stops polling on unmount', () => {
     const callbacks = new Map()
     let nextFrameId = 1

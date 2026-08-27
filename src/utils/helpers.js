@@ -118,15 +118,19 @@ export const hasSharpAfter = (midi) => {
 
 const isWhiteKey = midi => [0, 2, 4, 5, 7, 9, 11].includes(normalizePitchClass(midi))
 
-export const getWhiteKeys = (tonicMidi = NOTES.C4) => {
-  let firstWhite = tonicMidi
-  while (!isWhiteKey(firstWhite)) firstWhite -= 1
+export const getPianoRange = (tonicMidi = NOTES.C4) => {
+  const registerStart = tonicMidi - normalizePitchClass(tonicMidi)
+  return {
+    startMidi: registerStart,
+    endMidi: registerStart + 24
+  }
+}
 
-  let lastWhite = tonicMidi + 12
-  while (!isWhiteKey(lastWhite)) lastWhite += 1
+export const getWhiteKeys = (tonicMidi = NOTES.C4) => {
+  const { startMidi, endMidi } = getPianoRange(tonicMidi)
 
   const whiteKeys = []
-  for (let midi = firstWhite; midi <= lastWhite; midi += 1) {
+  for (let midi = startMidi; midi <= endMidi; midi += 1) {
     if (isWhiteKey(midi)) whiteKeys.push(midi)
   }
   return whiteKeys

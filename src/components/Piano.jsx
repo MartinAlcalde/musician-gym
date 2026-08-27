@@ -1,5 +1,11 @@
 import { useEffect, useRef, forwardRef } from 'react'
-import { labelForMidi, hasSharpAfter, getWhiteKeys, midiToNoteName } from '../utils/helpers.js'
+import {
+  labelForMidi,
+  hasSharpAfter,
+  getPianoRange,
+  getWhiteKeys,
+  midiToNoteName
+} from '../utils/helpers.js'
 
 export const Piano = forwardRef(function Piano({ 
   exerciseSet, 
@@ -27,13 +33,35 @@ export const Piano = forwardRef(function Piano({
         if (!whiteEl) return
         
         const wRect = whiteEl.getBoundingClientRect()
-        const left = (wRect.left - pianoRect.left) + whiteEl.offsetWidth - (black.offsetWidth / 2) + (gap / 2)
+        const left = (wRect.left - pianoRect.left) + pianoRef.current.scrollLeft
+          + whiteEl.offsetWidth - (black.offsetWidth / 2) + (gap / 2)
         black.style.left = `${left}px`
       })
     }
 
-    // Use timeout to ensure DOM is fully rendered
-    const timer = setTimeout(positionBlackKeys, 0)
+    const revealExercise = () => {
+      if (!pianoRef.current || !exerciseSet.length) return
+      const firstKey = pianoRef.current.querySelector(`[data-midi="${Math.min(...exerciseSet)}"]`)
+      const lastKey = pianoRef.current.querySelector(`[data-midi="${Math.max(...exerciseSet)}"]`)
+      if (!firstKey || !lastKey) return
+
+      const pianoRect = pianoRef.current.getBoundingClientRect()
+      const firstRect = firstKey.getBoundingClientRect()
+      const lastRect = lastKey.getBoundingClientRect()
+      const firstCenter = firstRect.left - pianoRect.left + pianoRef.current.scrollLeft + firstRect.width / 2
+      const lastCenter = lastRect.left - pianoRect.left + pianoRef.current.scrollLeft + lastRect.width / 2
+      const desiredLeft = ((firstCenter + lastCenter) / 2) - pianoRef.current.clientWidth / 2
+      pianoRef.current.scrollLeft = Math.max(0, Math.min(
+        desiredLeft,
+        pianoRef.current.scrollWidth - pianoRef.current.clientWidth
+      ))
+    }
+
+    // Wait for responsive key sizes before positioning and revealing the active range.
+    const timer = setTimeout(() => {
+      positionBlackKeys()
+      revealExercise()
+    }, 0)
     window.addEventListener('resize', positionBlackKeys)
     
     return () => {
@@ -44,6 +72,7 @@ export const Piano = forwardRef(function Piano({
 
   const buildPianoKeys = () => {
     const whites = getWhiteKeys(tonicMidi)
+    const { startMidi, endMidi } = getPianoRange(tonicMidi)
     const allowedSet = new Set(exerciseSet)
     const useSolfege = notation === 'solfege'
     const tonicPc = tonicMidi % 12
@@ -75,7 +104,7 @@ export const Piano = forwardRef(function Piano({
     // Black keys
     whites.forEach((midi) => {
       const blackMidi = midi + 1
-      if (hasSharpAfter(midi) && blackMidi >= tonicMidi && blackMidi <= tonicMidi + 12) {
+      if (hasSharpAfter(midi) && blackMidi >= startMidi && blackMidi <= endMidi) {
         const text = labelForMidi(blackMidi, useSolfege ? 'solfege' : 'letter', tonicPc, scaleType)
         const inScope = allowedSet.has(blackMidi)
         const noteName = midiToNoteName(blackMidi)
@@ -124,7 +153,7 @@ export const Piano = forwardRef(function Piano({
       onClick={handleClick}
       onKeyDown={(event) => event.stopPropagation()}
       role="group"
-      aria-label={`Piano ${midiToNoteName(tonicMidi)}–${midiToNoteName(tonicMidi + 12)}`}
+      aria-label={`Piano ${midiToNoteName(getPianoRange(tonicMidi).startMidi)}–${midiToNoteName(getPianoRange(tonicMidi).endMidi)}`}
       aria-disabled={disabled}
     >
       {buildPianoKeys()}
