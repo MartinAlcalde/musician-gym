@@ -69,7 +69,8 @@ button {
   position: relative; display: flex; gap: var(--gap); user-select: none; margin-top: 10px;
   overflow-x: auto; padding-bottom: 4px;
 }
-.piano.disabled { pointer-events: none; opacity: 0.7; }
+.piano.disabled { pointer-events: none; }
+.piano.disabled .key { cursor: default; }
 .key {
   position: relative;
   cursor: pointer;
@@ -98,7 +99,20 @@ button {
 .key.white .label { color: #222; }
 .key.black .label { color: #eee; text-shadow: 0 1px 1px rgba(0,0,0,0.6); bottom: 6px; font-size: 11px; }
 .key.white.in-scope { background: #fffbea; border-color: #f59e0b; }
-.key.white.out-of-scope { opacity: 0.85; cursor: default; }
+.key.white.out-of-scope { background: #f3f4f6; color: #9ca3af; cursor: default; }
+.key.black.in-scope {
+  outline: 3px solid #f59e0b;
+  outline-offset: -3px;
+  background: #27200f;
+}
+.key.black.in-scope .label {
+  color: #fcd34d;
+  font-weight: 700;
+}
+.key.black.out-of-scope {
+  background: #4b5563;
+  border-color: #374151;
+}
 
 @media (max-width: 480px) {
   .training-range { gap: 8px; }
@@ -205,7 +219,18 @@ body.dark .key.white.in-scope {
 }
 
 body.dark .key.white.out-of-scope {
-  opacity: 0.7;
+  background: #d1d5db;
+  color: #6b7280;
+}
+
+body.dark .key.black.in-scope {
+  background: #27200f;
+  outline-color: #fbbf24;
+}
+
+body.dark .key.black.out-of-scope {
+  background: #374151;
+  border-color: #1f2937;
 }
 
 body.dark .key.black {

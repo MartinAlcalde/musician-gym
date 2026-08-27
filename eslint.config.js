@@ -5,7 +5,7 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist', 'coverage', 'public/piano.base64.js']),
+  globalIgnores(['dist', 'coverage', '.vercel', 'public/piano.base64.js']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [

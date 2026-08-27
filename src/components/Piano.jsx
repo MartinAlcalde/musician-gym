@@ -54,6 +54,7 @@ export const Piano = forwardRef(function Piano({
       const text = labelForMidi(midi, useSolfege ? 'solfege' : 'letter', tonicPc)
       const inScope = allowedSet.has(midi)
       const noteName = midiToNoteName(midi)
+      const visibleText = inScope ? text : ''
       
       keys.push(
         <button
@@ -65,7 +66,7 @@ export const Piano = forwardRef(function Piano({
           disabled={disabled}
           aria-label={`${text}, ${noteName}${inScope ? ', in current exercise' : ', outside current exercise'}`}
         >
-          <span className="label" aria-hidden="true">{text}</span>
+          <span className="label" aria-hidden="true">{visibleText}</span>
         </button>
       )
     })
@@ -77,6 +78,7 @@ export const Piano = forwardRef(function Piano({
         const text = labelForMidi(blackMidi, useSolfege ? 'solfege' : 'letter', tonicPc)
         const inScope = allowedSet.has(blackMidi)
         const noteName = midiToNoteName(blackMidi)
+        const visibleText = inScope ? text : ''
         
         keys.push(
           <button
@@ -89,7 +91,7 @@ export const Piano = forwardRef(function Piano({
             disabled={disabled}
             aria-label={`${text}, ${noteName}${inScope ? ', in current exercise' : ', outside current exercise'}`}
           >
-            <span className="label" aria-hidden="true">{text}</span>
+            <span className="label" aria-hidden="true">{visibleText}</span>
           </button>
         )
       }
