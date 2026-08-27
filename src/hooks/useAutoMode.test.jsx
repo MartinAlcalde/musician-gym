@@ -87,7 +87,7 @@ describe('useAutoMode', () => {
     expect(secondComplete).toHaveBeenCalledTimes(1)
   })
 
-  it('announces relative solfege and resolves to the selected tonic', async () => {
+  it('announces fixed solfege and resolves to the selected tonic', async () => {
     const { result } = renderHook(() => useAutoMode({
       initialInterval: 3000,
       initialSayAnswer: false
@@ -110,7 +110,7 @@ describe('useAutoMode', () => {
     })
 
     await act(() => vi.advanceTimersByTimeAsync(2500))
-    expect(onUIUpdate).toHaveBeenCalledWith('✨ Answer: mi', true, 66)
+    expect(onUIUpdate).toHaveBeenCalledWith('✨ Answer: fa♯', true, 66)
 
     await act(() => vi.advanceTimersByTimeAsync(1000))
     expect(playTone.mock.calls.some(call => call[0] === 62)).toBe(true)
@@ -138,6 +138,6 @@ describe('useAutoMode', () => {
     })
 
     await act(() => vi.advanceTimersByTimeAsync(2500))
-    expect(onUIUpdate).toHaveBeenCalledWith('✨ Answer: mi♭', true, 72)
+    expect(onUIUpdate).toHaveBeenCalledWith('✨ Answer: do', true, 72)
   })
 })

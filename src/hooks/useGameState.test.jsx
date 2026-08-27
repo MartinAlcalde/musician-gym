@@ -69,7 +69,7 @@ describe('useGameState', () => {
     })
   })
 
-  it('uses the selected tonic for targets, validation, and relative labels', () => {
+  it('uses the selected tonic for targets, validation, and fixed labels', () => {
     const { result } = renderHook(() => useGameState({ tonicMidi: 62 }))
 
     let target
@@ -85,7 +85,7 @@ describe('useGameState', () => {
     act(() => {
       answer = result.current.submitAnswer(64, 'solfege')
     })
-    expect(answer.message).toContain('do')
+    expect(answer.message).toContain('re')
   })
 
   it('uses natural and harmonic minor exercise notes', () => {
