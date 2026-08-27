@@ -8,89 +8,153 @@ export const PC_TO_SOLFEGE = {
   0: 'do', 1: 'do#', 2: 're', 3: 're#', 4: 'mi', 5: 'fa', 6: 'fa#', 7: 'sol', 8: 'sol#', 9: 'la', 10: 'la#', 11: 'si' 
 }
 
-export const SCALE_SOLFEGE = {
-  major: { 0: 'do', 2: 're', 4: 'mi', 5: 'fa', 7: 'sol', 9: 'la', 11: 'si' },
-  naturalMinor: { 0: 'do', 2: 're', 3: 'mi♭', 5: 'fa', 7: 'sol', 8: 'la♭', 10: 'si♭' },
-  harmonicMinor: { 0: 'do', 2: 're', 3: 'mi♭', 5: 'fa', 7: 'sol', 8: 'la♭', 11: 'si' }
-}
-
 export const PC_TO_LETTER = { 
   0: 'C', 1: 'C#', 2: 'D', 3: 'D#', 4: 'E', 5: 'F', 6: 'F#', 7: 'G', 8: 'G#', 9: 'A', 10: 'A#', 11: 'B' 
 }
 
-export const KEY_SCALE_LETTERS = {
-  0: { 0: 'C', 2: 'D', 4: 'E', 5: 'F', 7: 'G', 9: 'A', 11: 'B' },
-  1: { 0: 'Db', 2: 'Eb', 4: 'F', 5: 'Gb', 7: 'Ab', 9: 'Bb', 11: 'C' },
-  2: { 0: 'D', 2: 'E', 4: 'F#', 5: 'G', 7: 'A', 9: 'B', 11: 'C#' },
-  3: { 0: 'Eb', 2: 'F', 4: 'G', 5: 'Ab', 7: 'Bb', 9: 'C', 11: 'D' },
-  4: { 0: 'E', 2: 'F#', 4: 'G#', 5: 'A', 7: 'B', 9: 'C#', 11: 'D#' },
-  5: { 0: 'F', 2: 'G', 4: 'A', 5: 'Bb', 7: 'C', 9: 'D', 11: 'E' },
-  6: { 0: 'F#', 2: 'G#', 4: 'A#', 5: 'B', 7: 'C#', 9: 'D#', 11: 'E#' },
-  7: { 0: 'G', 2: 'A', 4: 'B', 5: 'C', 7: 'D', 9: 'E', 11: 'F#' },
-  8: { 0: 'Ab', 2: 'Bb', 4: 'C', 5: 'Db', 7: 'Eb', 9: 'F', 11: 'G' },
-  9: { 0: 'A', 2: 'B', 4: 'C#', 5: 'D', 7: 'E', 9: 'F#', 11: 'G#' },
-  10: { 0: 'Bb', 2: 'C', 4: 'D', 5: 'Eb', 7: 'F', 9: 'G', 11: 'A' },
-  11: { 0: 'B', 2: 'C#', 4: 'D#', 5: 'E', 7: 'F#', 9: 'G#', 11: 'A#' }
-}
-
-export const NATURAL_MINOR_SCALE_LETTERS = {
-  0: { 0: 'C', 2: 'D', 3: 'Eb', 5: 'F', 7: 'G', 8: 'Ab', 10: 'Bb' },
-  1: { 0: 'C#', 2: 'D#', 3: 'E', 5: 'F#', 7: 'G#', 8: 'A', 10: 'B' },
-  2: { 0: 'D', 2: 'E', 3: 'F', 5: 'G', 7: 'A', 8: 'Bb', 10: 'C' },
-  3: { 0: 'Eb', 2: 'F', 3: 'Gb', 5: 'Ab', 7: 'Bb', 8: 'Cb', 10: 'Db' },
-  4: { 0: 'E', 2: 'F#', 3: 'G', 5: 'A', 7: 'B', 8: 'C', 10: 'D' },
-  5: { 0: 'F', 2: 'G', 3: 'Ab', 5: 'Bb', 7: 'C', 8: 'Db', 10: 'Eb' },
-  6: { 0: 'F#', 2: 'G#', 3: 'A', 5: 'B', 7: 'C#', 8: 'D', 10: 'E' },
-  7: { 0: 'G', 2: 'A', 3: 'Bb', 5: 'C', 7: 'D', 8: 'Eb', 10: 'F' },
-  8: { 0: 'G#', 2: 'A#', 3: 'B', 5: 'C#', 7: 'D#', 8: 'E', 10: 'F#' },
-  9: { 0: 'A', 2: 'B', 3: 'C', 5: 'D', 7: 'E', 8: 'F', 10: 'G' },
-  10: { 0: 'Bb', 2: 'C', 3: 'Db', 5: 'Eb', 7: 'F', 8: 'Gb', 10: 'Ab' },
-  11: { 0: 'B', 2: 'C#', 3: 'D', 5: 'E', 7: 'F#', 8: 'G', 10: 'A' }
-}
-
-const HARMONIC_MINOR_LEADING_TONES = [
-  'B', 'B#', 'C#', 'D', 'D#', 'E', 'E#', 'F#', 'F##', 'G#', 'A', 'A#'
-]
-
-export const HARMONIC_MINOR_SCALE_LETTERS = Object.fromEntries(
-  Object.entries(NATURAL_MINOR_SCALE_LETTERS).map(([tonicPc, notes]) => [
-    tonicPc,
-    { ...notes, 11: HARMONIC_MINOR_LEADING_TONES[Number(tonicPc)] }
-  ])
-)
-
-export const SCALE_LETTERS = {
-  major: KEY_SCALE_LETTERS,
-  naturalMinor: NATURAL_MINOR_SCALE_LETTERS,
-  harmonicMinor: HARMONIC_MINOR_SCALE_LETTERS
-}
-
-// Exercise definitions
-export const EXERCISE_INTERVALS = {
-  1: [0, 2, 4, 5],
-  2: [7, 9, 11, 12],
-  3: [0, 2, 4, 5, 7, 9, 11, 12]
-}
-
-export const SCALE_EXERCISE_INTERVALS = {
-  major: EXERCISE_INTERVALS,
+export const SCALE_TYPES = {
+  major: {
+    id: 'major', label: 'Major · Ionian', shortLabel: 'Ion',
+    description: 'Major color with a stable tonic.',
+    intervals: [0, 2, 4, 5, 7, 9, 11],
+    solfege: ['do', 're', 'mi', 'fa', 'sol', 'la', 'si'],
+    cadence: [[0, 4, 7], [0, 5, 9], [-1, 2, 7], [0, 4, 7]],
+    cadenceLabel: 'I–IV–V–I'
+  },
   naturalMinor: {
-    1: [0, 2, 3, 5],
-    2: [7, 8, 10, 12],
-    3: [0, 2, 3, 5, 7, 8, 10, 12]
+    id: 'naturalMinor', label: 'Natural minor · Aeolian', shortLabel: 'Aeo',
+    description: 'Minor color with lowered 3rd, 6th, and 7th degrees.',
+    intervals: [0, 2, 3, 5, 7, 8, 10],
+    solfege: ['do', 're', 'mi♭', 'fa', 'sol', 'la♭', 'si♭'],
+    cadence: [[0, 3, 7], [0, 5, 8], [-2, 2, 7], [0, 3, 7]],
+    cadenceLabel: 'i–iv–v–i'
   },
   harmonicMinor: {
-    1: [0, 2, 3, 5],
-    2: [7, 8, 11, 12],
-    3: [0, 2, 3, 5, 7, 8, 11, 12]
+    id: 'harmonicMinor', label: 'Harmonic minor', shortLabel: 'Harm',
+    description: 'Natural minor with a raised 7th for stronger tension toward the tonic.',
+    intervals: [0, 2, 3, 5, 7, 8, 11],
+    solfege: ['do', 're', 'mi♭', 'fa', 'sol', 'la♭', 'si'],
+    cadence: [[0, 3, 7], [0, 5, 8], [-1, 2, 7], [0, 3, 7]],
+    cadenceLabel: 'i–iv–V–i'
+  },
+  dorian: {
+    id: 'dorian', label: 'Dorian', shortLabel: 'Dor',
+    description: 'Minor mode with a characteristic raised 6th.',
+    intervals: [0, 2, 3, 5, 7, 9, 10],
+    solfege: ['do', 're', 'mi♭', 'fa', 'sol', 'la', 'si♭'],
+    cadence: [[0, 3, 7], [0, 5, 9], [-2, 2, 5], [0, 3, 7]],
+    cadenceLabel: 'i–IV–♭VII–i'
+  },
+  phrygian: {
+    id: 'phrygian', label: 'Phrygian', shortLabel: 'Phr',
+    description: 'Minor mode defined by its lowered 2nd.',
+    intervals: [0, 1, 3, 5, 7, 8, 10],
+    solfege: ['do', 're♭', 'mi♭', 'fa', 'sol', 'la♭', 'si♭'],
+    cadence: [[0, 3, 7], [1, 5, 8], [-2, 1, 5], [0, 3, 7]],
+    cadenceLabel: 'i–♭II–♭vii–i'
+  },
+  lydian: {
+    id: 'lydian', label: 'Lydian', shortLabel: 'Lyd',
+    description: 'Major mode with a bright raised 4th.',
+    intervals: [0, 2, 4, 6, 7, 9, 11],
+    solfege: ['do', 're', 'mi', 'fa♯', 'sol', 'la', 'si'],
+    cadence: [[0, 4, 7], [2, 6, 9], [-1, 2, 6], [0, 4, 7]],
+    cadenceLabel: 'I–II–vii–I'
+  },
+  mixolydian: {
+    id: 'mixolydian', label: 'Mixolydian', shortLabel: 'Mix',
+    description: 'Major mode with a relaxed lowered 7th.',
+    intervals: [0, 2, 4, 5, 7, 9, 10],
+    solfege: ['do', 're', 'mi', 'fa', 'sol', 'la', 'si♭'],
+    cadence: [[0, 4, 7], [-2, 2, 5], [0, 5, 9], [0, 4, 7]],
+    cadenceLabel: 'I–♭VII–IV–I'
+  },
+  locrian: {
+    id: 'locrian', label: 'Locrian', shortLabel: 'Loc',
+    description: 'Unstable minor mode with a lowered 2nd and 5th.',
+    intervals: [0, 1, 3, 5, 6, 8, 10],
+    solfege: ['do', 're♭', 'mi♭', 'fa', 'sol♭', 'la♭', 'si♭'],
+    cadence: [[0, 3, 6], [1, 5, 8], [1, 6, 10], [0, 3, 6]],
+    cadenceLabel: 'i°–♭II–♭V–i°'
   }
 }
 
-export const SCALE_TYPES = {
-  major: { id: 'major', label: 'Major', optionLabel: 'major', shortLabel: '' },
-  naturalMinor: { id: 'naturalMinor', label: 'Natural minor', optionLabel: 'natural minor', shortLabel: 'nat' },
-  harmonicMinor: { id: 'harmonicMinor', label: 'Harmonic minor', optionLabel: 'harmonic minor', shortLabel: 'harm' }
+export const SCALE_TYPE_GROUPS = [
+  { label: 'Common scales', ids: ['major', 'naturalMinor', 'harmonicMinor'] },
+  { label: 'Greek modes', ids: ['dorian', 'phrygian', 'lydian', 'mixolydian', 'locrian'] }
+]
+
+const buildExerciseIntervals = intervals => ({
+  1: intervals.slice(0, 4),
+  2: [...intervals.slice(4), 12],
+  3: [...intervals, 12]
+})
+
+export const SCALE_EXERCISE_INTERVALS = Object.fromEntries(
+  Object.values(SCALE_TYPES).map(scale => [scale.id, buildExerciseIntervals(scale.intervals)])
+)
+
+export const EXERCISE_INTERVALS = SCALE_EXERCISE_INTERVALS.major
+
+export const SCALE_SOLFEGE = Object.fromEntries(
+  Object.values(SCALE_TYPES).map(scale => [
+    scale.id,
+    Object.fromEntries(scale.intervals.map((interval, index) => [interval, scale.solfege[index]]))
+  ])
+)
+
+const LETTERS = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
+const NATURAL_NOTE_PCS = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }
+const TONIC_CANDIDATES = [
+  ['C', 'B#'], ['C#', 'Db'], ['D'], ['D#', 'Eb'], ['E', 'Fb'], ['F', 'E#'],
+  ['F#', 'Gb'], ['G'], ['G#', 'Ab'], ['A'], ['A#', 'Bb'], ['B', 'Cb']
+]
+
+const normalizePitchClass = value => ((value % 12) + 12) % 12
+const accidentalValue = note => [...note.slice(1)].reduce((total, symbol) => (
+  total + (symbol === '#' ? 1 : -1)
+), 0)
+
+const spellScaleFromTonic = (tonicName, tonicPc, intervals) => {
+  const tonicLetterIndex = LETTERS.indexOf(tonicName[0])
+  return intervals.map((interval, degreeIndex) => {
+    const letter = LETTERS[(tonicLetterIndex + degreeIndex) % LETTERS.length]
+    const targetPc = normalizePitchClass(tonicPc + interval)
+    let accidental = normalizePitchClass(targetPc - NATURAL_NOTE_PCS[letter])
+    if (accidental > 6) accidental -= 12
+    const suffix = accidental > 0 ? '#'.repeat(accidental) : 'b'.repeat(-accidental)
+    return `${letter}${suffix}`
+  })
 }
+
+const spellingScore = notes => notes.reduce((score, note) => {
+  const count = Math.abs(accidentalValue(note))
+  return score + count + Math.max(0, count - 1) * 5
+}, 0)
+
+const chooseScaleSpelling = (tonicPc, intervals) => {
+  return TONIC_CANDIDATES[tonicPc]
+    .map(tonicName => ({
+      tonicName,
+      notes: spellScaleFromTonic(tonicName, tonicPc, intervals)
+    }))
+    .sort((left, right) => spellingScore(left.notes) - spellingScore(right.notes))[0]
+}
+
+export const SCALE_LETTERS = {}
+export const TONIC_NAMES_BY_SCALE = {}
+
+Object.values(SCALE_TYPES).forEach(scale => {
+  SCALE_LETTERS[scale.id] = {}
+  TONIC_NAMES_BY_SCALE[scale.id] = []
+  for (let tonicPc = 0; tonicPc < 12; tonicPc += 1) {
+    const spelling = chooseScaleSpelling(tonicPc, scale.intervals)
+    TONIC_NAMES_BY_SCALE[scale.id][tonicPc] = spelling.tonicName
+    SCALE_LETTERS[scale.id][tonicPc] = Object.fromEntries(
+      scale.intervals.map((interval, index) => [interval, spelling.notes[index]])
+    )
+  }
+})
 
 // Kept as the default C4 exercise sets for backwards compatibility.
 export const EXERCISES = Object.fromEntries(
@@ -100,18 +164,16 @@ export const EXERCISES = Object.fromEntries(
   ])
 )
 
-const MAJOR_TONIC_NAMES = ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B']
-const MINOR_TONIC_NAMES = ['C', 'C♯', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'B♭', 'B']
+const displayNoteName = note => note.replaceAll('b', '♭').replaceAll('#', '♯')
 
 export const TONALITIES = Object.values(SCALE_TYPES).flatMap(scale => {
-  const tonicNames = scale.id === 'major' ? MAJOR_TONIC_NAMES : MINOR_TONIC_NAMES
-  return tonicNames.map((tonicName, value) => ({
+  return TONIC_NAMES_BY_SCALE[scale.id].map((tonicName, value) => ({
     id: `${scale.id}:${value}`,
     value,
     scaleType: scale.id,
     groupLabel: scale.label,
-    label: `${tonicName} ${scale.optionLabel}`,
-    shortLabel: scale.shortLabel ? `${tonicName} ${scale.shortLabel}` : tonicName
+    label: `${displayNoteName(tonicName)} ${scale.label}`,
+    shortLabel: `${displayNoteName(tonicName)} ${scale.shortLabel}`
   }))
 })
 

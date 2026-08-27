@@ -1,5 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Piano, Settings, GameControls, GameDisplay, ExerciseSelector } from './components'
+import {
+  Piano,
+  Settings,
+  GameControls,
+  GameDisplay,
+  ExerciseSelector,
+  TrainingSetup,
+  SingingPractice
+} from './components'
 import { useAudio } from './hooks/useAudio.js'
 import { useGameState } from './hooks/useGameState.js'
 import { useKeyboard } from './hooks/useKeyboard.js'
@@ -10,9 +18,10 @@ import {
   labelForMidi,
   flashKey,
   fromCanonicalDegreeMidi,
-  getTonicMidi
+  getTonicMidi,
+  getTonalityLabel
 } from './utils/helpers.js'
-import { STORAGE_KEYS, REGISTERS, SCALE_TYPES, TONALITIES } from './utils/constants.js'
+import { STORAGE_KEYS, REGISTERS, SCALE_TYPES } from './utils/constants.js'
 import './App.css'
 
 const savePreference = (key, value) => {
@@ -55,6 +64,7 @@ function App() {
   const [settingsVisible, setSettingsVisible] = useState(false)
   const [exerciseSelectorVisible, setExerciseSelectorVisible] = useState(false)
   const [manualSessionStarted, setManualSessionStarted] = useState(false)
+  const [activeArea, setActiveArea] = useState('ear')
   
   // Settings state
   const [resolve, setResolve] = useState(() => loadBooleanPreference(STORAGE_KEYS.RESOLVE, true))
@@ -409,33 +419,70 @@ function App() {
   const displayedFeedback = feedback === 'Loading piano…' && audio.isReady
     ? 'Ready. Press Start'
     : feedback
+  const tonalityLabel = getTonalityLabel(tonicPc, scaleType)
+
+  const handleAreaChange = nextArea => {
+    if (nextArea === activeArea) return
+    manualTimers.clearAll()
+    if (autoMode.isRunningRef.current) autoMode.stop()
+    void releaseWakeLock()
+    gameState.resetTarget()
+    gameState.disableAnswers()
+    setManualSessionStarted(false)
+    setExerciseSelectorVisible(false)
+    setFeedbackOk(null)
+    setFeedback('Ready. Press Start')
+    setActiveArea(nextArea)
+  }
 
   return (
-    <div>
-      <h1>Musician Gym</h1>
-      
-      <GameControls
-        onStart={handleStart}
-        onRepeat={handleRepeat}
-        onToggleSettings={() => setSettingsVisible(!settingsVisible)}
-        onToggleExerciseSelector={() => setExerciseSelectorVisible(!exerciseSelectorVisible)}
-        startEnabled={startEnabled}
-        repeatEnabled={gameState.repeatEnabled}
-        autoMode={autoModeEnabled}
-        isAutoRunning={autoMode.isRunning}
-        currentExercise={gameState.exercise}
+    <main className="app-shell">
+      <header className="app-header">
+        <div>
+          <p className="eyebrow">Daily music practice</p>
+          <h1>Musician Gym</h1>
+        </div>
+        <button
+          type="button"
+          className="settings-button"
+          onClick={() => setSettingsVisible(true)}
+          aria-label="Open settings"
+        >
+          <span aria-hidden="true">⚙</span> Settings
+        </button>
+      </header>
+
+      <nav className="practice-tabs" aria-label="Practice area">
+        <button
+          type="button"
+          className={activeArea === 'ear' ? 'active' : ''}
+          aria-current={activeArea === 'ear' ? 'page' : undefined}
+          onClick={() => handleAreaChange('ear')}
+        >
+          Ear training
+        </button>
+        <button
+          type="button"
+          className={activeArea === 'singing' ? 'active' : ''}
+          aria-current={activeArea === 'singing' ? 'page' : undefined}
+          onClick={() => handleAreaChange('singing')}
+        >
+          Singing practice
+        </button>
+      </nav>
+
+      <TrainingSetup
         tonicPc={tonicPc}
         scaleType={scaleType}
         register={register}
-        onTonicChange={(value, nextScaleType) => handleSettingChange('tonality', {
-          tonicPc: value,
-          scaleType: nextScaleType
-        })}
+        onTonicChange={value => handleSettingChange('tonality', { tonicPc: value, scaleType })}
+        onScaleTypeChange={value => handleSettingChange('tonality', { tonicPc, scaleType: value })}
         onRegisterChange={value => handleSettingChange('register', value)}
       />
 
       <Settings
         isVisible={settingsVisible}
+        onClose={() => setSettingsVisible(false)}
         settings={settings}
         onSettingChange={handleSettingChange}
         exerciseSet={gameState.exerciseSet}
@@ -488,36 +535,59 @@ function App() {
         }}
       />
 
-      <Piano
-        ref={pianoRef}
-        exerciseSet={gameState.exerciseSet}
-        tonicMidi={tonicMidi}
-        scaleType={scaleType}
-        notation={notation}
-        disabled={!gameState.answersEnabled}
-        onKeyClick={handlePianoClick}
-      />
+      {activeArea === 'ear' ? (
+        <section className="practice-content" aria-label="Ear training">
+          <GameControls
+            onStart={handleStart}
+            onRepeat={handleRepeat}
+            onToggleExerciseSelector={() => setExerciseSelectorVisible(!exerciseSelectorVisible)}
+            startEnabled={startEnabled}
+            repeatEnabled={gameState.repeatEnabled}
+            autoMode={autoModeEnabled}
+            isAutoRunning={autoMode.isRunning}
+            currentExercise={gameState.exercise}
+            contextLabel={tonalityLabel}
+          />
 
-      <GameDisplay
-        feedback={displayedFeedback}
-        feedbackOk={feedbackOk}
-        attempts={gameState.attempts}
-        correct={gameState.correct}
-        accuracy={gameState.accuracy}
-      />
+          <Piano
+            ref={pianoRef}
+            exerciseSet={gameState.exerciseSet}
+            tonicMidi={tonicMidi}
+            scaleType={scaleType}
+            notation={notation}
+            disabled={!gameState.answersEnabled}
+            onKeyClick={handlePianoClick}
+          />
 
-      <ExerciseSelector
-        isVisible={exerciseSelectorVisible}
-        currentExercise={gameState.exercise}
-        tonalityLabel={TONALITIES.find(option => (
-          option.value === tonicPc && option.scaleType === scaleType
-        ))?.label}
-        tonicMidi={tonicMidi}
-        scaleType={scaleType}
-        onExerciseSelect={(exerciseNum) => handleSettingChange('exercise', exerciseNum)}
-        onClose={() => setExerciseSelectorVisible(false)}
-      />
-    </div>
+          <GameDisplay
+            feedback={displayedFeedback}
+            feedbackOk={feedbackOk}
+            attempts={gameState.attempts}
+            correct={gameState.correct}
+            accuracy={gameState.accuracy}
+          />
+
+          <ExerciseSelector
+            isVisible={exerciseSelectorVisible}
+            currentExercise={gameState.exercise}
+            tonalityLabel={tonalityLabel}
+            tonicMidi={tonicMidi}
+            scaleType={scaleType}
+            onExerciseSelect={(exerciseNum) => handleSettingChange('exercise', exerciseNum)}
+            onClose={() => setExerciseSelectorVisible(false)}
+          />
+        </section>
+      ) : (
+        <SingingPractice
+          key={`${scaleType}:${tonicMidi}`}
+          audio={audio}
+          tonicMidi={tonicMidi}
+          scaleType={scaleType}
+          notation={notation}
+          screenWakeLock={screenWakeLock}
+        />
+      )}
+    </main>
   )
 }
 

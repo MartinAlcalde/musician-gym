@@ -12,7 +12,6 @@ export function KeyMapping({
 }) {
   return (
     <>
-      <div style={{marginTop: '8px', fontWeight: 600}}>Key Mapping</div>
       <div className="map-grid" style={{marginTop: '6px'}}>
         {exerciseSet.map(midi => {
           const mappingMidi = toCanonicalDegreeMidi(midi, tonicMidi, scaleType)
