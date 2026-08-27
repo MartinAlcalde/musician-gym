@@ -509,6 +509,49 @@ body.dark .help-text {
   font-size: 14px;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.language-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 39px;
+  padding: 0 8px;
+  border: 1px solid #c8c8c2;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.language-selector select {
+  max-width: 92px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.language-selector select:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .practice-tabs {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1308,6 +1351,7 @@ body.dark .medical-warning { background: #3b2d20; border-color: #7c4a1d; }
 body.dark .warmup-card { border-color: #505050; }
 body.dark .warmup-card.selected { background: #42351d; border-color: #f59e0b; }
 body.dark .danger-zone { background: #3a2525; border-color: #7f1d1d; }
+body.dark .language-selector { background: #242420; border-color: #55554f; }
 
 @media (max-width: 640px) {
   .app-shell { padding: 18px 12px 36px; }
@@ -1336,7 +1380,9 @@ body.dark .danger-zone { background: #3a2525; border-color: #7f1d1d; }
 
 @media (max-width: 420px) {
   .app-header { align-items: flex-start; }
+  .header-actions { align-items: stretch; flex-direction: column-reverse; }
   .settings-button { padding: 8px 10px; }
+  .language-selector { justify-content: center; min-height: 35px; }
   .practice-tabs { margin-top: 15px; }
   .training-setup { padding: 13px; }
   .context-badge { display: none; }

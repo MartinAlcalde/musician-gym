@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react'
 import { AUTO_INTERVALS } from '../utils/constants.js'
 import { KeyMapping } from './KeyMapping.jsx'
 import { RemoteControl } from './RemoteControl.jsx'
+import { useI18n } from '../i18n/I18nContext.jsx'
 
 const SETTINGS_SECTIONS = [
-  { id: 'general', label: 'General', icon: '◉' },
-  { id: 'automatic', label: 'Auto practice', icon: '▶' },
-  { id: 'controls', label: 'Controls', icon: '⌨' },
-  { id: 'progress', label: 'Progress', icon: '↗' }
+  { id: 'general', icon: '◉' },
+  { id: 'automatic', icon: '▶' },
+  { id: 'controls', icon: '⌨' },
+  { id: 'progress', icon: '↗' }
 ]
 
 export function Settings({
@@ -27,6 +28,7 @@ export function Settings({
   screenWakeLock,
   onResetProgress
 }) {
+  const { locale, setLocale, t } = useI18n()
   const [activeSection, setActiveSection] = useState('general')
 
   useEffect(() => {
@@ -60,14 +62,14 @@ export function Settings({
       <section className="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-heading">
         <header className="settings-header">
           <div>
-            <p className="eyebrow">Preferences</p>
-            <h2 id="settings-heading">Settings</h2>
+            <p className="eyebrow">{t('settings.preferences')}</p>
+            <h2 id="settings-heading">{t('settings.title')}</h2>
           </div>
-          <button type="button" className="close-button" onClick={onClose} aria-label="Close settings">×</button>
+          <button type="button" className="close-button" onClick={onClose} aria-label={t('settings.close')}>×</button>
         </header>
 
         <div className="settings-layout">
-          <nav className="settings-nav" aria-label="Settings sections">
+          <nav className="settings-nav" aria-label={t('settings.sections')}>
             {SETTINGS_SECTIONS.map(section => (
               <button
                 type="button"
@@ -77,57 +79,67 @@ export function Settings({
                 onClick={() => setActiveSection(section.id)}
               >
                 <span aria-hidden="true">{section.icon}</span>
-                {section.label}
+                {t(`settings.section.${section.id}`)}
               </button>
             ))}
           </nav>
 
           <div className="settings-content">
             {activeSection === 'general' && (
-              <SettingsSection title="General" description="Adjust how notes and feedback appear during practice.">
+              <SettingsSection title={t('settings.section.general')} description={t('settings.general.description')}>
+                <label className="setting-select">
+                  <span>
+                    <strong>{t('settings.language.title')}</strong>
+                    <small>{t('settings.language.description')}</small>
+                  </span>
+                  <select value={locale} onChange={event => setLocale(event.target.value)}>
+                    <option value="en">{t('language.english')}</option>
+                    <option value="es">{t('language.spanish')}</option>
+                  </select>
+                </label>
                 <ToggleSetting
                   checked={resolve}
                   onChange={checked => onSettingChange('resolve', checked)}
-                  title="Resolve to the tonic"
-                  description="After a correct answer, hear the note return home to the tonal center."
+                  title={t('settings.resolve.title')}
+                  description={t('settings.resolve.description')}
                 />
                 <ToggleSetting
                   checked={settingsNotation === 'solfege'}
                   onChange={checked => onSettingChange('notation', checked ? 'solfege' : 'letter')}
-                  title="Use solfege labels"
-                  description="Show Do–Re–Mi. Turn off to use letter names such as C–D–E."
+                  title={t('settings.notation.title')}
+                  description={t('settings.notation.description')}
                 />
                 <ToggleSetting
                   checked={darkTheme}
                   onChange={checked => onSettingChange('darkTheme', checked)}
-                  title="Dark theme"
-                  description="Use a darker palette in low-light environments."
+                  title={t('settings.theme.title')}
+                  description={t('settings.theme.description')}
                 />
               </SettingsSection>
             )}
 
             {activeSection === 'automatic' && (
-              <SettingsSection title="Auto practice" description="Run hands-free listening rounds at a steady interval.">
+              <SettingsSection title={t('settings.section.automatic')} description={t('settings.automatic.description')}>
                 <ToggleSetting
                   checked={autoModeEnabled}
                   onChange={checked => onSettingChange('autoMode', checked)}
-                  title="Enable Auto Mode"
-                  description="The app plays a target, reveals or speaks its name, then starts the next round automatically."
+                  title={t('settings.autoMode.title')}
+                  description={t('settings.autoMode.description')}
                 />
 
                 <div className={`settings-subsection ${!autoModeEnabled ? 'disabled-section' : ''}`}>
                   <label className="setting-select">
                     <span>
-                      <strong>Time between notes</strong>
-                      <small>Leave enough time to recognize and sing or name the note.</small>
+                      <strong>{t('settings.interval.title')}</strong>
+                      <small>{t('settings.interval.description')}</small>
                     </span>
                     <select
                       value={autoInterval}
                       disabled={!autoModeEnabled}
                       onChange={event => onSettingChange('autoInterval', Number(event.target.value))}
                     >
-                      {Object.entries(AUTO_INTERVALS).map(([value, label]) => (
-                        <option key={value} value={value}>{label}</option>
+                      {Object.keys(AUTO_INTERVALS).map(value => (
+                        <option key={value} value={value}>{t('settings.interval.seconds', { count: Number(value) / 1000 })}</option>
                       ))}
                     </select>
                   </label>
@@ -135,15 +147,15 @@ export function Settings({
                     disabled={!autoModeEnabled}
                     checked={showAnswer}
                     onChange={checked => onSettingChange('showAnswer', checked)}
-                    title="Highlight the answer"
-                    description="Show the correct piano key before moving on."
+                    title={t('settings.highlight.title')}
+                    description={t('settings.highlight.description')}
                   />
                   <ToggleSetting
                     disabled={!autoModeEnabled}
                     checked={sayAnswer}
                     onChange={checked => onSettingChange('sayAnswer', checked)}
-                    title="Speak the answer"
-                    description="Read the note name aloud when speech synthesis is available."
+                    title={t('settings.speak.title')}
+                    description={t('settings.speak.description')}
                   />
                 </div>
 
@@ -152,19 +164,19 @@ export function Settings({
             )}
 
             {activeSection === 'controls' && (
-              <SettingsSection title="Controls" description="Answer with a keyboard, gamepad, pedal, or compatible Bluetooth controller.">
+              <SettingsSection title={t('settings.section.controls')} description={t('settings.controls.description')}>
                 <div className="controls-guide">
-                  <strong>Why add controls?</strong>
-                  <p>They let you answer without looking at or touching the screen—useful while holding an instrument.</p>
+                  <strong>{t('settings.controls.why')}</strong>
+                  <p>{t('settings.controls.whyText')}</p>
                   <ol>
-                    <li>Select <strong>Set key</strong> beside a scale degree.</li>
-                    <li>Press the keyboard key or external button you want to use.</li>
-                    <li>Use device detection below to check a gamepad or Bluetooth controller.</li>
+                    <li>{t('settings.controls.step1.before')} <strong>{t('settings.controls.setKey')}</strong> {t('settings.controls.step1.after')}</li>
+                    <li>{t('settings.controls.step2')}</li>
+                    <li>{t('settings.controls.step3')}</li>
                   </ol>
-                  <p className="muted">Mappings follow scale degrees, so the same buttons work in every key and mode.</p>
+                  <p className="muted">{t('settings.controls.mappingHelp')}</p>
                 </div>
 
-                <h4 className="settings-subheading">Note mappings</h4>
+                <h4 className="settings-subheading">{t('settings.controls.noteMappings')}</h4>
                 <KeyMapping
                   exerciseSet={exerciseSet}
                   tonicMidi={tonicMidi}
@@ -177,20 +189,20 @@ export function Settings({
                 />
 
                 <details className="device-details">
-                  <summary>Connect or test an external controller</summary>
+                  <summary>{t('settings.controls.external')}</summary>
                   <RemoteControl onKeyTest={onKeyTest} />
                 </details>
               </SettingsSection>
             )}
 
             {activeSection === 'progress' && (
-              <SettingsSection title="Progress" description="Your attempts and accuracy are saved only in this browser.">
+              <SettingsSection title={t('settings.section.progress')} description={t('settings.progress.description')}>
                 <div className="danger-zone">
                   <div>
-                    <strong>Reset saved progress</strong>
-                    <p>Clear attempt and accuracy totals. Your preferences and control mappings stay unchanged.</p>
+                    <strong>{t('settings.progress.resetTitle')}</strong>
+                    <p>{t('settings.progress.resetDescription')}</p>
                   </div>
-                  <button type="button" className="danger-button" onClick={onResetProgress}>Reset progress</button>
+                  <button type="button" className="danger-button" onClick={onResetProgress}>{t('settings.progress.resetButton')}</button>
                 </div>
               </SettingsSection>
             )}
@@ -231,14 +243,15 @@ function ToggleSetting({ checked, onChange, title, description, disabled = false
 }
 
 function WakeLockStatus({ screenWakeLock }) {
-  let message = 'The screen will stay awake after Auto Mode starts.'
+  const { t } = useI18n()
+  let message = t('settings.wake.ready')
   let tone = 'info'
 
   if (screenWakeLock.error || !screenWakeLock.isSupported) {
-    message = 'This browser cannot keep the screen awake. Android may suspend audio; disable battery saving or keep the screen on.'
+    message = t('settings.wake.warning')
     tone = 'warning'
   } else if (screenWakeLock.isActive) {
-    message = 'Screen protection is active while Auto Mode runs.'
+    message = t('settings.wake.active')
     tone = 'success'
   }
 

@@ -1,23 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { getExerciseSet, labelForMidi } from '../utils/helpers.js'
+import { useI18n } from '../i18n/I18nContext.jsx'
 
-const EXERCISE_INFO = {
-  1: {
-    title: 'Exercise 1',
-    subtitle: 'Degrees 1 to 4',
-    notes: 'First half octave'
-  },
-  2: {
-    title: 'Exercise 2', 
-    subtitle: 'Degrees 5 to 8',
-    notes: 'Second half octave'
-  },
-  3: {
-    title: 'Exercise 3',
-    subtitle: 'Full Octave',
-    notes: 'Complete octave'
-  }
-}
+const EXERCISE_NUMBERS = [1, 2, 3]
 
 export function ExerciseSelector({ 
   isVisible, 
@@ -28,6 +13,7 @@ export function ExerciseSelector({
   onExerciseSelect,
   onClose 
 }) {
+  const { t } = useI18n()
   const modalRef = useRef(null)
   const selectedCardRef = useRef(null)
   const onCloseRef = useRef(onClose)
@@ -101,14 +87,14 @@ export function ExerciseSelector({
         aria-describedby="exercise-selector-help"
       >
         <div className="exercise-selector-header">
-          <h2 id="exercise-selector-title">Select Exercise</h2>
-          <button type="button" className="close-button" onClick={onClose} aria-label="Close exercise selector">×</button>
+          <h2 id="exercise-selector-title">{t('exercise.title')}</h2>
+          <button type="button" className="close-button" onClick={onClose} aria-label={t('exercise.close')}>×</button>
         </div>
         
         <div className="exercise-grid">
-          {Object.entries(EXERCISE_INFO).map(([exerciseNum, info]) => {
-            const isSelected = currentExercise === Number(exerciseNum)
-            const exerciseNotes = getExerciseSet(Number(exerciseNum), tonicMidi, scaleType)
+          {EXERCISE_NUMBERS.map(exerciseNum => {
+            const isSelected = currentExercise === exerciseNum
+            const exerciseNotes = getExerciseSet(exerciseNum, tonicMidi, scaleType)
             const description = exerciseNotes
               .map(midi => labelForMidi(midi, 'solfege', tonicMidi % 12, scaleType))
               .map(label => label.charAt(0).toUpperCase() + label.slice(1))
@@ -123,24 +109,24 @@ export function ExerciseSelector({
                 aria-pressed={isSelected}
                 aria-describedby={`exercise-${exerciseNum}-description exercise-${exerciseNum}-range`}
                 onClick={() => {
-                  onExerciseSelect(Number(exerciseNum))
+                  onExerciseSelect(exerciseNum)
                   onClose()
                 }}
               >
                 <span className="exercise-card-header">
-                  <span className="exercise-card-title">{info.title}</span>
-                  <span className="exercise-subtitle">{info.subtitle}</span>
+                  <span className="exercise-card-title">{t(`exercise.${exerciseNum}.title`)}</span>
+                  <span className="exercise-subtitle">{t(`exercise.${exerciseNum}.subtitle`)}</span>
                 </span>
                 
                 <span className="exercise-description" id={`exercise-${exerciseNum}-description`}>
                   <span className="solfege-notes">{description}</span>
-                  <span className="exercise-notes">{info.notes}</span>
+                  <span className="exercise-notes">{t(`exercise.${exerciseNum}.notes`)}</span>
                 </span>
                 
                 <span className="exercise-range" id={`exercise-${exerciseNum}-range`}>
-                  <span className="note-count">{exerciseNotes?.length || 0} notes</span>
+                  <span className="note-count">{t('exercise.noteCount', { count: exerciseNotes?.length || 0 })}</span>
                   {isSelected && (
-                    <span className="current-indicator">Current</span>
+                    <span className="current-indicator">{t('exercise.current')}</span>
                   )}
                 </span>
               </button>
@@ -150,7 +136,7 @@ export function ExerciseSelector({
         
         <div className="exercise-selector-footer">
           <p className="help-text" id="exercise-selector-help">
-            Choose a range of scale degrees to practice in {tonalityLabel}.
+            {t('exercise.help', { tonality: tonalityLabel })}
           </p>
         </div>
       </div>

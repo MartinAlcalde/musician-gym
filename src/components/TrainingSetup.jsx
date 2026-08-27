@@ -5,6 +5,7 @@ import {
   TONIC_NAMES_BY_SCALE
 } from '../utils/constants.js'
 import { displayNoteName, getScaleNoteNames } from '../utils/helpers.js'
+import { useI18n } from '../i18n/I18nContext.jsx'
 
 export function TrainingSetup({
   tonicPc,
@@ -14,6 +15,7 @@ export function TrainingSetup({
   onScaleTypeChange,
   onRegisterChange
 }) {
+  const { t } = useI18n()
   const scale = SCALE_TYPES[scaleType] || SCALE_TYPES.major
   const noteNames = getScaleNoteNames(tonicPc, scale.id).map(displayNoteName)
 
@@ -21,20 +23,20 @@ export function TrainingSetup({
     <section className="training-setup" aria-labelledby="training-setup-heading">
       <div className="training-setup-heading">
         <div>
-          <h2 id="training-setup-heading">Musical context</h2>
-          <p>Choose the scale or mode first, then its tonal center and register.</p>
+          <h2 id="training-setup-heading">{t('training.title')}</h2>
+          <p>{t('training.help')}</p>
         </div>
         <span className="context-badge">{scale.cadenceLabel}</span>
       </div>
 
       <div className="training-range">
         <label className="scale-control">
-          Scale or mode
+          {t('training.scaleMode')}
           <select value={scale.id} onChange={event => onScaleTypeChange(event.target.value)}>
             {SCALE_TYPE_GROUPS.map(group => (
-              <optgroup key={group.label} label={group.label}>
+              <optgroup key={group.label} label={t(group.ids[0] === 'major' ? 'scaleGroup.common' : 'scaleGroup.greek')}>
                 {group.ids.map(id => (
-                  <option key={id} value={id}>{SCALE_TYPES[id].label}</option>
+                  <option key={id} value={id}>{t(`scale.${id}.label`)}</option>
                 ))}
               </optgroup>
             ))}
@@ -42,7 +44,7 @@ export function TrainingSetup({
         </label>
 
         <label>
-          Tonal center
+          {t('training.tonalCenter')}
           <select value={tonicPc} onChange={event => onTonicChange(Number(event.target.value))}>
             {TONIC_NAMES_BY_SCALE[scale.id].map((tonicName, pitchClass) => (
               <option key={pitchClass} value={pitchClass}>{displayNoteName(tonicName)}</option>
@@ -51,19 +53,19 @@ export function TrainingSetup({
         </label>
 
         <label>
-          Register
+          {t('training.register')}
           <select value={register} onChange={event => onRegisterChange(event.target.value)}>
             {REGISTER_OPTIONS.map(option => (
-              <option key={option.id} value={option.id}>{option.label}</option>
+              <option key={option.id} value={option.id}>{t(`register.${option.id}`)}</option>
             ))}
           </select>
         </label>
       </div>
 
       <p className="scale-summary">
-        <strong>Notes:</strong> {noteNames.join(' · ')}
-        <span>{scale.description}</span>
-        <span>Major is Ionian; natural minor is Aeolian. The same notes can sound different when the tonal center changes.</span>
+        <strong>{t('training.notes')}</strong> {noteNames.join(' · ')}
+        <span>{t(`scale.${scale.id}.description`)}</span>
+        <span>{t('training.relationship')}</span>
       </p>
     </section>
   )

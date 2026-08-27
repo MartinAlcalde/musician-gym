@@ -7,6 +7,7 @@ import {
   saveToStorage
 } from '../utils/helpers.js'
 import { STORAGE_KEYS } from '../utils/constants.js'
+import { translate as translateMessage } from '../i18n/I18nContext.jsx'
 
 const loadStats = () => {
   const saved = loadFromStorage(STORAGE_KEYS.STATS, { attempts: 0, correct: 0 })
@@ -18,7 +19,10 @@ const loadStats = () => {
   return { attempts, correct }
 }
 
-export function useGameState({ tonicMidi = 60, scaleType = 'major' } = {}) {
+export function useGameState({ tonicMidi = 60, scaleType = 'major', translate } = {}) {
+  const t = useMemo(() => (
+    translate || ((key, variables) => translateMessage('en', key, variables))
+  ), [translate])
   const [stats, setStats] = useState(loadStats)
   const [targetMidi, setTargetMidi] = useState(null)
   const [exercise, setExercise] = useState(1)
@@ -42,7 +46,7 @@ export function useGameState({ tonicMidi = 60, scaleType = 'major' } = {}) {
     if (!allowed.has(midi)) {
       return { 
         isValid: false, 
-        message: 'Only notes in the highlighted range' 
+        message: t('feedback.answer.rangeOnly')
       }
     }
     
@@ -60,10 +64,12 @@ export function useGameState({ tonicMidi = 60, scaleType = 'major' } = {}) {
       isValid: true,
       isCorrect,
       message: isCorrect
-        ? '✓ Correct'
-        : `✗ Wrong (it was ${labelForMidi(targetMidi, notation, tonicMidi % 12, scaleType)})`
+        ? t('feedback.answer.correct')
+        : t('feedback.answer.wrong', {
+            note: labelForMidi(targetMidi, notation, tonicMidi % 12, scaleType)
+          })
     }
-  }, [targetMidi, answersEnabled, exerciseSet, tonicMidi, scaleType])
+  }, [targetMidi, answersEnabled, exerciseSet, tonicMidi, scaleType, t])
 
   const startNewRound = useCallback(() => {
     const newTarget = pickRandomTargetMidi(exercise, tonicMidi, scaleType)

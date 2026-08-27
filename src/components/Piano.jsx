@@ -6,6 +6,7 @@ import {
   getWhiteKeys,
   midiToNoteName
 } from '../utils/helpers.js'
+import { useI18n } from '../i18n/I18nContext.jsx'
 
 export const Piano = forwardRef(function Piano({ 
   exerciseSet, 
@@ -16,6 +17,7 @@ export const Piano = forwardRef(function Piano({
   onKeyClick,
   className = ''
 }, ref) {
+  const { t } = useI18n()
   const pianoRef = useRef(null)
 
   // Position black keys after render
@@ -94,7 +96,7 @@ export const Piano = forwardRef(function Piano({
           data-midi={midi}
           data-note={noteName}
           disabled={disabled}
-          aria-label={`${text}, ${noteName}${inScope ? ', in current exercise' : ', outside current exercise'}`}
+          aria-label={`${text}, ${noteName}, ${t(inScope ? 'piano.inExercise' : 'piano.outsideExercise')}`}
         >
           <span className="label" aria-hidden="true">{visibleText}</span>
         </button>
@@ -119,7 +121,7 @@ export const Piano = forwardRef(function Piano({
             data-note={noteName}
             data-black-for={midi}
             disabled={disabled}
-            aria-label={`${text}, ${noteName}${inScope ? ', in current exercise' : ', outside current exercise'}`}
+            aria-label={`${text}, ${noteName}, ${t(inScope ? 'piano.inExercise' : 'piano.outsideExercise')}`}
           >
             <span className="label" aria-hidden="true">{visibleText}</span>
           </button>
@@ -153,7 +155,10 @@ export const Piano = forwardRef(function Piano({
       onClick={handleClick}
       onKeyDown={(event) => event.stopPropagation()}
       role="group"
-      aria-label={`Piano ${midiToNoteName(getPianoRange(tonicMidi).startMidi)}–${midiToNoteName(getPianoRange(tonicMidi).endMidi)}`}
+      aria-label={t('piano.label', {
+        start: midiToNoteName(getPianoRange(tonicMidi).startMidi),
+        end: midiToNoteName(getPianoRange(tonicMidi).endMidi)
+      })}
       aria-disabled={disabled}
     >
       {buildPianoKeys()}

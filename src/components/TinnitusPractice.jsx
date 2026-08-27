@@ -11,6 +11,7 @@ import {
   MIN_TINNITUS_FREQUENCY,
   sliderToFrequency
 } from '../utils/notchedAudio.js'
+import { useI18n } from '../i18n/I18nContext.jsx'
 
 const STORAGE_PREFIX = 'fet-tinnitus-'
 const getInitialVolume = () => {
@@ -19,6 +20,7 @@ const getInitialVolume = () => {
 }
 
 export function TinnitusPractice({ screenWakeLock }) {
+  const { t } = useI18n()
   const [frequency, setFrequency] = useState(() => (
     clampTinnitusFrequency(loadFromStorage(`${STORAGE_PREFIX}frequency`, 6000))
   ))
@@ -29,7 +31,7 @@ export function TinnitusPractice({ screenWakeLock }) {
   const [volume, setVolume] = useState(getInitialVolume)
   const [filterEnabled, setFilterEnabled] = useState(true)
   const [infoVisible, setInfoVisible] = useState(false)
-  const audio = useNotchedAudio({ frequency, widthInOctaves, filterEnabled, volume })
+  const audio = useNotchedAudio({ frequency, widthInOctaves, filterEnabled, volume, translate: t })
   const notchBounds = useMemo(() => getNotchBounds(frequency, widthInOctaves), [frequency, widthInOctaves])
   const notchMarker = useMemo(() => {
     const sliderMin = frequencyToSlider(MIN_TINNITUS_FREQUENCY)
@@ -68,13 +70,13 @@ export function TinnitusPractice({ screenWakeLock }) {
     <section className="tinnitus-practice" aria-labelledby="tinnitus-heading">
       <div className="tinnitus-heading-row">
         <div className="section-intro">
-          <p className="eyebrow">Experimental sound tool</p>
-          <h2 id="tinnitus-heading">Personalized notched music</h2>
-          <p>Remove a band around a tonal tinnitus frequency while your music plays locally.</p>
+          <p className="eyebrow">{t('tinnitus.eyebrow')}</p>
+          <h2 id="tinnitus-heading">{t('tinnitus.title')}</h2>
+          <p>{t('tinnitus.intro')}</p>
         </div>
         <button type="button" className="evidence-button" onClick={() => setInfoVisible(true)}>
           <span className="experimental-dot" aria-hidden="true" />
-          Evidence &amp; safety
+          {t('tinnitus.evidence')}
         </button>
       </div>
 
@@ -84,8 +86,8 @@ export function TinnitusPractice({ screenWakeLock }) {
           <div className="step-content">
             <div className="step-heading">
               <div>
-                <h3 id="frequency-heading">Match the dominant tone</h3>
-                <p>Adjust carefully until the reference resembles the main pitch you hear.</p>
+                <h3 id="frequency-heading">{t('tinnitus.match.title')}</h3>
+                <p>{t('tinnitus.match.help')}</p>
               </div>
               <strong className="frequency-readout">{formatFrequency(frequency)}</strong>
             </div>
@@ -102,7 +104,7 @@ export function TinnitusPractice({ screenWakeLock }) {
                 setFrequency(nextFrequency)
                 setFrequencyDraft(String(nextFrequency))
               }}
-              aria-label="Tinnitus frequency"
+              aria-label={t('tinnitus.frequency')}
             />
             <div className="frequency-scale" aria-hidden="true">
               <span>125 Hz</span><span>1 kHz</span><span>4 kHz</span><span>12 kHz</span>
@@ -110,7 +112,7 @@ export function TinnitusPractice({ screenWakeLock }) {
 
             <div className="frequency-actions">
               <label>
-                Exact frequency
+                {t('tinnitus.exact')}
                 <span className="frequency-input">
                   <input
                     type="number"
@@ -132,10 +134,10 @@ export function TinnitusPractice({ screenWakeLock }) {
                 </span>
               </label>
               <button type="button" onClick={audio.playReferenceTone} disabled={!audio.isSupported}>
-                ♪ Play 1-second reference
+                {t('tinnitus.reference')}
               </button>
             </div>
-            <p className="inline-safety">Start with your device volume very low. Frequency matching can vary, so repeat it on different days or confirm it with an audiologist.</p>
+            <p className="inline-safety">{t('tinnitus.match.safety')}</p>
           </div>
         </section>
 
@@ -144,8 +146,8 @@ export function TinnitusPractice({ screenWakeLock }) {
           <div className="step-content">
             <div className="step-heading">
               <div>
-                <h3 id="music-heading">Choose your music</h3>
-                <p>The file stays on this device and is never uploaded.</p>
+                <h3 id="music-heading">{t('tinnitus.music.title')}</h3>
+                <p>{t('tinnitus.music.privacy')}</p>
               </div>
             </div>
 
@@ -156,8 +158,8 @@ export function TinnitusPractice({ screenWakeLock }) {
                 onChange={event => audio.loadFile(event.target.files?.[0])}
               />
               <span aria-hidden="true">＋</span>
-              <strong>{audio.fileName || 'Select an audio file'}</strong>
-              <small>{audio.fileName ? 'Choose another file' : 'MP3, M4A, WAV, OGG, or another browser-supported format'}</small>
+              <strong>{audio.fileName || t('tinnitus.file.select')}</strong>
+              <small>{audio.fileName ? t('tinnitus.file.another') : t('tinnitus.file.formats')}</small>
             </label>
           </div>
         </section>
@@ -167,8 +169,8 @@ export function TinnitusPractice({ screenWakeLock }) {
           <div className="step-content">
             <div className="step-heading">
               <div>
-                <h3 id="filter-heading">Listen with the notch</h3>
-                <p>The selected band is attenuated in real time. Nothing is permanently changed.</p>
+                <h3 id="filter-heading">{t('tinnitus.filter.title')}</h3>
+                <p>{t('tinnitus.filter.help')}</p>
               </div>
               <label className="compact-toggle">
                 <input
@@ -176,11 +178,14 @@ export function TinnitusPractice({ screenWakeLock }) {
                   checked={filterEnabled}
                   onChange={event => setFilterEnabled(event.target.checked)}
                 />
-                Filter {filterEnabled ? 'on' : 'off'}
+                {t('tinnitus.filter.state', { state: t(filterEnabled ? 'tinnitus.filter.on' : 'tinnitus.filter.off') })}
               </label>
             </div>
 
-            <div className="notch-visual" aria-label={`Notch from ${formatFrequency(notchBounds.lower)} to ${formatFrequency(notchBounds.upper)}`}>
+            <div className="notch-visual" aria-label={t('tinnitus.notchRange', {
+              lower: formatFrequency(notchBounds.lower),
+              upper: formatFrequency(notchBounds.upper)
+            })}>
               <div className="spectrum-bars" aria-hidden="true">
                 {Array.from({ length: 32 }, (_, index) => <span key={index} />)}
               </div>
@@ -194,15 +199,15 @@ export function TinnitusPractice({ screenWakeLock }) {
 
             <div className="filter-options">
               <label>
-                Notch width
+                {t('tinnitus.width')}
                 <select value={widthInOctaves} onChange={event => setWidthInOctaves(Number(event.target.value))}>
-                  <option value="0.5">½ octave · Narrow</option>
-                  <option value="1">1 octave · Research default</option>
-                  <option value="1.5">1½ octaves · Wide</option>
+                  <option value="0.5">{t('tinnitus.width.narrow')}</option>
+                  <option value="1">{t('tinnitus.width.default')}</option>
+                  <option value="1.5">{t('tinnitus.width.wide')}</option>
                 </select>
               </label>
               <label>
-                Player volume · {Math.round(volume * 100)}%
+                {t('tinnitus.volume', { volume: Math.round(volume * 100) })}
                 <input
                   type="range"
                   min="0"
@@ -221,7 +226,7 @@ export function TinnitusPractice({ screenWakeLock }) {
                 onClick={handlePlayback}
                 disabled={!audio.fileName || !audio.isSupported}
               >
-                {audio.isPlaying ? '■ Pause' : '▶ Play filtered music'}
+                {audio.isPlaying ? t('tinnitus.pause') : t('tinnitus.play')}
               </button>
               <div className="audio-timeline">
                 <input
@@ -231,7 +236,7 @@ export function TinnitusPractice({ screenWakeLock }) {
                   step="0.1"
                   value={Math.min(audio.currentTime, audio.duration || 0)}
                   onChange={event => audio.seek(Number(event.target.value))}
-                  aria-label="Playback position"
+                  aria-label={t('tinnitus.position')}
                   disabled={!audio.duration}
                 />
                 <span>{formatAudioTime(audio.currentTime)} / {formatAudioTime(audio.duration)}</span>
@@ -244,8 +249,8 @@ export function TinnitusPractice({ screenWakeLock }) {
       </div>
 
       <p className="tinnitus-compact-note">
-        Experimental—not a cure or medical advice. Stop if symptoms worsen.{' '}
-        <button type="button" onClick={() => setInfoVisible(true)}>When should I not use this?</button>
+        {t('tinnitus.compactDisclaimer')}{' '}
+        <button type="button" onClick={() => setInfoVisible(true)}>{t('tinnitus.whenNotUse')}</button>
       </p>
 
       {infoVisible && <TinnitusInfoDialog onClose={() => setInfoVisible(false)} />}
@@ -254,6 +259,7 @@ export function TinnitusPractice({ screenWakeLock }) {
 }
 
 function TinnitusInfoDialog({ onClose }) {
+  const { t } = useI18n()
   useEffect(() => {
     const closeOnEscape = event => {
       if (event.key === 'Escape') onClose()
@@ -269,35 +275,35 @@ function TinnitusInfoDialog({ onClose }) {
       <section className="tinnitus-info-modal" role="dialog" aria-modal="true" aria-labelledby="tinnitus-info-heading">
         <header className="settings-header">
           <div>
-            <p className="eyebrow">Evidence &amp; safety</p>
-            <h2 id="tinnitus-info-heading">Before using notched music</h2>
+            <p className="eyebrow">{t('tinnitus.info.eyebrow')}</p>
+            <h2 id="tinnitus-info-heading">{t('tinnitus.info.title')}</h2>
           </div>
-          <button type="button" className="close-button" onClick={onClose} aria-label="Close evidence and safety information">×</button>
+          <button type="button" className="close-button" onClick={onClose} aria-label={t('tinnitus.info.close')}>×</button>
         </header>
         <div className="tinnitus-info-content">
           <section>
-            <h3>What the evidence says</h3>
-            <p>This experimental method removes sound around a matched tinnitus frequency. The proposed mechanism is lateral inhibition—not the brain “filling in” the missing music. Clinical results are mixed, and current guidelines consider the evidence insufficient to recommend for or against it.</p>
+            <h3>{t('tinnitus.info.evidenceTitle')}</h3>
+            <p>{t('tinnitus.info.evidenceText')}</p>
           </section>
           <section>
-            <h3>Who it may fit</h3>
-            <p>Research has mainly studied adults with chronic, subjective, tonal tinnitus and a reasonably stable dominant pitch. It is not designed for pulsatile, noise-like, or rapidly changing tinnitus.</p>
+            <h3>{t('tinnitus.info.fitTitle')}</h3>
+            <p>{t('tinnitus.info.fitText')}</p>
           </section>
           <section className="medical-warning">
-            <h3>Get medical advice first</h3>
-            <p>Do not use this as a substitute for evaluation. Seek prompt care for tinnitus synchronized with your heartbeat, sudden or one-sided hearing loss, recent head or acoustic trauma, severe dizziness, neurological symptoms, or sudden pulsatile tinnitus.</p>
+            <h3>{t('tinnitus.info.medicalTitle')}</h3>
+            <p>{t('tinnitus.info.medicalText')}</p>
           </section>
           <section>
-            <h3>Listen safely</h3>
-            <p>Keep device volume at 60% or lower, begin very quietly, take breaks, and never increase volume to compensate for the removed frequencies. Stop if tinnitus, discomfort, dizziness, or sound sensitivity increases.</p>
+            <h3>{t('tinnitus.info.safeTitle')}</h3>
+            <p>{t('tinnitus.info.safeText')}</p>
           </section>
           <details className="evidence-sources">
-            <summary>Research and clinical sources</summary>
+            <summary>{t('tinnitus.info.sources')}</summary>
             <ul>
-              <li><a href="https://pubmed.ncbi.nlm.nih.gov/38847844/" target="_blank" rel="noreferrer">2024 systematic review and meta-analysis</a></li>
-              <li><a href="https://healthquality.va.gov/HEALTHQUALITY/guidelines/CD/tinnitus/VADoD-CPG-Tinnitus-Full-CPG-2024_Final_508.pdf" target="_blank" rel="noreferrer">2024 VA/DoD tinnitus guideline</a></li>
-              <li><a href="https://www.nice.org.uk/guidance/ng155/chapter/Recommendations" target="_blank" rel="noreferrer">NICE tinnitus guidance</a></li>
-              <li><a href="https://www.who.int/news-room/questions-and-answers/item/deafness-and-hearing-loss-safe-listening" target="_blank" rel="noreferrer">WHO safe-listening guidance</a></li>
+              <li><a href="https://pubmed.ncbi.nlm.nih.gov/38847844/" target="_blank" rel="noreferrer">{t('tinnitus.info.review')}</a></li>
+              <li><a href="https://healthquality.va.gov/HEALTHQUALITY/guidelines/CD/tinnitus/VADoD-CPG-Tinnitus-Full-CPG-2024_Final_508.pdf" target="_blank" rel="noreferrer">{t('tinnitus.info.guideline')}</a></li>
+              <li><a href="https://www.nice.org.uk/guidance/ng155/chapter/Recommendations" target="_blank" rel="noreferrer">{t('tinnitus.info.nice')}</a></li>
+              <li><a href="https://www.who.int/news-room/questions-and-answers/item/deafness-and-hearing-loss-safe-listening" target="_blank" rel="noreferrer">{t('tinnitus.info.who')}</a></li>
             </ul>
           </details>
         </div>
