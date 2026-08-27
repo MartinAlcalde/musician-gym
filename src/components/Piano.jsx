@@ -1,9 +1,9 @@
 import { useEffect, useRef, forwardRef } from 'react'
-import { MIDI_TO_NAME } from '../utils/constants.js'
-import { labelForMidi, hasSharpAfter, getWhiteKeys } from '../utils/helpers.js'
+import { labelForMidi, hasSharpAfter, getWhiteKeys, midiToNoteName } from '../utils/helpers.js'
 
 export const Piano = forwardRef(function Piano({ 
   exerciseSet, 
+  tonicMidi = 60,
   notation, 
   disabled, 
   onKeyClick,
@@ -39,19 +39,21 @@ export const Piano = forwardRef(function Piano({
       clearTimeout(timer)
       window.removeEventListener('resize', positionBlackKeys)
     }
-  }, [exerciseSet, notation])
+  }, [exerciseSet, notation, tonicMidi])
 
   const buildPianoKeys = () => {
-    const whites = getWhiteKeys()
+    const whites = getWhiteKeys(tonicMidi)
     const allowedSet = new Set(exerciseSet)
     const useSolfege = notation === 'solfege'
+    const tonicPc = tonicMidi % 12
     
     const keys = []
     
     // White keys
     whites.forEach((midi) => {
-      const text = useSolfege ? labelForMidi(midi, 'solfege') : labelForMidi(midi, 'letter')
+      const text = labelForMidi(midi, useSolfege ? 'solfege' : 'letter', tonicPc)
       const inScope = allowedSet.has(midi)
+      const noteName = midiToNoteName(midi)
       
       keys.push(
         <button
@@ -59,9 +61,9 @@ export const Piano = forwardRef(function Piano({
           key={midi}
           className={`key white ${inScope ? 'in-scope' : 'out-of-scope'}`}
           data-midi={midi}
-          data-note={MIDI_TO_NAME[midi] || ''}
+          data-note={noteName}
           disabled={disabled}
-          aria-label={`${text}, ${MIDI_TO_NAME[midi] || `MIDI ${midi}`}${inScope ? ', in current exercise' : ', outside current exercise'}`}
+          aria-label={`${text}, ${noteName}${inScope ? ', in current exercise' : ', outside current exercise'}`}
         >
           <span className="label" aria-hidden="true">{text}</span>
         </button>
@@ -70,10 +72,11 @@ export const Piano = forwardRef(function Piano({
     
     // Black keys
     whites.forEach((midi) => {
-      if (hasSharpAfter(midi) && midi !== 72) { // 72 = C5
-        const blackMidi = midi + 1
-        const text = useSolfege ? labelForMidi(blackMidi, 'solfege') : labelForMidi(blackMidi, 'letter')
+      const blackMidi = midi + 1
+      if (hasSharpAfter(midi) && blackMidi >= tonicMidi && blackMidi <= tonicMidi + 12) {
+        const text = labelForMidi(blackMidi, useSolfege ? 'solfege' : 'letter', tonicPc)
         const inScope = allowedSet.has(blackMidi)
+        const noteName = midiToNoteName(blackMidi)
         
         keys.push(
           <button
@@ -81,10 +84,10 @@ export const Piano = forwardRef(function Piano({
             key={blackMidi}
             className={`key black ${inScope ? 'in-scope' : 'out-of-scope'}`}
             data-midi={blackMidi}
-            data-note={MIDI_TO_NAME[blackMidi] || ''}
+            data-note={noteName}
             data-black-for={midi}
             disabled={disabled}
-            aria-label={`${text}, ${MIDI_TO_NAME[blackMidi] || `MIDI ${blackMidi}`}${inScope ? ', in current exercise' : ', outside current exercise'}`}
+            aria-label={`${text}, ${noteName}${inScope ? ', in current exercise' : ', outside current exercise'}`}
           >
             <span className="label" aria-hidden="true">{text}</span>
           </button>
@@ -118,7 +121,7 @@ export const Piano = forwardRef(function Piano({
       onClick={handleClick}
       onKeyDown={(event) => event.stopPropagation()}
       role="group"
-      aria-label="Piano C4–C5"
+      aria-label={`Piano ${midiToNoteName(tonicMidi)}–${midiToNoteName(tonicMidi + 12)}`}
       aria-disabled={disabled}
     >
       {buildPianoKeys()}

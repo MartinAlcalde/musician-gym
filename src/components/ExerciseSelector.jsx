@@ -4,13 +4,13 @@ import { EXERCISES } from '../utils/constants.js'
 const EXERCISE_INFO = {
   1: {
     title: 'Exercise 1',
-    subtitle: 'C to F',
+    subtitle: 'Degrees 1 to 4',
     description: 'Do - Re - Mi - Fa',
     notes: 'First half octave'
   },
   2: {
     title: 'Exercise 2', 
-    subtitle: 'G to C',
+    subtitle: 'Degrees 5 to 8',
     description: 'Sol - La - Si - Do',
     notes: 'Second half octave'
   },
@@ -25,6 +25,7 @@ const EXERCISE_INFO = {
 export function ExerciseSelector({ 
   isVisible, 
   currentExercise, 
+  tonalityLabel = 'C major',
   onExerciseSelect,
   onClose 
 }) {
@@ -146,7 +147,7 @@ export function ExerciseSelector({
         
         <div className="exercise-selector-footer">
           <p className="help-text" id="exercise-selector-help">
-            Choose an exercise to practice specific note ranges within the C major scale.
+            Choose a range of scale degrees to practice in {tonalityLabel}.
           </p>
         </div>
       </div>

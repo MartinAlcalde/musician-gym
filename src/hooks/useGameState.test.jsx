@@ -68,4 +68,23 @@ describe('useGameState', () => {
       correct: 0
     })
   })
+
+  it('uses the selected tonic for targets, validation, and relative labels', () => {
+    const { result } = renderHook(() => useGameState({ tonicMidi: 62 }))
+
+    let target
+    act(() => {
+      target = result.current.startNewRound()
+      result.current.enableAnswers()
+    })
+
+    expect(target).toBe(62)
+    expect(result.current.exerciseSet).toEqual([62, 64, 66, 67])
+
+    let answer
+    act(() => {
+      answer = result.current.submitAnswer(64, 'solfege')
+    })
+    expect(answer.message).toContain('do')
+  })
 })

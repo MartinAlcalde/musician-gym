@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { labelForMidi } from '../utils/helpers.js'
-import { NOTES } from '../utils/constants.js'
 
 const ANSWER_DELAY_MS = 2000
 const SPEECH_WATCHDOG_MS = 15000
@@ -137,6 +136,7 @@ export function useAutoMode({
 
   const playResolution = useCallback((
     targetMidi,
+    tonicMidi,
     playTone,
     getCurrentTime,
     onComplete,
@@ -153,7 +153,7 @@ export function useAutoMode({
 
       const t0 = currentTime + 0.1
       playTone(targetMidi, t0, 0.45, 'piano', 0.16)
-      playTone(NOTES.C4, t0 + 0.46, 0.8, 'piano', 0.18)
+      playTone(tonicMidi, t0 + 0.46, 0.8, 'piano', 0.18)
 
       scheduleNextRound(onComplete, roundStartedAt, sessionId, roundId)
     }, RESOLUTION_DELAY_MS, sessionId, roundId)
@@ -161,6 +161,7 @@ export function useAutoMode({
 
   const showAutoAnswer = useCallback((
     targetMidi,
+    tonicMidi,
     playTone,
     getCurrentTime,
     onComplete,
@@ -170,7 +171,7 @@ export function useAutoMode({
   ) => {
     if (!isCurrentRound(sessionId, roundId)) return undefined
 
-    const targetLabel = labelForMidi(targetMidi, notationRef.current)
+    const targetLabel = labelForMidi(targetMidi, notationRef.current, tonicMidi % 12)
     const result = {
       message: showAnswerRef.current
         ? `✨ Answer: ${targetLabel}`
@@ -183,6 +184,7 @@ export function useAutoMode({
       if (!isCurrentRound(sessionId, roundId)) return
       playResolution(
         targetMidi,
+        tonicMidi,
         playTone,
         getCurrentTime,
         onComplete,
@@ -236,6 +238,7 @@ export function useAutoMode({
 
   const runAutoRound = useCallback((
     targetMidi,
+    tonicMidi,
     playCadence,
     playTone,
     getCurrentTime,
@@ -255,7 +258,7 @@ export function useAutoMode({
     roundRef.current = roundId
     const roundStartedAt = now()
 
-    const endCadence = playCadence()
+    const endCadence = playCadence(tonicMidi)
     const targetTime = endCadence + 0.12
     playTone(targetMidi, targetTime, 0.9, 'piano', 0.18)
 
@@ -266,6 +269,7 @@ export function useAutoMode({
         schedule(() => {
           const result = showAutoAnswer(
             targetMidi,
+            tonicMidi,
             playTone,
             getCurrentTime,
             onComplete,

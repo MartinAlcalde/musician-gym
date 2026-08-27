@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ExerciseSelector } from './ExerciseSelector.jsx'
+import { GameControls } from './GameControls.jsx'
 import { GameDisplay } from './GameDisplay.jsx'
 import { Piano } from './Piano.jsx'
 import { RemoteControl } from './RemoteControl.jsx'
@@ -43,6 +44,43 @@ describe('accessible game controls', () => {
     expect(screen.getByRole('dialog', { name: /select exercise/i })).toBeTruthy()
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('exposes transposed scale degrees and training-range selectors', () => {
+    const onTonicChange = vi.fn()
+    const onRegisterChange = vi.fn()
+    render(
+      <>
+        <GameControls
+          onStart={vi.fn()}
+          onRepeat={vi.fn()}
+          onToggleSettings={vi.fn()}
+          onToggleExerciseSelector={vi.fn()}
+          startEnabled
+          repeatEnabled={false}
+          autoMode={false}
+          isAutoRunning={false}
+          currentExercise={1}
+          tonicPc={2}
+          register="middle"
+          onTonicChange={onTonicChange}
+          onRegisterChange={onRegisterChange}
+        />
+        <Piano
+          exerciseSet={[62, 64, 66, 67]}
+          tonicMidi={62}
+          notation="solfege"
+          disabled={false}
+          onKeyClick={vi.fn()}
+        />
+      </>
+    )
+
+    expect(screen.getByRole('button', { name: /do, D4, in current exercise/i })).toBeTruthy()
+    fireEvent.change(screen.getByLabelText('Tonality'), { target: { value: '7' } })
+    fireEvent.change(screen.getByLabelText('Register'), { target: { value: 'high' } })
+    expect(onTonicChange).toHaveBeenCalledWith(7)
+    expect(onRegisterChange).toHaveBeenCalledWith('high')
   })
 
   it('emits one stable gamepad event per press edge and stops polling on unmount', () => {

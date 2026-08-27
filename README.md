@@ -12,6 +12,8 @@ Musician Gym helps you recognize scale degrees by their function within a key. I
 
 **🎼 Functional Training** - Learn scale degrees in tonal context rather than isolated intervals.
 
+**🎹 12 Tonalities & 3 Registers** - Transpose the cadence and exercises to every major key and practice in low, middle, or high registers.
+
 **🌙 Dark Theme** - Easy on the eyes for practice in bed or low-light environments.
 
 **⌨️ Custom Key Mapping** - Map scale degrees to any keyboard keys or Bluetooth device buttons for personalized practice.
@@ -47,11 +49,15 @@ Enable in settings for passive practice:
 - Screen wake lock on supported mobile browsers
 - Perfect for background learning
 
+## Training range
+
+Choose any of the 12 major tonalities and one of three registers. Solfege stays relative to the selected tonic (Do is always degree 1), while letter notation shows the sounding pitch.
+
 ## Exercises
 
-- **Exercise 1**: C-F (Do-Fa) - lower tetrachord
-- **Exercise 2**: G-C (Sol-Do) - upper tetrachord  
-- **Exercise 3**: Full octave C-C
+- **Exercise 1**: Do-Fa - lower tetrachord
+- **Exercise 2**: Sol-Do - upper tetrachord
+- **Exercise 3**: Full octave Do-Do
 
 ## Technical Details
 

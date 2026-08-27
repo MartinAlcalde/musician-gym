@@ -18,7 +18,7 @@ const loadStats = () => {
   return { attempts, correct }
 }
 
-export function useGameState() {
+export function useGameState({ tonicMidi = 60 } = {}) {
   const [stats, setStats] = useState(loadStats)
   const [targetMidi, setTargetMidi] = useState(null)
   const [exercise, setExercise] = useState(1)
@@ -32,8 +32,8 @@ export function useGameState() {
   , [attempts, correct])
 
   const exerciseSet = useMemo(() => 
-    getExerciseSet(exercise)
-  , [exercise])
+    getExerciseSet(exercise, tonicMidi)
+  , [exercise, tonicMidi])
 
   const submitAnswer = useCallback((midi, notation = 'letter') => {
     if (!targetMidi || !answersEnabled) return null
@@ -59,17 +59,19 @@ export function useGameState() {
     return {
       isValid: true,
       isCorrect,
-      message: isCorrect ? '✓ Correct' : `✗ Wrong (it was ${labelForMidi(targetMidi, notation)})`
+      message: isCorrect
+        ? '✓ Correct'
+        : `✗ Wrong (it was ${labelForMidi(targetMidi, notation, tonicMidi % 12)})`
     }
-  }, [targetMidi, answersEnabled, exerciseSet])
+  }, [targetMidi, answersEnabled, exerciseSet, tonicMidi])
 
   const startNewRound = useCallback(() => {
-    const newTarget = pickRandomTargetMidi(exercise)
+    const newTarget = pickRandomTargetMidi(exercise, tonicMidi)
     setTargetMidi(newTarget)
     setAnswersEnabled(false)
     setRepeatEnabled(false)
     return newTarget
-  }, [exercise])
+  }, [exercise, tonicMidi])
 
   const enableAnswers = useCallback(() => {
     setAnswersEnabled(true)

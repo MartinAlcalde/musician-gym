@@ -1,17 +1,45 @@
-import { PC_TO_SOLFEGE, PC_TO_LETTER, EXERCISES } from './constants.js'
+import {
+  PC_TO_SOLFEGE,
+  PC_TO_LETTER,
+  KEY_SCALE_LETTERS,
+  EXERCISE_INTERVALS,
+  NOTES,
+  REGISTERS
+} from './constants.js'
+
+export const normalizePitchClass = value => ((value % 12) + 12) % 12
 
 // Musical helper functions
-export const labelForMidi = (midi, notation = 'solfege') => {
-  const pc = midi % 12
-  return notation === 'solfege' ? (PC_TO_SOLFEGE[pc] || '') : (PC_TO_LETTER[pc] || '')
+export const labelForMidi = (midi, notation = 'solfege', tonicPc = 0) => {
+  const pitchClass = normalizePitchClass(midi)
+  const relativePitchClass = normalizePitchClass(pitchClass - tonicPc)
+  return notation === 'solfege'
+    ? (PC_TO_SOLFEGE[relativePitchClass] || '')
+    : (KEY_SCALE_LETTERS[normalizePitchClass(tonicPc)]?.[relativePitchClass] || PC_TO_LETTER[pitchClass] || '')
 }
 
-export const getExerciseSet = (exercise) => {
-  return EXERCISES[exercise] || EXERCISES[1]
+export const midiToNoteName = midi => {
+  if (!Number.isInteger(midi) || midi < 0 || midi > 127) return ''
+  const pitchClass = normalizePitchClass(midi)
+  const octave = Math.floor(midi / 12) - 1
+  return `${PC_TO_LETTER[pitchClass]}${octave}`
 }
 
-export const pickRandomTargetMidi = (exercise) => {
-  const set = getExerciseSet(exercise)
+export const getTonicMidi = (tonicPc = 0, register = 'middle') => {
+  const safePitchClass = Number.isInteger(tonicPc) && tonicPc >= 0 && tonicPc <= 11
+    ? tonicPc
+    : 0
+  const baseMidi = REGISTERS[register]?.baseMidi ?? REGISTERS.middle.baseMidi
+  return baseMidi + safePitchClass
+}
+
+export const getExerciseSet = (exercise, tonicMidi = NOTES.C4) => {
+  const intervals = EXERCISE_INTERVALS[exercise] || EXERCISE_INTERVALS[1]
+  return intervals.map(interval => tonicMidi + interval)
+}
+
+export const pickRandomTargetMidi = (exercise, tonicMidi = NOTES.C4) => {
+  const set = getExerciseSet(exercise, tonicMidi)
   return set[Math.floor(Math.random() * set.length)]
 }
 
@@ -21,8 +49,20 @@ export const hasSharpAfter = (midi) => {
   return pc === 0 || pc === 2 || pc === 5 || pc === 7 || pc === 9
 }
 
-export const getWhiteKeys = () => {
-  return [60, 62, 64, 65, 67, 69, 71, 72] // C4 to C5
+const isWhiteKey = midi => [0, 2, 4, 5, 7, 9, 11].includes(normalizePitchClass(midi))
+
+export const getWhiteKeys = (tonicMidi = NOTES.C4) => {
+  let firstWhite = tonicMidi
+  while (!isWhiteKey(firstWhite)) firstWhite -= 1
+
+  let lastWhite = tonicMidi + 12
+  while (!isWhiteKey(lastWhite)) lastWhite += 1
+
+  const whiteKeys = []
+  for (let midi = firstWhite; midi <= lastWhite; midi += 1) {
+    if (isWhiteKey(midi)) whiteKeys.push(midi)
+  }
+  return whiteKeys
 }
 
 // Keyboard mapping helpers

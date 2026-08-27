@@ -8,6 +8,7 @@ export function Settings({
   onSettingChange,
   // Key mapping props
   exerciseSet,
+  tonicMidi,
   notation,
   getKeyForMidi,
   startMapping,
@@ -38,7 +39,7 @@ export function Settings({
             checked={resolve} 
             onChange={(e) => onSettingChange('resolve', e.target.checked)} 
           /> 
-          Resolve to C
+          Resolve to tonic
         </label>
         
         <label>
@@ -82,6 +83,7 @@ export function Settings({
 
       <KeyMapping
         exerciseSet={exerciseSet}
+        tonicMidi={tonicMidi}
         notation={notation}
         getKeyForMidi={getKeyForMidi}
         startMapping={startMapping}

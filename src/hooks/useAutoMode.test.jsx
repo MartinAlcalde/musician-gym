@@ -24,6 +24,7 @@ describe('useAutoMode', () => {
       result.current.start()
       result.current.runAutoRound(
         60,
+        60,
         playCadence,
         playTone,
         getCurrentTime,
@@ -70,6 +71,7 @@ describe('useAutoMode', () => {
     act(() => {
       result.current.runAutoRound(
         62,
+        60,
         () => 0.1,
         vi.fn(),
         () => 0,
@@ -81,5 +83,33 @@ describe('useAutoMode', () => {
 
     expect(first.onComplete).not.toHaveBeenCalled()
     expect(secondComplete).toHaveBeenCalledTimes(1)
+  })
+
+  it('announces relative solfege and resolves to the selected tonic', async () => {
+    const { result } = renderHook(() => useAutoMode({
+      initialInterval: 3000,
+      initialSayAnswer: false
+    }))
+    const playTone = vi.fn()
+    const onUIUpdate = vi.fn()
+
+    act(() => {
+      result.current.start()
+      result.current.runAutoRound(
+        66,
+        62,
+        () => 0.1,
+        playTone,
+        () => 0,
+        vi.fn(),
+        onUIUpdate
+      )
+    })
+
+    await act(() => vi.advanceTimersByTimeAsync(2500))
+    expect(onUIUpdate).toHaveBeenCalledWith('✨ Answer: mi', true, 66)
+
+    await act(() => vi.advanceTimersByTimeAsync(1000))
+    expect(playTone.mock.calls.some(call => call[0] === 62)).toBe(true)
   })
 })

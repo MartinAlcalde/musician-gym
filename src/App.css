@@ -16,6 +16,31 @@ h1 {
   flex-wrap: wrap; 
 }
 
+.training-range {
+  display: flex;
+  gap: 12px;
+  margin: 8px 0 12px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.training-range label {
+  display: grid;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.training-range select {
+  width: 100%;
+  min-width: 0;
+  padding: 7px 8px;
+  font: inherit;
+}
+
 button { 
   padding: 10px 14px; 
   font-size: 16px; 
@@ -76,6 +101,7 @@ button {
 .key.white.out-of-scope { opacity: 0.85; cursor: default; }
 
 @media (max-width: 480px) {
+  .training-range { gap: 8px; }
   .piano { --white-w: 44px; --white-h: 132px; --black-w: 28px; --black-h: 84px; --gap: 2px; }
   .key .label { font-size: 11px; }
   .key.black .label { font-size: 10px; }
@@ -127,6 +153,11 @@ body.dark {
 }
 
 body.dark .panel {
+  background: #2a2a2a;
+  border-color: #404040;
+}
+
+body.dark .training-range {
   background: #2a2a2a;
   border-color: #404040;
 }
