@@ -85,7 +85,7 @@ export function useNotchedAudio({ frequency, widthInOctaves, filterEnabled, volu
     graph.notch.Q.setTargetAtTime(getNotchQ(safeFrequency, widthInOctaves), now, 0.015)
     graph.wetGain.gain.setTargetAtTime(filterEnabled ? 1 : 0, now, 0.015)
     graph.dryGain.gain.setTargetAtTime(filterEnabled ? 0 : 1, now, 0.015)
-    graph.masterGain.gain.setTargetAtTime(Math.max(0, Math.min(0.6, volume)), now, 0.015)
+    graph.masterGain.gain.setTargetAtTime(Math.max(0, Math.min(1, volume)), now, 0.015)
   }, [filterEnabled, frequency, volume, widthInOctaves])
 
   useEffect(() => updateGraph(), [updateGraph])

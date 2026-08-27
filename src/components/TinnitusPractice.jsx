@@ -15,7 +15,7 @@ import {
 const STORAGE_PREFIX = 'fet-tinnitus-'
 const getInitialVolume = () => {
   const savedVolume = Number(loadFromStorage(`${STORAGE_PREFIX}volume`, 0.35))
-  return Number.isFinite(savedVolume) ? Math.max(0, Math.min(0.6, savedVolume)) : 0.35
+  return Number.isFinite(savedVolume) ? Math.max(0, Math.min(1, savedVolume)) : 0.35
 }
 
 export function TinnitusPractice({ screenWakeLock }) {
@@ -206,7 +206,7 @@ export function TinnitusPractice({ screenWakeLock }) {
                 <input
                   type="range"
                   min="0"
-                  max="0.6"
+                  max="1"
                   step="0.05"
                   value={volume}
                   onChange={event => setVolume(Number(event.target.value))}
