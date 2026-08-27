@@ -6,7 +6,8 @@ import {
   GameDisplay,
   ExerciseSelector,
   TrainingSetup,
-  SingingPractice
+  SingingPractice,
+  TinnitusPractice
 } from './components'
 import { useAudio } from './hooks/useAudio.js'
 import { useGameState } from './hooks/useGameState.js'
@@ -469,16 +470,26 @@ function App() {
         >
           Singing practice
         </button>
+        <button
+          type="button"
+          className={activeArea === 'tinnitus' ? 'active' : ''}
+          aria-current={activeArea === 'tinnitus' ? 'page' : undefined}
+          onClick={() => handleAreaChange('tinnitus')}
+        >
+          Tinnitus
+        </button>
       </nav>
 
-      <TrainingSetup
-        tonicPc={tonicPc}
-        scaleType={scaleType}
-        register={register}
-        onTonicChange={value => handleSettingChange('tonality', { tonicPc: value, scaleType })}
-        onScaleTypeChange={value => handleSettingChange('tonality', { tonicPc, scaleType: value })}
-        onRegisterChange={value => handleSettingChange('register', value)}
-      />
+      {activeArea !== 'tinnitus' && (
+        <TrainingSetup
+          tonicPc={tonicPc}
+          scaleType={scaleType}
+          register={register}
+          onTonicChange={value => handleSettingChange('tonality', { tonicPc: value, scaleType })}
+          onScaleTypeChange={value => handleSettingChange('tonality', { tonicPc, scaleType: value })}
+          onRegisterChange={value => handleSettingChange('register', value)}
+        />
+      )}
 
       <Settings
         isVisible={settingsVisible}
@@ -577,7 +588,7 @@ function App() {
             onClose={() => setExerciseSelectorVisible(false)}
           />
         </section>
-      ) : (
+      ) : activeArea === 'singing' ? (
         <SingingPractice
           key={`${scaleType}:${tonicMidi}`}
           audio={audio}
@@ -586,6 +597,8 @@ function App() {
           notation={notation}
           screenWakeLock={screenWakeLock}
         />
+      ) : (
+        <TinnitusPractice screenWakeLock={screenWakeLock} />
       )}
     </main>
   )
