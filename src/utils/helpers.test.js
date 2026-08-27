@@ -3,6 +3,7 @@ import {
   getExerciseSet,
   getCadenceChords,
   getTonicMidi,
+  getPianoRange,
   getScaleNoteNames,
   getWhiteKeys,
   hasSharpAfter,
@@ -56,7 +57,10 @@ describe('musical helpers', () => {
   it('returns a safe exercise fallback and the expected piano layout', () => {
     expect(getExerciseSet(3)).toEqual(EXERCISES[3])
     expect(getExerciseSet(99)).toEqual(EXERCISES[1])
-    expect(getWhiteKeys()).toEqual([60, 62, 64, 65, 67, 69, 71, 72])
+    expect(getWhiteKeys()).toEqual([
+      60, 62, 64, 65, 67, 69, 71,
+      72, 74, 76, 77, 79, 81, 83, 84
+    ])
     expect(hasSharpAfter(64)).toBe(false)
     expect(hasSharpAfter(65)).toBe(true)
   })
@@ -65,7 +69,10 @@ describe('musical helpers', () => {
     expect(getTonicMidi(2, 'low')).toBe(50)
     expect(getTonicMidi(11, 'high')).toBe(83)
     expect(getExerciseSet(3, 62)).toEqual([62, 64, 66, 67, 69, 71, 73, 74])
-    expect(getWhiteKeys(61)).toEqual([60, 62, 64, 65, 67, 69, 71, 72, 74])
+    expect(getWhiteKeys(61)).toEqual(getWhiteKeys(60))
+    expect(getWhiteKeys(71)).toEqual(getWhiteKeys(60))
+    expect(getPianoRange(71)).toEqual({ startMidi: 60, endMidi: 84 })
+    expect(getWhiteKeys(72).map(midi => midi - 12)).toEqual(getWhiteKeys(60))
   })
 
   it('builds natural and harmonic minor scales and cadences', () => {
