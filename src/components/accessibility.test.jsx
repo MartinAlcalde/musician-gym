@@ -84,7 +84,7 @@ describe('accessible game controls', () => {
       </>
     )
 
-    expect(screen.getByRole('button', { name: /do, D4, in current exercise/i })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /re, D4, in current exercise/i })).toBeTruthy()
     const scaleSelect = screen.getByLabelText('Scale or mode')
     expect(scaleSelect.querySelectorAll('option')).toHaveLength(8)
     expect(scaleSelect.querySelectorAll('optgroup')).toHaveLength(2)
@@ -151,7 +151,7 @@ describe('accessible game controls', () => {
 
     expect(scaleTone.classList.contains('black')).toBe(true)
     expect(scaleTone.classList.contains('in-scope')).toBe(true)
-    expect(scaleTone.querySelector('.label').textContent).toBe('mi')
+    expect(scaleTone.querySelector('.label').textContent).toBe('do♯')
     expect(chromaticTone.classList.contains('out-of-scope')).toBe(true)
     expect(chromaticTone.querySelector('.label').textContent).toBe('')
   })
@@ -168,9 +168,30 @@ describe('accessible game controls', () => {
       />
     )
 
-    expect(container.querySelector('[data-midi="72"] .label').textContent).toBe('mi♭')
-    expect(container.querySelector('[data-midi="79"] .label').textContent).toBe('si♭')
+    expect(container.querySelector('[data-midi="72"] .label').textContent).toBe('do')
+    expect(container.querySelector('[data-midi="79"] .label').textContent).toBe('sol')
     expect(container.querySelector('[data-midi="80"] .label').textContent).toBe('')
+  })
+
+  it('labels B-flat natural minor with fixed note names on the physical keys', () => {
+    const { container } = render(
+      <Piano
+        exerciseSet={[70, 72, 73, 75]}
+        tonicMidi={70}
+        scaleType="naturalMinor"
+        notation="solfege"
+        disabled={false}
+        onKeyClick={vi.fn()}
+      />
+    )
+
+    const bFlatKey = container.querySelector('[data-midi="70"]')
+    expect(bFlatKey.classList.contains('black')).toBe(true)
+    expect(bFlatKey.classList.contains('in-scope')).toBe(true)
+    expect(container.querySelector('[data-midi="70"] .label').textContent).toBe('si♭')
+    expect(container.querySelector('[data-midi="72"] .label').textContent).toBe('do')
+    expect(container.querySelector('[data-midi="73"] .label').textContent).toBe('re♭')
+    expect(container.querySelector('[data-midi="75"] .label').textContent).toBe('mi♭')
   })
 
   it('emits one stable gamepad event per press edge and stops polling on unmount', () => {

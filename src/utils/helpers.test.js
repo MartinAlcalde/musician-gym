@@ -10,6 +10,7 @@ import {
   isReservedKeyId,
   labelForMidi,
   midiToNoteName,
+  noteNameToFixedSolfege,
   pitchClassForNoteName,
   fromCanonicalDegreeMidi,
   toCanonicalDegreeMidi,
@@ -22,15 +23,34 @@ describe('musical helpers', () => {
   it('labels MIDI notes in solfege and letter notation', () => {
     expect(labelForMidi(60, 'solfege')).toBe('do')
     expect(labelForMidi(66, 'letter')).toBe('F#')
-    expect(labelForMidi(62, 'solfege', 2)).toBe('do')
-    expect(labelForMidi(66, 'solfege', 2)).toBe('mi')
+    expect(labelForMidi(62, 'solfege', 2)).toBe('re')
+    expect(labelForMidi(66, 'solfege', 2)).toBe('fa♯')
     expect(labelForMidi(65, 'letter', 1)).toBe('F')
     expect(labelForMidi(70, 'letter', 5)).toBe('Bb')
-    expect(labelForMidi(72, 'solfege', 9, 'naturalMinor')).toBe('mi♭')
-    expect(labelForMidi(79, 'solfege', 9, 'naturalMinor')).toBe('si♭')
-    expect(labelForMidi(80, 'solfege', 9, 'harmonicMinor')).toBe('si')
+    expect(labelForMidi(72, 'solfege', 9, 'naturalMinor')).toBe('do')
+    expect(labelForMidi(79, 'solfege', 9, 'naturalMinor')).toBe('sol')
+    expect(labelForMidi(80, 'solfege', 9, 'harmonicMinor')).toBe('sol♯')
     expect(labelForMidi(80, 'letter', 9, 'harmonicMinor')).toBe('G#')
+    expect(noteNameToFixedSolfege('Bb')).toBe('si♭')
     expect(midiToNoteName(85)).toBe('C#6')
+  })
+
+  it('never labels a black piano key as an unaltered natural note', () => {
+    const blackPitchClasses = new Set([1, 3, 6, 8, 10])
+
+    for (const scaleType of Object.keys(SCALE_TYPES)) {
+      for (let tonicPc = 0; tonicPc < 12; tonicPc += 1) {
+        for (const midi of getExerciseSet(3, 60 + tonicPc, scaleType)) {
+          const label = labelForMidi(midi, 'solfege', tonicPc, scaleType)
+          if (blackPitchClasses.has(midi % 12)) expect(label).toMatch(/[♭♯]/)
+        }
+      }
+    }
+
+    expect(labelForMidi(70, 'solfege', 10, 'naturalMinor')).toBe('si♭')
+    expect(labelForMidi(72, 'solfege', 10, 'naturalMinor')).toBe('do')
+    expect(labelForMidi(73, 'solfege', 10, 'naturalMinor')).toBe('re♭')
+    expect(labelForMidi(75, 'solfege', 10, 'naturalMinor')).toBe('mi♭')
   })
 
   it('returns a safe exercise fallback and the expected piano layout', () => {
