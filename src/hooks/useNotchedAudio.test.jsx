@@ -92,4 +92,62 @@ describe('useNotchedAudio', () => {
     unmount()
     expect(context.close).toHaveBeenCalledTimes(1)
   })
+
+  it('allows full source volume without an artificial 60 percent cap', async () => {
+    const listeners = new Map()
+    const audioElement = {
+      currentTime: 0,
+      duration: 60,
+      src: '',
+      preload: '',
+      addEventListener: vi.fn((name, callback) => listeners.set(name, callback)),
+      removeEventListener: vi.fn(),
+      pause: vi.fn(),
+      play: vi.fn(async () => listeners.get('play')?.()),
+      removeAttribute: vi.fn(),
+      load: vi.fn()
+    }
+    class AudioMock {
+      constructor() {
+        return audioElement
+      }
+    }
+
+    const source = audioNode()
+    const notch = audioNode({ frequency: audioParam(), Q: audioParam(), type: '' })
+    const wetGain = audioNode({ gain: audioParam() })
+    const dryGain = audioNode({ gain: audioParam() })
+    const masterGain = audioNode({ gain: audioParam() })
+    const context = {
+      state: 'running', currentTime: 0, sampleRate: 48000, destination: {},
+      resume: vi.fn(), close: vi.fn(),
+      createMediaElementSource: vi.fn(() => source),
+      createBiquadFilter: vi.fn(() => notch),
+      createGain: vi.fn()
+        .mockReturnValueOnce(wetGain)
+        .mockReturnValueOnce(dryGain)
+        .mockReturnValueOnce(masterGain)
+    }
+    class AudioContextMock {
+      constructor() {
+        return context
+      }
+    }
+
+    vi.stubGlobal('Audio', AudioMock)
+    vi.stubGlobal('AudioContext', AudioContextMock)
+    vi.stubGlobal('URL', { createObjectURL: vi.fn(() => 'blob:full-volume'), revokeObjectURL: vi.fn() })
+
+    const { result, unmount } = renderHook(() => useNotchedAudio({
+      frequency: 6000,
+      widthInOctaves: 1,
+      filterEnabled: true,
+      volume: 1
+    }))
+    act(() => result.current.loadFile({ name: 'song.mp3', type: 'audio/mpeg' }))
+    await act(async () => result.current.play())
+
+    expect(masterGain.gain.setTargetAtTime).toHaveBeenCalledWith(1, 0, 0.015)
+    unmount()
+  })
 })
