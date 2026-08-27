@@ -87,4 +87,23 @@ describe('useGameState', () => {
     })
     expect(answer.message).toContain('do')
   })
+
+  it('uses natural and harmonic minor exercise notes', () => {
+    const natural = renderHook(() => useGameState({
+      tonicMidi: 69,
+      scaleType: 'naturalMinor'
+    }))
+    const harmonic = renderHook(() => useGameState({
+      tonicMidi: 69,
+      scaleType: 'harmonicMinor'
+    }))
+
+    expect(natural.result.current.exerciseSet).toEqual([69, 71, 72, 74])
+    expect(harmonic.result.current.exerciseSet).toEqual([69, 71, 72, 74])
+
+    act(() => natural.result.current.setExercise(2))
+    act(() => harmonic.result.current.setExercise(2))
+    expect(natural.result.current.exerciseSet).toEqual([76, 77, 79, 81])
+    expect(harmonic.result.current.exerciseSet).toEqual([76, 77, 80, 81])
+  })
 })

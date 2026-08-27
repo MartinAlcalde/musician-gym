@@ -4,6 +4,7 @@ import { labelForMidi, hasSharpAfter, getWhiteKeys, midiToNoteName } from '../ut
 export const Piano = forwardRef(function Piano({ 
   exerciseSet, 
   tonicMidi = 60,
+  scaleType = 'major',
   notation, 
   disabled, 
   onKeyClick,
@@ -39,7 +40,7 @@ export const Piano = forwardRef(function Piano({
       clearTimeout(timer)
       window.removeEventListener('resize', positionBlackKeys)
     }
-  }, [exerciseSet, notation, tonicMidi])
+  }, [exerciseSet, notation, tonicMidi, scaleType])
 
   const buildPianoKeys = () => {
     const whites = getWhiteKeys(tonicMidi)
@@ -51,7 +52,7 @@ export const Piano = forwardRef(function Piano({
     
     // White keys
     whites.forEach((midi) => {
-      const text = labelForMidi(midi, useSolfege ? 'solfege' : 'letter', tonicPc)
+      const text = labelForMidi(midi, useSolfege ? 'solfege' : 'letter', tonicPc, scaleType)
       const inScope = allowedSet.has(midi)
       const noteName = midiToNoteName(midi)
       const visibleText = inScope ? text : ''
@@ -75,7 +76,7 @@ export const Piano = forwardRef(function Piano({
     whites.forEach((midi) => {
       const blackMidi = midi + 1
       if (hasSharpAfter(midi) && blackMidi >= tonicMidi && blackMidi <= tonicMidi + 12) {
-        const text = labelForMidi(blackMidi, useSolfege ? 'solfege' : 'letter', tonicPc)
+        const text = labelForMidi(blackMidi, useSolfege ? 'solfege' : 'letter', tonicPc, scaleType)
         const inScope = allowedSet.has(blackMidi)
         const noteName = midiToNoteName(blackMidi)
         const visibleText = inScope ? text : ''

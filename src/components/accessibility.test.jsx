@@ -62,6 +62,7 @@ describe('accessible game controls', () => {
           isAutoRunning={false}
           currentExercise={1}
           tonicPc={2}
+          scaleType="major"
           register="middle"
           onTonicChange={onTonicChange}
           onRegisterChange={onRegisterChange}
@@ -77,9 +78,12 @@ describe('accessible game controls', () => {
     )
 
     expect(screen.getByRole('button', { name: /do, D4, in current exercise/i })).toBeTruthy()
-    fireEvent.change(screen.getByLabelText('Tonality'), { target: { value: '7' } })
+    const tonalitySelect = screen.getByLabelText('Tonality')
+    expect(tonalitySelect.querySelectorAll('option')).toHaveLength(36)
+    expect(tonalitySelect.querySelectorAll('optgroup')).toHaveLength(3)
+    fireEvent.change(tonalitySelect, { target: { value: 'naturalMinor:7' } })
     fireEvent.change(screen.getByLabelText('Register'), { target: { value: 'high' } })
-    expect(onTonicChange).toHaveBeenCalledWith(7)
+    expect(onTonicChange).toHaveBeenCalledWith(7, 'naturalMinor')
     expect(onRegisterChange).toHaveBeenCalledWith('high')
   })
 
@@ -102,6 +106,23 @@ describe('accessible game controls', () => {
     expect(scaleTone.querySelector('.label').textContent).toBe('mi')
     expect(chromaticTone.classList.contains('out-of-scope')).toBe(true)
     expect(chromaticTone.querySelector('.label').textContent).toBe('')
+  })
+
+  it('renders the altered degrees of natural minor on the correct keys', () => {
+    const { container } = render(
+      <Piano
+        exerciseSet={[69, 71, 72, 74, 76, 77, 79, 81]}
+        tonicMidi={69}
+        scaleType="naturalMinor"
+        notation="solfege"
+        disabled={false}
+        onKeyClick={vi.fn()}
+      />
+    )
+
+    expect(container.querySelector('[data-midi="72"] .label').textContent).toBe('mi♭')
+    expect(container.querySelector('[data-midi="79"] .label').textContent).toBe('si♭')
+    expect(container.querySelector('[data-midi="80"] .label').textContent).toBe('')
   })
 
   it('emits one stable gamepad event per press edge and stops polling on unmount', () => {

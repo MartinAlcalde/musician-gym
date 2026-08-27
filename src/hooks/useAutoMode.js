@@ -162,6 +162,7 @@ export function useAutoMode({
   const showAutoAnswer = useCallback((
     targetMidi,
     tonicMidi,
+    scaleType,
     playTone,
     getCurrentTime,
     onComplete,
@@ -171,7 +172,7 @@ export function useAutoMode({
   ) => {
     if (!isCurrentRound(sessionId, roundId)) return undefined
 
-    const targetLabel = labelForMidi(targetMidi, notationRef.current, tonicMidi % 12)
+    const targetLabel = labelForMidi(targetMidi, notationRef.current, tonicMidi % 12, scaleType)
     const result = {
       message: showAnswerRef.current
         ? `✨ Answer: ${targetLabel}`
@@ -202,7 +203,10 @@ export function useAutoMode({
     }
 
     cancelSpeech()
-    const utterance = new Utterance(targetLabel)
+    const spokenLabel = targetLabel
+      .replaceAll('♭', ' bemol')
+      .replaceAll('#', ' sostenido')
+    const utterance = new Utterance(spokenLabel)
     utterance.rate = 0.8
     utterance.pitch = 1.0
     utteranceRef.current = utterance
@@ -239,6 +243,7 @@ export function useAutoMode({
   const runAutoRound = useCallback((
     targetMidi,
     tonicMidi,
+    scaleType,
     playCadence,
     playTone,
     getCurrentTime,
@@ -258,7 +263,7 @@ export function useAutoMode({
     roundRef.current = roundId
     const roundStartedAt = now()
 
-    const endCadence = playCadence(tonicMidi)
+    const endCadence = playCadence(tonicMidi, scaleType)
     const targetTime = endCadence + 0.12
     playTone(targetMidi, targetTime, 0.9, 'piano', 0.18)
 
@@ -270,6 +275,7 @@ export function useAutoMode({
           const result = showAutoAnswer(
             targetMidi,
             tonicMidi,
+            scaleType,
             playTone,
             getCurrentTime,
             onComplete,
