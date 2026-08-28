@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { clampTinnitusFrequency, getNotchQ } from '../utils/notchedAudio.js'
 import { translate as translateMessage } from '../i18n/I18nContext.jsx'
 
-export function useNotchedAudio({ frequency, widthInOctaves, filterEnabled, volume, translate }) {
+export function useNotchedAudio({ frequency, bandDistanceHz, filterEnabled, volume, translate }) {
   const [fileName, setFileName] = useState('')
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -83,11 +83,11 @@ export function useNotchedAudio({ frequency, widthInOctaves, filterEnabled, volu
     const now = context.currentTime
     const safeFrequency = Math.min(clampTinnitusFrequency(frequency), context.sampleRate * 0.45)
     graph.notch.frequency.setTargetAtTime(safeFrequency, now, 0.015)
-    graph.notch.Q.setTargetAtTime(getNotchQ(safeFrequency, widthInOctaves), now, 0.015)
+    graph.notch.Q.setTargetAtTime(getNotchQ(safeFrequency, bandDistanceHz), now, 0.015)
     graph.wetGain.gain.setTargetAtTime(filterEnabled ? 1 : 0, now, 0.015)
     graph.dryGain.gain.setTargetAtTime(filterEnabled ? 0 : 1, now, 0.015)
     graph.masterGain.gain.setTargetAtTime(Math.max(0, Math.min(1, volume)), now, 0.015)
-  }, [filterEnabled, frequency, volume, widthInOctaves])
+  }, [bandDistanceHz, filterEnabled, frequency, volume])
 
   useEffect(() => updateGraph(), [updateGraph])
 

@@ -1065,13 +1065,28 @@ body.dark .help-text {
   accent-color: #d97706;
 }
 
+.frequency-slider {
+  display: block;
+  margin-inline: 0;
+}
+
 .frequency-scale {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 1px;
+  position: relative;
+  height: 14px;
+  margin: 1px 8px 0;
   color: #898980;
   font-size: 10px;
 }
+
+.frequency-scale span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.frequency-scale span.start { transform: none; }
+.frequency-scale span.end { transform: translateX(-100%); }
 
 .frequency-actions {
   align-items: end;
@@ -1196,6 +1211,14 @@ body.dark .help-text {
   border: 1px solid #c8c8c2;
   border-radius: 7px;
   background: #fff;
+}
+
+.notch-distance-input { justify-self: start; }
+
+.filter-range-help {
+  color: #7c7c73;
+  font-size: 10px;
+  font-weight: 500;
 }
 
 .notched-player {
@@ -1343,6 +1366,7 @@ body.dark .tinnitus-compact-note {
 
 body.dark .audio-file-picker:hover,
 body.dark .notched-player { background: #232323; }
+body.dark input[type="number"] { background: #3a3a3a; color: #e5e5e5; border-color: #555; }
 body.dark .audio-file-picker,
 body.dark .tinnitus-step,
 body.dark .evidence-sources { border-color: #484848; }

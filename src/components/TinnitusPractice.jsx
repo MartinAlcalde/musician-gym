@@ -2,11 +2,15 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNotchedAudio } from '../hooks/useNotchedAudio.js'
 import { loadFromStorage, saveToStorage } from '../utils/helpers.js'
 import {
+  clampNotchDistance,
   clampTinnitusFrequency,
   formatAudioTime,
   formatFrequency,
   frequencyToSlider,
+  frequencyToSliderPercent,
+  getMaxNotchDistance,
   getNotchBounds,
+  MIN_NOTCH_DISTANCE,
   MAX_TINNITUS_FREQUENCY,
   MIN_TINNITUS_FREQUENCY,
   sliderToFrequency
@@ -14,6 +18,7 @@ import {
 import { useI18n } from '../i18n/I18nContext.jsx'
 
 const STORAGE_PREFIX = 'fet-tinnitus-'
+const FREQUENCY_MARKS = [125, 1000, 4000, 12000]
 const getInitialVolume = () => {
   const savedVolume = Number(loadFromStorage(`${STORAGE_PREFIX}volume`, 0.35))
   return Number.isFinite(savedVolume) ? Math.max(0, Math.min(1, savedVolume)) : 0.35
@@ -25,27 +30,26 @@ export function TinnitusPractice({ screenWakeLock }) {
     clampTinnitusFrequency(loadFromStorage(`${STORAGE_PREFIX}frequency`, 6000))
   ))
   const [frequencyDraft, setFrequencyDraft] = useState(() => String(frequency))
-  const [widthInOctaves, setWidthInOctaves] = useState(() => (
-    Number(loadFromStorage(`${STORAGE_PREFIX}width`, 1)) || 1
+  const [bandDistanceHz, setBandDistanceHz] = useState(() => (
+    clampNotchDistance(loadFromStorage(`${STORAGE_PREFIX}distance-hz`, 500), frequency)
   ))
+  const [distanceDraft, setDistanceDraft] = useState(() => String(bandDistanceHz))
   const [volume, setVolume] = useState(getInitialVolume)
   const [filterEnabled, setFilterEnabled] = useState(true)
   const [infoVisible, setInfoVisible] = useState(false)
-  const audio = useNotchedAudio({ frequency, widthInOctaves, filterEnabled, volume, translate: t })
-  const notchBounds = useMemo(() => getNotchBounds(frequency, widthInOctaves), [frequency, widthInOctaves])
+  const audio = useNotchedAudio({ frequency, bandDistanceHz, filterEnabled, volume, translate: t })
+  const notchBounds = useMemo(() => getNotchBounds(frequency, bandDistanceHz), [bandDistanceHz, frequency])
   const notchMarker = useMemo(() => {
-    const sliderMin = frequencyToSlider(MIN_TINNITUS_FREQUENCY)
-    const sliderMax = frequencyToSlider(MAX_TINNITUS_FREQUENCY)
-    const spectrumOctaves = sliderMax - sliderMin
-    const center = ((frequencyToSlider(frequency) - sliderMin) / spectrumOctaves) * 100
-    const width = Math.max(8, (widthInOctaves / spectrumOctaves) * 100)
-    return { left: Math.max(0, Math.min(100 - width, center - width / 2)), width }
-  }, [frequency, widthInOctaves])
+    const left = frequencyToSliderPercent(notchBounds.lower)
+    const right = frequencyToSliderPercent(notchBounds.upper)
+    const width = Math.max(2, right - left)
+    return { left: Math.max(0, Math.min(100 - width, left)), width }
+  }, [notchBounds])
   const requestWakeLock = screenWakeLock.request
   const releaseWakeLock = screenWakeLock.release
 
   useEffect(() => saveToStorage(`${STORAGE_PREFIX}frequency`, frequency), [frequency])
-  useEffect(() => saveToStorage(`${STORAGE_PREFIX}width`, widthInOctaves), [widthInOctaves])
+  useEffect(() => saveToStorage(`${STORAGE_PREFIX}distance-hz`, bandDistanceHz), [bandDistanceHz])
   useEffect(() => saveToStorage(`${STORAGE_PREFIX}volume`, volume), [volume])
 
   useEffect(() => {
@@ -53,6 +57,17 @@ export function TinnitusPractice({ screenWakeLock }) {
   }, [audio.isPlaying, releaseWakeLock])
 
   useEffect(() => () => void releaseWakeLock(), [releaseWakeLock])
+
+  const applyMatchedFrequency = value => {
+    const nextFrequency = clampTinnitusFrequency(value)
+    const nextDistance = clampNotchDistance(bandDistanceHz, nextFrequency)
+    setFrequency(nextFrequency)
+    setFrequencyDraft(String(nextFrequency))
+    if (nextDistance !== bandDistanceHz) {
+      setBandDistanceHz(nextDistance)
+      setDistanceDraft(String(nextDistance))
+    }
+  }
 
   const handlePlayback = async () => {
     if (audio.isPlaying) {
@@ -100,14 +115,20 @@ export function TinnitusPractice({ screenWakeLock }) {
               step="0.01"
               value={frequencyToSlider(frequency)}
               onChange={event => {
-                const nextFrequency = sliderToFrequency(event.target.value)
-                setFrequency(nextFrequency)
-                setFrequencyDraft(String(nextFrequency))
+                applyMatchedFrequency(sliderToFrequency(event.target.value))
               }}
               aria-label={t('tinnitus.frequency')}
             />
             <div className="frequency-scale" aria-hidden="true">
-              <span>125 Hz</span><span>1 kHz</span><span>4 kHz</span><span>12 kHz</span>
+              {FREQUENCY_MARKS.map((mark, index) => (
+                <span
+                  key={mark}
+                  className={index === 0 ? 'start' : index === FREQUENCY_MARKS.length - 1 ? 'end' : ''}
+                  style={{ left: `${frequencyToSliderPercent(mark)}%` }}
+                >
+                  {formatFrequency(mark)}
+                </span>
+              ))}
             </div>
 
             <div className="frequency-actions">
@@ -122,9 +143,7 @@ export function TinnitusPractice({ screenWakeLock }) {
                     value={frequencyDraft}
                     onChange={event => setFrequencyDraft(event.target.value)}
                     onBlur={() => {
-                      const nextFrequency = clampTinnitusFrequency(frequencyDraft)
-                      setFrequency(nextFrequency)
-                      setFrequencyDraft(String(nextFrequency))
+                      applyMatchedFrequency(frequencyDraft)
                     }}
                     onKeyDown={event => {
                       if (event.key === 'Enter') event.currentTarget.blur()
@@ -199,12 +218,31 @@ export function TinnitusPractice({ screenWakeLock }) {
 
             <div className="filter-options">
               <label>
-                {t('tinnitus.width')}
-                <select value={widthInOctaves} onChange={event => setWidthInOctaves(Number(event.target.value))}>
-                  <option value="0.5">{t('tinnitus.width.narrow')}</option>
-                  <option value="1">{t('tinnitus.width.default')}</option>
-                  <option value="1.5">{t('tinnitus.width.wide')}</option>
-                </select>
+                {t('tinnitus.distance')}
+                <span className="frequency-input notch-distance-input">
+                  <span aria-hidden="true">±</span>
+                  <input
+                    type="number"
+                    min={MIN_NOTCH_DISTANCE}
+                    max={getMaxNotchDistance(frequency)}
+                    step="10"
+                    value={distanceDraft}
+                    onChange={event => setDistanceDraft(event.target.value)}
+                    onBlur={() => {
+                      const nextDistance = clampNotchDistance(distanceDraft, frequency)
+                      setBandDistanceHz(nextDistance)
+                      setDistanceDraft(String(nextDistance))
+                    }}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter') event.currentTarget.blur()
+                    }}
+                  />
+                  Hz
+                </span>
+                <small className="filter-range-help">{t('tinnitus.distance.help', {
+                  lower: formatFrequency(notchBounds.lower),
+                  upper: formatFrequency(notchBounds.upper)
+                })}</small>
               </label>
               <label>
                 {t('tinnitus.volume', { volume: Math.round(volume * 100) })}

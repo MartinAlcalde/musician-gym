@@ -71,7 +71,7 @@ describe('useNotchedAudio', () => {
 
     const { result, unmount } = renderHook(() => useNotchedAudio({
       frequency: 6000,
-      widthInOctaves: 1,
+      bandDistanceHz: 500,
       filterEnabled: true,
       volume: 0.35
     }))
@@ -83,7 +83,7 @@ describe('useNotchedAudio', () => {
 
     expect(notch.type).toBe('notch')
     expect(notch.frequency.setTargetAtTime).toHaveBeenCalledWith(6000, 1, 0.015)
-    expect(notch.Q.setTargetAtTime.mock.calls.at(-1)[0]).toBeCloseTo(Math.SQRT2)
+    expect(notch.Q.setTargetAtTime.mock.calls.at(-1)[0]).toBe(6)
     expect(wetGain.gain.setTargetAtTime).toHaveBeenCalledWith(1, 1, 0.015)
     expect(dryGain.gain.setTargetAtTime).toHaveBeenCalledWith(0, 1, 0.015)
     expect(masterGain.gain.setTargetAtTime).toHaveBeenCalledWith(0.35, 1, 0.015)
@@ -140,7 +140,7 @@ describe('useNotchedAudio', () => {
 
     const { result, unmount } = renderHook(() => useNotchedAudio({
       frequency: 6000,
-      widthInOctaves: 1,
+      bandDistanceHz: 500,
       filterEnabled: true,
       volume: 1
     }))
