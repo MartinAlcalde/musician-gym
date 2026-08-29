@@ -8,6 +8,11 @@ export const DREKXEL_ROUTINE_SEGMENTS = [
   { id: 'puffedCheeks', semitones: [0, 2, 4, 5, 7, 5, 4, 2, 0] }
 ]
 
+export const getNextDrekxelSegmentId = segmentId => {
+  const currentIndex = DREKXEL_ROUTINE_SEGMENTS.findIndex(segment => segment.id === segmentId)
+  return DREKXEL_ROUTINE_SEGMENTS[currentIndex + 1]?.id ?? null
+}
+
 export const VOCAL_WARMUPS = [
   {
     id: 'fiveTone',

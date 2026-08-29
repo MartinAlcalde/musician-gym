@@ -911,6 +911,12 @@ body.dark .help-text {
   font-weight: 750;
 }
 
+.routine-flow {
+  margin: -4px 0 10px;
+  color: #6b6b64;
+  font-size: 11px;
+}
+
 .routine-block-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
@@ -1513,6 +1519,7 @@ body.dark .warmup-card.selected { background: #42351d; border-color: #f59e0b; }
 body.dark .routine-block { border-color: #505050; }
 body.dark .routine-block span { color: #aaa; }
 body.dark .routine-block.selected { background: #42351d; border-color: #f59e0b; }
+body.dark .routine-flow { color: #aaa; }
 body.dark .routine-source { color: #aaa; }
 body.dark .routine-source a { color: #fbbf24; }
 body.dark .danger-zone { background: #3a2525; border-color: #7f1d1d; }

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useManagedTimeouts } from '../hooks/useManagedTimeouts.js'
 import { useVocalWarmup } from '../hooks/useVocalWarmup.js'
 import {
   displayNoteName,
@@ -11,6 +12,7 @@ import {
 import {
   buildVocalWarmupSequence,
   DREKXEL_ROUTINE_SEGMENTS,
+  getNextDrekxelSegmentId,
   getVoiceProfileTonicMidi,
   VOICE_PROFILES,
   VOCAL_WARMUPS,
@@ -39,11 +41,17 @@ export function SingingPractice({
   const [voiceProfile, setVoiceProfile] = useState(getInitialVoiceProfile)
   const [drekxelSegmentId, setDrekxelSegmentId] = useState(DREKXEL_ROUTINE_SEGMENTS[0].id)
   const [seekPreview, setSeekPreview] = useState(null)
+  const [isBlockTransitioning, setIsBlockTransitioning] = useState(false)
   const seekPreviewRef = useRef(null)
+  const routineRunRef = useRef(0)
   const selectedWarmup = useMemo(() => (
     VOCAL_WARMUPS.find(option => option.id === warmupId) || VOCAL_WARMUPS[0]
   ), [warmupId])
   const warmup = useVocalWarmup(audio)
+  const {
+    schedule: scheduleBlockTransition,
+    clearAll: clearBlockTransitions
+  } = useManagedTimeouts()
   const stopWarmup = warmup.stop
   const requestWakeLock = screenWakeLock.request
   const releaseWakeLock = screenWakeLock.release
@@ -67,32 +75,64 @@ export function SingingPractice({
   useEffect(() => saveToStorage(VOICE_PROFILE_STORAGE_KEY, voiceProfile), [voiceProfile])
 
   useEffect(() => () => {
+    routineRunRef.current += 1
+    clearBlockTransitions()
     stopWarmup()
     void releaseWakeLock()
-  }, [releaseWakeLock, stopWarmup])
+  }, [clearBlockTransitions, releaseWakeLock, stopWarmup])
 
   const handleStart = async () => {
-    if (warmup.isRunning) {
+    if (warmup.isRunning || isBlockTransitioning) {
+      routineRunRef.current += 1
+      clearBlockTransitions()
+      setIsBlockTransitioning(false)
       stopWarmup()
       void releaseWakeLock()
       return
     }
 
+    const runId = routineRunRef.current + 1
+    routineRunRef.current = runId
     const wakeLockPromise = requestWakeLock()
-    const started = await warmup.start({
-      warmupId,
-      tonicMidi: profileTonicMidi,
-      scaleType,
-      keyCount,
-      segmentId: activeSegmentId,
-      tempo,
-      onComplete: () => void releaseWakeLock()
-    })
-    if (!started) void releaseWakeLock()
+    const startBlock = async segmentId => {
+      if (routineRunRef.current !== runId) return
+      setIsBlockTransitioning(false)
+      const started = await warmup.start({
+        warmupId,
+        tonicMidi: profileTonicMidi,
+        scaleType,
+        keyCount,
+        segmentId,
+        tempo,
+        onComplete: () => {
+          if (routineRunRef.current !== runId) return
+          const nextSegmentId = warmupId === 'drekxelRoutine'
+            ? getNextDrekxelSegmentId(segmentId)
+            : null
+
+          if (nextSegmentId) {
+            setDrekxelSegmentId(nextSegmentId)
+            setIsBlockTransitioning(true)
+            scheduleBlockTransition(() => void startBlock(nextSegmentId), 60000 / tempo)
+          } else {
+            void releaseWakeLock()
+          }
+        }
+      })
+      if (!started && routineRunRef.current === runId) {
+        setIsBlockTransitioning(false)
+        void releaseWakeLock()
+      }
+    }
+
+    await startBlock(activeSegmentId)
     await wakeLockPromise
   }
 
   const handleWarmupChange = nextWarmupId => {
+    routineRunRef.current += 1
+    clearBlockTransitions()
+    setIsBlockTransitioning(false)
     stopWarmup()
     setSeekPreview(null)
     seekPreviewRef.current = null
@@ -100,6 +140,9 @@ export function SingingPractice({
   }
 
   const handleSegmentChange = segmentId => {
+    routineRunRef.current += 1
+    clearBlockTransitions()
+    setIsBlockTransitioning(false)
     stopWarmup()
     setSeekPreview(null)
     seekPreviewRef.current = null
@@ -142,7 +185,7 @@ export function SingingPractice({
         <p>{t('singing.intro')}</p>
       </div>
 
-      <fieldset className="warmup-picker" disabled={warmup.isRunning}>
+      <fieldset className="warmup-picker" disabled={warmup.isRunning || isBlockTransitioning}>
         <legend>{t('singing.choose')}</legend>
         <div className="warmup-grid">
           {VOCAL_WARMUPS.map(option => (
@@ -176,8 +219,9 @@ export function SingingPractice({
       </fieldset>
 
       {warmupId === 'drekxelRoutine' && (
-        <fieldset className="routine-block-picker" disabled={warmup.isRunning}>
+        <fieldset className="routine-block-picker" disabled={warmup.isRunning || isBlockTransitioning}>
           <legend>{t('warmup.drekxelRoutine.chooseBlock')}</legend>
+          <p className="routine-flow">{t('warmup.drekxelRoutine.flow')}</p>
           <div className="routine-block-grid">
             {DREKXEL_ROUTINE_SEGMENTS.map(segment => (
               <label
@@ -199,7 +243,7 @@ export function SingingPractice({
         </fieldset>
       )}
 
-      <fieldset className="warmup-options" disabled={warmup.isRunning}>
+      <fieldset className="warmup-options" disabled={warmup.isRunning || isBlockTransitioning}>
         <legend>{t(warmupId === 'drekxelRoutine' ? 'singing.optionsAfterBlock' : 'singing.options')}</legend>
         <label>
           {t('singing.voiceProfile')}
@@ -265,7 +309,9 @@ export function SingingPractice({
             onClick={handleStart}
             disabled={!audio.isReady}
           >
-            {warmup.isRunning ? t('singing.stop') : audio.isReady ? t('singing.start') : t('singing.loading')}
+            {warmup.isRunning || isBlockTransitioning
+              ? t('singing.stop')
+              : audio.isReady ? t('singing.start') : t('singing.loading')}
           </button>
           <label className="seek-control">
             <span>{t('singing.seekHelp')}</span>
@@ -291,7 +337,11 @@ export function SingingPractice({
             />
           </label>
           <p className="warmup-status">
-            {warmup.completed
+            {isBlockTransitioning
+              ? t('singing.nextBlock', {
+                  block: t(`warmup.drekxelRoutine.segment.${drekxelSegmentId}.label`)
+                })
+              : warmup.completed
               ? t('singing.complete')
               : warmup.isRunning
                 ? t('singing.noteProgress', { current: warmup.step, total: warmup.totalSteps })

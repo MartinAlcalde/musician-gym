@@ -1,9 +1,12 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { SingingPractice } from './SingingPractice.jsx'
 
 describe('SingingPractice', () => {
-  afterEach(() => localStorage.clear())
+  afterEach(() => {
+    vi.useRealTimers()
+    localStorage.clear()
+  })
 
   it('adapts the starting octave for male and female voice profiles', () => {
     render(
@@ -52,5 +55,39 @@ describe('SingingPractice', () => {
     expect(screen.getByText(/5 guided blocks/)).toBeTruthy()
     expect(screen.getAllByRole('radio', { name: /MMMMHH|RRRR|Bubbles|DZZZ|BBBB/ })).toHaveLength(5)
     expect(screen.getByRole('slider', { name: 'Warm-up position' }).disabled).toBe(true)
+  })
+
+  it('continues automatically with the next DREKXEL block', async () => {
+    vi.useFakeTimers()
+    const playTone = vi.fn()
+    render(
+      <SingingPractice
+        audio={{
+          isReady: true,
+          playTone,
+          getCurrentTime: vi.fn(() => 0),
+          startAudioContext: vi.fn(async () => true)
+        }}
+        tonicMidi={60}
+        scaleType="major"
+        notation="solfege"
+        screenWakeLock={{ request: vi.fn(async () => true), release: vi.fn() }}
+      />
+    )
+
+    fireEvent.click(screen.getByText('DREKXEL guided routine'))
+    fireEvent.change(screen.getByLabelText('Tempo'), { target: { value: '60' } })
+    fireEvent.change(screen.getByLabelText('Ascending keys'), { target: { value: '3' } })
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /start warm-up/i }))
+      await Promise.resolve()
+    })
+
+    expect(playTone).toHaveBeenCalledTimes(1)
+    await act(() => vi.advanceTimersByTimeAsync(18000))
+
+    expect(screen.getByRole('radio', { name: /RRRR · tongue trill/i }).checked).toBe(true)
+    expect(playTone).toHaveBeenCalledTimes(16)
+    expect(playTone.mock.calls.at(-1)[0]).toBe(48)
   })
 })

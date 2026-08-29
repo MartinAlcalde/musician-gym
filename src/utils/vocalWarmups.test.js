@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { SCALE_TYPES } from './constants.js'
 import {
   buildVocalWarmupSequence,
+  getNextDrekxelSegmentId,
   getVoiceProfileTonicMidi,
   VOCAL_WARMUPS
 } from './vocalWarmups.js'
@@ -67,6 +68,12 @@ describe('vocal warm-up sequences', () => {
     expect(sequence.every(event => event.segmentId === 'rrrr')).toBe(true)
     expect(sequence[0].cycleTonicMidi).toBe(48)
     expect(sequence[7].cycleTonicMidi).toBe(49)
+  })
+
+  it('orders the independent DREKXEL blocks for automatic continuation', () => {
+    expect(getNextDrekxelSegmentId('mmmhh')).toBe('rrrr')
+    expect(getNextDrekxelSegmentId('bubbles')).toBe('buzz')
+    expect(getNextDrekxelSegmentId('puffedCheeks')).toBeNull()
   })
 
   it('places male and female profiles one octave apart near a comfortable C', () => {
