@@ -23,7 +23,7 @@ describe('vocal warm-up sequences', () => {
 
   it('uses the selected scale formula for every warm-up and mode', () => {
     for (const scale of Object.values(SCALE_TYPES)) {
-      for (const warmup of VOCAL_WARMUPS) {
+      for (const warmup of VOCAL_WARMUPS.filter(option => !option.segments)) {
         const sequence = buildVocalWarmupSequence({
           warmupId: warmup.id,
           tonicMidi: 60,
@@ -36,6 +36,23 @@ describe('vocal warm-up sequences', () => {
         )
       }
     }
+  })
+
+  it('reproduces the five DREKXEL blocks and restarts the tonic for each one', () => {
+    const sequence = buildVocalWarmupSequence({
+      warmupId: 'drekxelRoutine',
+      tonicMidi: 48,
+      scaleType: 'naturalMinor',
+      keyCount: 1
+    })
+
+    expect(sequence).toHaveLength(29)
+    expect(sequence.slice(0, 5).map(event => event.midi)).toEqual([48, 52, 55, 52, 48])
+    expect(sequence.slice(5, 12).map(event => event.midi)).toEqual([48, 52, 55, 60, 55, 52, 48])
+    expect(sequence.slice(12, 15).map(event => event.midi)).toEqual([48, 60, 48])
+    expect(sequence.filter(event => event.patternIndex === 0).map(event => event.segmentId)).toEqual([
+      'mmmhh', 'rrrr', 'bubbles', 'buzz', 'puffedCheeks'
+    ])
   })
 
   it('places male and female profiles one octave apart near a comfortable C', () => {

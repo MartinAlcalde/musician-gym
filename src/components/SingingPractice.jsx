@@ -86,6 +86,7 @@ export function SingingPractice({
   }
 
   const currentEvent = warmup.currentEvent
+  const currentSegmentId = currentEvent?.segmentId
   const currentTonicPc = currentEvent ? currentEvent.cycleTonicMidi % 12 : profileTonicMidi % 12
   const solfegeLabel = currentEvent
     ? labelForMidi(currentEvent.midi, 'solfege', currentTonicPc, scaleType)
@@ -108,7 +109,10 @@ export function SingingPractice({
         <legend>{t('singing.choose')}</legend>
         <div className="warmup-grid">
           {VOCAL_WARMUPS.map(option => (
-            <label key={option.id} className={`warmup-card ${warmupId === option.id ? 'selected' : ''}`}>
+            <label
+              key={option.id}
+              className={`warmup-card ${option.segments ? 'routine' : ''} ${warmupId === option.id ? 'selected' : ''}`}
+            >
               <input
                 type="radio"
                 name="warmup"
@@ -118,10 +122,20 @@ export function SingingPractice({
               />
               <strong>{t(`warmup.${option.id}.label`)}</strong>
               <span>{t(`warmup.${option.id}.description`)}</span>
-              <small>{t('singing.singOn', { syllable: option.syllable })}</small>
+              <small>{option.segments
+                ? t(`warmup.${option.id}.blocks`)
+                : t('singing.singOn', { syllable: option.syllable })}</small>
             </label>
           ))}
         </div>
+        {warmupId === 'drekxelRoutine' && (
+          <p className="routine-source">
+            {t('warmup.drekxelRoutine.source')}{' '}
+            <a href="https://www.youtube.com/watch?v=rgP_zKTvlE8" target="_blank" rel="noreferrer">
+              {t('warmup.drekxelRoutine.sourceLink')}
+            </a>.
+          </p>
+        )}
       </fieldset>
 
       <fieldset className="warmup-options" disabled={warmup.isRunning}>
@@ -159,18 +173,27 @@ export function SingingPractice({
       <div className="warmup-player">
         <div className="warmup-now" aria-live="polite">
           <span className="muted">{warmup.isRunning
-            ? t('singing.sing', { syllable: selectedWarmup.syllable })
+            ? currentSegmentId
+              ? t(`warmup.drekxelRoutine.segment.${currentSegmentId}.prompt`)
+              : t('singing.sing', { syllable: selectedWarmup.syllable })
             : t('singing.currentNote')}</span>
           <strong>{primaryLabel}</strong>
           <span>{secondaryLabel}</span>
           {currentEvent && (
-            <small>
-              {t('singing.keyProgress', {
-                current: currentEvent.cycleIndex + 1,
-                total: keyCount,
-                key: displayNoteName(getTonicName(currentTonicPc, scaleType))
-              })}
-            </small>
+            <>
+              {currentSegmentId && (
+                <small className="warmup-segment-name">
+                  {t(`warmup.drekxelRoutine.segment.${currentSegmentId}.label`)}
+                </small>
+              )}
+              <small>
+                {t('singing.keyProgress', {
+                  current: currentEvent.cycleIndex + 1,
+                  total: keyCount,
+                  key: displayNoteName(getTonicName(currentTonicPc, scaleType))
+                })}
+              </small>
+            </>
           )}
         </div>
 

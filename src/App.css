@@ -893,6 +893,19 @@ body.dark .help-text {
 .warmup-card span { color: #6b6b64; font-size: 12px; line-height: 1.4; }
 .warmup-card small { margin-top: auto; color: #9a3412; font-weight: 700; }
 
+.warmup-card.routine {
+  grid-column: 1 / -1;
+  min-height: 0;
+}
+
+.routine-source {
+  margin: 9px 2px 0;
+  color: #6b6b64;
+  font-size: 11px;
+}
+
+.routine-source a { color: #9a3412; font-weight: 700; }
+
 .warmup-options {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -944,6 +957,7 @@ body.dark .help-text {
 
 .warmup-now > span:not(.muted) { color: #fbbf24; font-weight: 700; }
 .warmup-now small { margin-top: 7px; color: #c8c8bd; }
+.warmup-now .warmup-segment-name { color: #fbbf24; font-weight: 750; }
 
 .warmup-transport {
   display: grid;
@@ -1386,6 +1400,8 @@ body.dark .medical-warning { background: #3b2d20; border-color: #7c4a1d; }
 
 body.dark .warmup-card { border-color: #505050; }
 body.dark .warmup-card.selected { background: #42351d; border-color: #f59e0b; }
+body.dark .routine-source { color: #aaa; }
+body.dark .routine-source a { color: #fbbf24; }
 body.dark .danger-zone { background: #3a2525; border-color: #7f1d1d; }
 body.dark .language-selector { background: #242420; border-color: #55554f; }
 

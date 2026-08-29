@@ -16,7 +16,7 @@ describe('useVocalWarmup', () => {
     return { ...hook, playTone }
   }
 
-  it('rests for two extra seconds before starting the next key', async () => {
+  it('rests for one extra tempo beat before starting the next key', async () => {
     const { result, playTone } = setup()
 
     await act(async () => result.current.start({
@@ -31,12 +31,33 @@ describe('useVocalWarmup', () => {
     await act(() => vi.advanceTimersByTimeAsync(6000))
     expect(playTone).toHaveBeenCalledTimes(7)
 
-    await act(() => vi.advanceTimersByTimeAsync(2999))
+    await act(() => vi.advanceTimersByTimeAsync(1999))
     expect(playTone).toHaveBeenCalledTimes(7)
 
     await act(() => vi.advanceTimersByTimeAsync(1))
     expect(playTone).toHaveBeenCalledTimes(8)
     expect(playTone.mock.calls[7][0]).toBe(61)
+  })
+
+  it('uses the same tempo-aware rest between DREKXEL blocks', async () => {
+    const { result, playTone } = setup()
+
+    await act(async () => result.current.start({
+      warmupId: 'drekxelRoutine',
+      tonicMidi: 48,
+      keyCount: 1,
+      tempo: 60
+    }))
+
+    await act(() => vi.advanceTimersByTimeAsync(4000))
+    expect(playTone).toHaveBeenCalledTimes(5)
+
+    await act(() => vi.advanceTimersByTimeAsync(1999))
+    expect(playTone).toHaveBeenCalledTimes(5)
+
+    await act(() => vi.advanceTimersByTimeAsync(1))
+    expect(playTone).toHaveBeenCalledTimes(6)
+    expect(playTone.mock.calls[5][0]).toBe(48)
   })
 
   it('can stop immediately during the rest between keys', async () => {

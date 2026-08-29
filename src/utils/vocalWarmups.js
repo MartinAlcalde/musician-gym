@@ -1,5 +1,13 @@
 import { SCALE_TYPES } from './constants.js'
 
+export const DREKXEL_ROUTINE_SEGMENTS = [
+  { id: 'mmmhh', semitones: [0, 4, 7, 4, 0] },
+  { id: 'rrrr', semitones: [0, 4, 7, 12, 7, 4, 0] },
+  { id: 'bubbles', semitones: [0, 12, 0] },
+  { id: 'buzz', semitones: [0, 4, 7, 4, 0] },
+  { id: 'puffedCheeks', semitones: [0, 2, 4, 5, 7, 5, 4, 2, 0] }
+]
+
 export const VOCAL_WARMUPS = [
   {
     id: 'fiveTone',
@@ -21,6 +29,13 @@ export const VOCAL_WARMUPS = [
     description: 'Practise every note of the selected scale or mode.',
     syllable: 'La',
     degrees: [0, 1, 2, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2, 1, 0]
+  },
+  {
+    id: 'drekxelRoutine',
+    label: 'DREKXEL routine',
+    description: 'Five adapted blocks for articulation, resonance, and airflow.',
+    syllable: 'M · R · BRR · DZZZ · B',
+    segments: DREKXEL_ROUTINE_SEGMENTS
   }
 ]
 
@@ -57,15 +72,21 @@ export const buildVocalWarmupSequence = ({
   const scale = SCALE_TYPES[scaleType] || SCALE_TYPES.major
   const scaleWithOctave = [...scale.intervals, 12]
   const safeKeyCount = Math.max(1, Math.min(12, Math.round(Number(keyCount) || 1)))
+  const segments = warmup.segments || [{ id: null, degrees: warmup.degrees }]
 
-  return Array.from({ length: safeKeyCount }, (_, cycleIndex) => {
-    const cycleTonicMidi = tonicMidi + cycleIndex
-    return warmup.degrees.map((degree, patternIndex) => ({
-      midi: cycleTonicMidi + scaleWithOctave[degree],
-      degree,
-      patternIndex,
-      cycleIndex,
-      cycleTonicMidi
-    }))
-  }).flat()
+  return segments.flatMap((segment, segmentIndex) => (
+    Array.from({ length: safeKeyCount }, (_, cycleIndex) => {
+      const cycleTonicMidi = tonicMidi + cycleIndex
+      const pattern = segment.semitones || segment.degrees
+      return pattern.map((value, patternIndex) => ({
+        midi: cycleTonicMidi + (segment.semitones ? value : scaleWithOctave[value]),
+        degree: segment.semitones ? null : value,
+        patternIndex,
+        cycleIndex,
+        cycleTonicMidi,
+        segmentId: segment.id,
+        segmentIndex
+      }))
+    }).flat()
+  ))
 }
