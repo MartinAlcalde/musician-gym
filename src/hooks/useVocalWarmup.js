@@ -12,9 +12,11 @@ export function useVocalWarmup({ playTone, getCurrentTime, startAudioContext }) 
   const [completed, setCompleted] = useState(false)
   const { schedule, clearAll } = useManagedTimeouts()
   const sessionRef = useRef(0)
+  const seekRef = useRef(null)
 
   const stop = useCallback(() => {
     sessionRef.current += 1
+    seekRef.current = null
     clearAll()
     setIsRunning(false)
     setCurrentEvent(null)
@@ -60,9 +62,22 @@ export function useVocalWarmup({ playTone, getCurrentTime, startAudioContext }) 
       schedule(playNext, beatMs * (changesPhrase ? 1 + KEY_CHANGE_REST_BEATS : 1))
     }
 
+    seekRef.current = targetIndex => {
+      if (sessionRef.current !== sessionId || sequence.length === 0) return false
+
+      clearAll()
+      sequenceIndex = Math.max(0, Math.min(sequence.length - 1, Math.round(Number(targetIndex) || 0)))
+      setIsRunning(true)
+      setCompleted(false)
+      playNext()
+      return true
+    }
+
     playNext()
     return true
-  }, [getCurrentTime, playTone, schedule, startAudioContext, stop])
+  }, [clearAll, getCurrentTime, playTone, schedule, startAudioContext, stop])
+
+  const seek = useCallback(targetIndex => seekRef.current?.(targetIndex) ?? false, [])
 
   return {
     isRunning,
@@ -72,6 +87,7 @@ export function useVocalWarmup({ playTone, getCurrentTime, startAudioContext }) 
     completed,
     progress: totalSteps ? Math.round((step / totalSteps) * 100) : 0,
     start,
-    stop
+    stop,
+    seek
   }
 }

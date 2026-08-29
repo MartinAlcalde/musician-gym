@@ -66,16 +66,22 @@ export const buildVocalWarmupSequence = ({
   warmupId = 'fiveTone',
   tonicMidi = 60,
   scaleType = 'major',
-  keyCount = 5
+  keyCount = 5,
+  segmentId
 } = {}) => {
   const warmup = VOCAL_WARMUPS.find(option => option.id === warmupId) || VOCAL_WARMUPS[0]
   const scale = SCALE_TYPES[scaleType] || SCALE_TYPES.major
   const scaleWithOctave = [...scale.intervals, 12]
   const safeKeyCount = Math.max(1, Math.min(12, Math.round(Number(keyCount) || 1)))
-  const segments = warmup.segments || [{ id: null, degrees: warmup.degrees }]
+  const allSegments = warmup.segments || [{ id: null, degrees: warmup.degrees }]
+  const requestedSegment = segmentId
+    ? allSegments.find(segment => segment.id === segmentId)
+    : null
+  const segments = requestedSegment ? [requestedSegment] : allSegments
 
-  return segments.flatMap((segment, segmentIndex) => (
-    Array.from({ length: safeKeyCount }, (_, cycleIndex) => {
+  return segments.flatMap(segment => {
+    const segmentIndex = warmup.segments ? warmup.segments.indexOf(segment) : 0
+    return Array.from({ length: safeKeyCount }, (_, cycleIndex) => {
       const cycleTonicMidi = tonicMidi + cycleIndex
       const pattern = segment.semitones || segment.degrees
       return pattern.map((value, patternIndex) => ({
@@ -88,5 +94,5 @@ export const buildVocalWarmupSequence = ({
         segmentIndex
       }))
     }).flat()
-  ))
+  })
 }

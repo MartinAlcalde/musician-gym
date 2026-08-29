@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useVocalWarmup } from '../hooks/useVocalWarmup.js'
 import {
   displayNoteName,
@@ -10,6 +10,7 @@ import {
 } from '../utils/helpers.js'
 import {
   buildVocalWarmupSequence,
+  DREKXEL_ROUTINE_SEGMENTS,
   getVoiceProfileTonicMidi,
   VOICE_PROFILES,
   VOCAL_WARMUPS,
@@ -36,6 +37,9 @@ export function SingingPractice({
   const [tempo, setTempo] = useState(72)
   const [keyCount, setKeyCount] = useState(5)
   const [voiceProfile, setVoiceProfile] = useState(getInitialVoiceProfile)
+  const [drekxelSegmentId, setDrekxelSegmentId] = useState(DREKXEL_ROUTINE_SEGMENTS[0].id)
+  const [seekPreview, setSeekPreview] = useState(null)
+  const seekPreviewRef = useRef(null)
   const selectedWarmup = useMemo(() => (
     VOCAL_WARMUPS.find(option => option.id === warmupId) || VOCAL_WARMUPS[0]
   ), [warmupId])
@@ -44,19 +48,21 @@ export function SingingPractice({
   const requestWakeLock = screenWakeLock.request
   const releaseWakeLock = screenWakeLock.release
   const profileTonicMidi = getVoiceProfileTonicMidi(tonicMidi % 12, voiceProfile)
+  const activeSegmentId = warmupId === 'drekxelRoutine' ? drekxelSegmentId : undefined
   const previewRange = useMemo(() => {
     const sequence = buildVocalWarmupSequence({
       warmupId,
       tonicMidi: profileTonicMidi,
       scaleType,
-      keyCount
+      keyCount,
+      segmentId: activeSegmentId
     })
     const midis = sequence.map(event => event.midi)
     return {
       lowest: midiToNoteName(Math.min(...midis)),
       highest: midiToNoteName(Math.max(...midis))
     }
-  }, [keyCount, profileTonicMidi, scaleType, warmupId])
+  }, [activeSegmentId, keyCount, profileTonicMidi, scaleType, warmupId])
 
   useEffect(() => saveToStorage(VOICE_PROFILE_STORAGE_KEY, voiceProfile), [voiceProfile])
 
@@ -78,11 +84,42 @@ export function SingingPractice({
       tonicMidi: profileTonicMidi,
       scaleType,
       keyCount,
+      segmentId: activeSegmentId,
       tempo,
       onComplete: () => void releaseWakeLock()
     })
     if (!started) void releaseWakeLock()
     await wakeLockPromise
+  }
+
+  const handleWarmupChange = nextWarmupId => {
+    stopWarmup()
+    setSeekPreview(null)
+    seekPreviewRef.current = null
+    setWarmupId(nextWarmupId)
+  }
+
+  const handleSegmentChange = segmentId => {
+    stopWarmup()
+    setSeekPreview(null)
+    seekPreviewRef.current = null
+    setDrekxelSegmentId(segmentId)
+  }
+
+  const updateSeekPreview = value => {
+    const nextStep = Number(value)
+    seekPreviewRef.current = nextStep
+    setSeekPreview(nextStep)
+  }
+
+  const commitSeek = () => {
+    const nextStep = seekPreviewRef.current
+    if (nextStep === null) return
+
+    const wasRunning = warmup.isRunning
+    seekPreviewRef.current = null
+    setSeekPreview(null)
+    if (warmup.seek(nextStep - 1) && !wasRunning) void requestWakeLock()
   }
 
   const currentEvent = warmup.currentEvent
@@ -118,7 +155,7 @@ export function SingingPractice({
                 name="warmup"
                 value={option.id}
                 checked={warmupId === option.id}
-                onChange={() => setWarmupId(option.id)}
+                onChange={() => handleWarmupChange(option.id)}
               />
               <strong>{t(`warmup.${option.id}.label`)}</strong>
               <span>{t(`warmup.${option.id}.description`)}</span>
@@ -138,8 +175,32 @@ export function SingingPractice({
         )}
       </fieldset>
 
+      {warmupId === 'drekxelRoutine' && (
+        <fieldset className="routine-block-picker" disabled={warmup.isRunning}>
+          <legend>{t('warmup.drekxelRoutine.chooseBlock')}</legend>
+          <div className="routine-block-grid">
+            {DREKXEL_ROUTINE_SEGMENTS.map(segment => (
+              <label
+                key={segment.id}
+                className={`routine-block ${drekxelSegmentId === segment.id ? 'selected' : ''}`}
+              >
+                <input
+                  type="radio"
+                  name="drekxel-block"
+                  value={segment.id}
+                  checked={drekxelSegmentId === segment.id}
+                  onChange={() => handleSegmentChange(segment.id)}
+                />
+                <strong>{t(`warmup.drekxelRoutine.segment.${segment.id}.label`)}</strong>
+                <span>{t(`warmup.drekxelRoutine.segment.${segment.id}.prompt`)}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
+
       <fieldset className="warmup-options" disabled={warmup.isRunning}>
-        <legend>{t('singing.options')}</legend>
+        <legend>{t(warmupId === 'drekxelRoutine' ? 'singing.optionsAfterBlock' : 'singing.options')}</legend>
         <label>
           {t('singing.voiceProfile')}
           <select value={voiceProfile} onChange={event => setVoiceProfile(event.target.value)}>
@@ -206,9 +267,29 @@ export function SingingPractice({
           >
             {warmup.isRunning ? t('singing.stop') : audio.isReady ? t('singing.start') : t('singing.loading')}
           </button>
-          <div className="progress-track" role="progressbar" aria-label={t('singing.progress')} aria-valuemin="0" aria-valuemax="100" aria-valuenow={warmup.progress}>
-            <span style={{ width: `${warmup.progress}%` }} />
-          </div>
+          <label className="seek-control">
+            <span>{t('singing.seekHelp')}</span>
+            <input
+              className="progress-slider"
+              type="range"
+              min="1"
+              max={Math.max(1, warmup.totalSteps)}
+              value={seekPreview ?? Math.max(1, warmup.step)}
+              disabled={warmup.totalSteps === 0}
+              aria-label={t('singing.seek')}
+              aria-valuetext={t('singing.noteProgress', {
+                current: seekPreview ?? Math.max(1, warmup.step),
+                total: warmup.totalSteps
+              })}
+              style={{ '--progress': `${warmup.totalSteps
+                ? (((seekPreview ?? warmup.step) - 1) / Math.max(1, warmup.totalSteps - 1)) * 100
+                : 0}%` }}
+              onChange={event => updateSeekPreview(event.target.value)}
+              onPointerUp={commitSeek}
+              onKeyUp={commitSeek}
+              onBlur={commitSeek}
+            />
+          </label>
           <p className="warmup-status">
             {warmup.completed
               ? t('singing.complete')

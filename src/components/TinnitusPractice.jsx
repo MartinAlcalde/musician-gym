@@ -53,8 +53,9 @@ export function TinnitusPractice({ screenWakeLock }) {
   useEffect(() => saveToStorage(`${STORAGE_PREFIX}volume`, volume), [volume])
 
   useEffect(() => {
-    if (!audio.isPlaying) void releaseWakeLock()
-  }, [audio.isPlaying, releaseWakeLock])
+    if (audio.isPlaying) void requestWakeLock()
+    else void releaseWakeLock()
+  }, [audio.isPlaying, releaseWakeLock, requestWakeLock])
 
   useEffect(() => () => void releaseWakeLock(), [releaseWakeLock])
 
@@ -173,13 +174,39 @@ export function TinnitusPractice({ screenWakeLock }) {
             <label className="audio-file-picker">
               <input
                 type="file"
+                multiple
                 accept="audio/*,.mp3,.m4a,.wav,.ogg,.flac"
-                onChange={event => audio.loadFile(event.target.files?.[0])}
+                onChange={event => audio.loadFiles(event.target.files)}
               />
               <span aria-hidden="true">＋</span>
-              <strong>{audio.fileName || t('tinnitus.file.select')}</strong>
-              <small>{audio.fileName ? t('tinnitus.file.another') : t('tinnitus.file.formats')}</small>
+              <strong>{audio.tracks.length
+                ? t('tinnitus.file.selected', { count: audio.tracks.length })
+                : t('tinnitus.file.select')}</strong>
+              <small>{audio.tracks.length ? t('tinnitus.file.replace') : t('tinnitus.file.formats')}</small>
             </label>
+
+            {audio.tracks.length > 0 && (
+              <div className="audio-playlist" aria-label={t('tinnitus.playlist')}>
+                <header>
+                  <strong>{t('tinnitus.playlist')}</strong>
+                  <span>{t('tinnitus.trackCount', {
+                    current: audio.trackIndex + 1,
+                    total: audio.tracks.length
+                  })}</span>
+                </header>
+                <ol>
+                  {audio.tracks.map((track, index) => (
+                    <li key={`${track}-${index}`} className={index === audio.trackIndex ? 'current' : ''}>
+                      <button type="button" onClick={() => audio.selectTrack(index)}>
+                        <span>{index + 1}</span>
+                        <strong>{track}</strong>
+                        {index === audio.trackIndex && <small>{t('tinnitus.currentTrack')}</small>}
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
           </div>
         </section>
 
@@ -258,14 +285,32 @@ export function TinnitusPractice({ screenWakeLock }) {
             </div>
 
             <div className="notched-player">
-              <button
-                type="button"
-                className="primary-button"
-                onClick={handlePlayback}
-                disabled={!audio.fileName || !audio.isSupported}
-              >
-                {audio.isPlaying ? t('tinnitus.pause') : t('tinnitus.play')}
-              </button>
+              <div className="playlist-transport">
+                <button
+                  type="button"
+                  onClick={audio.previousTrack}
+                  disabled={!audio.hasPrevious}
+                  aria-label={t('tinnitus.previousTrack')}
+                >
+                  ⏮
+                </button>
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={handlePlayback}
+                  disabled={!audio.fileName || !audio.isSupported}
+                >
+                  {audio.isPlaying ? t('tinnitus.pause') : t('tinnitus.play')}
+                </button>
+                <button
+                  type="button"
+                  onClick={audio.nextTrack}
+                  disabled={!audio.hasNext}
+                  aria-label={t('tinnitus.nextTrack')}
+                >
+                  ⏭
+                </button>
+              </div>
               <div className="audio-timeline">
                 <input
                   type="range"

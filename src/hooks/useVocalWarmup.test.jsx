@@ -75,4 +75,28 @@ describe('useVocalWarmup', () => {
     expect(playTone).toHaveBeenCalledTimes(7)
     expect(result.current.isRunning).toBe(false)
   })
+
+  it('seeks forward and backward and keeps playing from the selected note', async () => {
+    const { result, playTone } = setup()
+
+    await act(async () => result.current.start({
+      warmupId: 'fiveTone',
+      tonicMidi: 60,
+      keyCount: 2,
+      tempo: 60
+    }))
+
+    act(() => result.current.seek(9))
+    expect(playTone).toHaveBeenCalledTimes(2)
+    expect(playTone.mock.calls[1][0]).toBe(61)
+    expect(result.current.step).toBe(10)
+
+    act(() => result.current.seek(0))
+    expect(playTone).toHaveBeenCalledTimes(3)
+    expect(playTone.mock.calls[2][0]).toBe(60)
+    expect(result.current.step).toBe(1)
+
+    await act(() => vi.advanceTimersByTimeAsync(1000))
+    expect(playTone.mock.calls[3][0]).toBe(62)
+  })
 })

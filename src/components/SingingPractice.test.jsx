@@ -50,5 +50,7 @@ describe('SingingPractice', () => {
     const source = screen.getByRole('link', { name: 'the original DREKXEL warm-up' })
     expect(source.getAttribute('href')).toBe('https://www.youtube.com/watch?v=rgP_zKTvlE8')
     expect(screen.getByText(/5 guided blocks/)).toBeTruthy()
+    expect(screen.getAllByRole('radio', { name: /MMMMHH|RRRR|Bubbles|DZZZ|BBBB/ })).toHaveLength(5)
+    expect(screen.getByRole('slider', { name: 'Warm-up position' }).disabled).toBe(true)
   })
 })

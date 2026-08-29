@@ -55,6 +55,20 @@ describe('vocal warm-up sequences', () => {
     ])
   })
 
+  it('can build one DREKXEL block as an independent warm-up', () => {
+    const sequence = buildVocalWarmupSequence({
+      warmupId: 'drekxelRoutine',
+      segmentId: 'rrrr',
+      tonicMidi: 48,
+      keyCount: 2
+    })
+
+    expect(sequence).toHaveLength(14)
+    expect(sequence.every(event => event.segmentId === 'rrrr')).toBe(true)
+    expect(sequence[0].cycleTonicMidi).toBe(48)
+    expect(sequence[7].cycleTonicMidi).toBe(49)
+  })
+
   it('places male and female profiles one octave apart near a comfortable C', () => {
     expect(getVoiceProfileTonicMidi(0, 'male')).toBe(48)
     expect(getVoiceProfileTonicMidi(0, 'female')).toBe(60)

@@ -49,4 +49,51 @@ describe('TinnitusPractice', () => {
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(screen.queryByRole('dialog')).toBeNull()
   })
+
+  it('loads several audio files into a selectable playlist', () => {
+    const audioElement = {
+      currentTime: 0,
+      duration: 0,
+      src: '',
+      preload: '',
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      pause: vi.fn(),
+      removeAttribute: vi.fn(),
+      load: vi.fn()
+    }
+    class AudioMock {
+      constructor() {
+        return audioElement
+      }
+    }
+    vi.stubGlobal('Audio', AudioMock)
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn(file => `blob:${file.name}`),
+      revokeObjectURL: vi.fn()
+    })
+
+    render(
+      <TinnitusPractice
+        screenWakeLock={{ request: vi.fn(), release: vi.fn() }}
+      />
+    )
+
+    const picker = screen.getByText('Select one or more audio files').closest('label')
+    const fileInput = picker.querySelector('input[type="file"]')
+    const tracks = [
+      new File(['first'], 'first.mp3', { type: 'audio/mpeg' }),
+      new File(['second'], 'second.mp3', { type: 'audio/mpeg' })
+    ]
+    fireEvent.change(fileInput, { target: { files: tracks } })
+
+    expect(fileInput.multiple).toBe(true)
+    expect(screen.getByText('Selected audio files: 2')).toBeTruthy()
+    expect(screen.getByText('first.mp3')).toBeTruthy()
+    expect(screen.getByText('second.mp3')).toBeTruthy()
+    expect(screen.getByText('Track 1 of 2')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: /second\.mp3/i }))
+    expect(screen.getByText('Track 2 of 2')).toBeTruthy()
+  })
 })

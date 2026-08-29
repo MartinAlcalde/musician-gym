@@ -8,11 +8,17 @@ export function useNotchedAudio({ frequency, bandDistanceHz, filterEnabled, volu
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [errorKey, setErrorKey] = useState('')
+  const [playlist, setPlaylist] = useState([])
+  const [trackIndex, setTrackIndex] = useState(-1)
   const audioRef = useRef(null)
   const objectUrlRef = useRef(null)
   const contextRef = useRef(null)
   const graphRef = useRef(null)
   const referenceOscillatorRef = useRef(null)
+  const playlistRef = useRef([])
+  const trackIndexRef = useRef(-1)
+  const isPlayingRef = useRef(false)
+  const activateTrackRef = useRef(null)
 
   const isSupported = typeof window !== 'undefined' && Boolean(
     window.AudioContext || window.webkitAudioContext
@@ -25,9 +31,19 @@ export function useNotchedAudio({ frequency, bandDistanceHz, filterEnabled, volu
 
     const updateTime = () => setCurrentTime(audio.currentTime || 0)
     const updateDuration = () => setDuration(Number.isFinite(audio.duration) ? audio.duration : 0)
-    const handlePlay = () => setIsPlaying(true)
-    const handlePause = () => setIsPlaying(false)
-    const handleEnded = () => setIsPlaying(false)
+    const handlePlay = () => {
+      isPlayingRef.current = true
+      setIsPlaying(true)
+    }
+    const handlePause = () => {
+      isPlayingRef.current = false
+      setIsPlaying(false)
+    }
+    const handleEnded = () => {
+      isPlayingRef.current = false
+      setIsPlaying(false)
+      activateTrackRef.current?.(trackIndexRef.current + 1, true)
+    }
     const handleError = () => setErrorKey('audio.error.file')
 
     audio.addEventListener('timeupdate', updateTime)
@@ -112,26 +128,62 @@ export function useNotchedAudio({ frequency, bandDistanceHz, filterEnabled, volu
     return true
   }, [ensureContext, updateGraph])
 
-  const loadFile = useCallback(file => {
-    if (!file) return
-    if (file.type && !file.type.startsWith('audio/')) {
-      setErrorKey('audio.error.type')
-      return
-    }
-
+  const activateTrack = useCallback((index, autoplay = isPlayingRef.current) => {
+    const files = playlistRef.current
+    if (index < 0 || index >= files.length) return false
     const audio = audioRef.current
-    if (!audio) return
+    if (!audio) return false
+
     audio.pause()
     if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current)
+    const file = files[index]
     const objectUrl = URL.createObjectURL(file)
     objectUrlRef.current = objectUrl
     audio.src = objectUrl
     audio.load()
+    trackIndexRef.current = index
+    setTrackIndex(index)
     setFileName(file.name)
     setCurrentTime(0)
     setDuration(0)
     setErrorKey('')
-  }, [])
+
+    if (autoplay) {
+      void (async () => {
+        try {
+          if (!await ensureGraph()) return
+          await audio.play()
+          setErrorKey('')
+        } catch (audioError) {
+          console.warn('Notched audio playback failed:', audioError)
+          setErrorKey('audio.error.playback')
+        }
+      })()
+    }
+    return true
+  }, [ensureGraph])
+
+  useEffect(() => {
+    activateTrackRef.current = activateTrack
+    return () => {
+      activateTrackRef.current = null
+    }
+  }, [activateTrack])
+
+  const loadFiles = useCallback(fileList => {
+    const candidates = Array.from(fileList || [])
+    const files = candidates.filter(file => !file.type || file.type.startsWith('audio/'))
+    if (files.length === 0) {
+      if (candidates.length > 0) setErrorKey('audio.error.type')
+      return false
+    }
+
+    playlistRef.current = files
+    setPlaylist(files)
+    return activateTrack(0, false)
+  }, [activateTrack])
+
+  const loadFile = useCallback(file => loadFiles(file ? [file] : []), [loadFiles])
 
   const play = useCallback(async () => {
     if (!fileName || !audioRef.current) return false
@@ -148,6 +200,10 @@ export function useNotchedAudio({ frequency, bandDistanceHz, filterEnabled, volu
   }, [ensureGraph, fileName])
 
   const pause = useCallback(() => audioRef.current?.pause(), [])
+
+  const selectTrack = useCallback(index => activateTrack(index), [activateTrack])
+  const previousTrack = useCallback(() => activateTrack(trackIndexRef.current - 1), [activateTrack])
+  const nextTrack = useCallback(() => activateTrack(trackIndexRef.current + 1), [activateTrack])
 
   const seek = useCallback(value => {
     if (!audioRef.current || !Number.isFinite(duration)) return
@@ -195,10 +251,18 @@ export function useNotchedAudio({ frequency, bandDistanceHz, filterEnabled, volu
     isPlaying,
     currentTime,
     duration,
+    tracks: playlist.map(file => file.name),
+    trackIndex,
+    hasPrevious: trackIndex > 0,
+    hasNext: trackIndex >= 0 && trackIndex < playlist.length - 1,
     error: errorKey
       ? (translate?.(errorKey) ?? translateMessage('en', errorKey))
       : '',
     loadFile,
+    loadFiles,
+    selectTrack,
+    previousTrack,
+    nextTrack,
     play,
     pause,
     seek,

@@ -76,7 +76,10 @@ describe('useNotchedAudio', () => {
       volume: 0.35
     }))
 
-    act(() => result.current.loadFile({ name: 'song.mp3', type: 'audio/mpeg' }))
+    act(() => result.current.loadFiles([
+      { name: 'song.mp3', type: 'audio/mpeg' },
+      { name: 'second.mp3', type: 'audio/mpeg' }
+    ]))
     await act(async () => {
       expect(await result.current.play()).toBe(true)
     })
@@ -88,6 +91,17 @@ describe('useNotchedAudio', () => {
     expect(dryGain.gain.setTargetAtTime).toHaveBeenCalledWith(0, 1, 0.015)
     expect(masterGain.gain.setTargetAtTime).toHaveBeenCalledWith(0.35, 1, 0.015)
     expect(audioElement.play).toHaveBeenCalledTimes(1)
+    expect(result.current.tracks).toEqual(['song.mp3', 'second.mp3'])
+
+    await act(async () => {
+      listeners.get('ended')?.()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(result.current.trackIndex).toBe(1)
+    expect(result.current.fileName).toBe('second.mp3')
+    expect(audioElement.play).toHaveBeenCalledTimes(2)
 
     unmount()
     expect(context.close).toHaveBeenCalledTimes(1)
