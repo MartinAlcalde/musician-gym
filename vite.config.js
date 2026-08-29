@@ -6,6 +6,9 @@ import process from 'node:process'
 export default defineConfig({
   plugins: [react()],
   base: process.env.VERCEL ? '/' : '/musician-gym/',
+  define: {
+    'import.meta.env.IS_VERCEL': JSON.stringify(Boolean(process.env.VERCEL))
+  },
   build: {
     outDir: 'dist',
     assetsDir: 'assets'

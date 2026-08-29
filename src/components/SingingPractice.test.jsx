@@ -99,7 +99,7 @@ describe('SingingPractice', () => {
     expect(playTone).not.toHaveBeenCalled()
     expect(speechSynthesis.speak).toHaveBeenCalledTimes(1)
     const firstAnnouncement = speechSynthesis.speak.mock.calls[0][0]
-    expect(firstAnnouncement.text).toBe('Exercise: M humming for resonance.')
+    expect(firstAnnouncement.text).toBe('M humming for resonance.')
     expect(firstAnnouncement.lang).toBe('en-US')
 
     await act(async () => {
@@ -112,7 +112,7 @@ describe('SingingPractice', () => {
 
     expect(screen.getByRole('radio', { name: /RRRR · tongue trill/i }).checked).toBe(true)
     expect(speechSynthesis.speak).toHaveBeenCalledTimes(2)
-    expect(speechSynthesis.speak.mock.calls[1][0].text).toBe('Exercise: rolled R tongue trill.')
+    expect(speechSynthesis.speak.mock.calls[1][0].text).toBe('Rolled R tongue trill.')
     expect(playTone).toHaveBeenCalledTimes(15)
 
     await act(async () => {

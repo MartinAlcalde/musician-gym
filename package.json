@@ -16,6 +16,7 @@
     "check": "npm run lint && npm run test && npm run build"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "tone": "^15.1.22"
