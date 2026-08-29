@@ -23,6 +23,10 @@ h1 {
   margin: 0;
 }
 
+.training-range.no-register {
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, .75fr);
+}
+
 .training-range label {
   display: grid;
   flex: 1;
@@ -122,6 +126,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 
 @media (max-width: 480px) {
   .training-range { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .training-range.no-register { grid-template-columns: 1fr; }
   .training-range .scale-control { grid-column: 1 / -1; }
   .piano { --white-w: 44px; --white-h: 132px; --black-w: 28px; --black-h: 84px; --gap: 2px; }
   .key .label { font-size: 11px; }
@@ -890,7 +895,7 @@ body.dark .help-text {
 
 .warmup-options {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -901,6 +906,13 @@ body.dark .help-text {
   gap: 5px;
   font-size: 12px;
   font-weight: 650;
+}
+
+.warmup-options label small {
+  color: #73736c;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.35;
 }
 
 .warmup-options select { padding: 7px 9px; }

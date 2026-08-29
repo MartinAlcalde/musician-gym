@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { SCALE_TYPES } from './constants.js'
-import { buildVocalWarmupSequence, VOCAL_WARMUPS } from './vocalWarmups.js'
+import {
+  buildVocalWarmupSequence,
+  getVoiceProfileTonicMidi,
+  VOCAL_WARMUPS
+} from './vocalWarmups.js'
 
 describe('vocal warm-up sequences', () => {
   it('plays a five-note pattern in real time and transposes each round by a semitone', () => {
@@ -32,5 +36,12 @@ describe('vocal warm-up sequences', () => {
         )
       }
     }
+  })
+
+  it('places male and female profiles one octave apart near a comfortable C', () => {
+    expect(getVoiceProfileTonicMidi(0, 'male')).toBe(48)
+    expect(getVoiceProfileTonicMidi(0, 'female')).toBe(60)
+    expect(getVoiceProfileTonicMidi(11, 'male')).toBe(47)
+    expect(getVoiceProfileTonicMidi(11, 'female')).toBe(59)
   })
 })

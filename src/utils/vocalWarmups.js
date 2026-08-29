@@ -33,6 +33,20 @@ export const WARMUP_TEMPOS = [
 
 export const WARMUP_KEY_COUNTS = [3, 5, 8]
 
+export const VOICE_PROFILES = {
+  male: { id: 'male', anchorMidi: 48 },
+  female: { id: 'female', anchorMidi: 60 }
+}
+
+export const getVoiceProfileTonicMidi = (tonicPc = 0, profileId = 'male') => {
+  const profile = VOICE_PROFILES[profileId] || VOICE_PROFILES.male
+  const safePitchClass = ((Number(tonicPc) % 12) + 12) % 12
+  const anchorOctave = Math.floor(profile.anchorMidi / 12)
+  return [anchorOctave - 1, anchorOctave, anchorOctave + 1]
+    .map(octave => octave * 12 + safePitchClass)
+    .sort((left, right) => Math.abs(left - profile.anchorMidi) - Math.abs(right - profile.anchorMidi))[0]
+}
+
 export const buildVocalWarmupSequence = ({
   warmupId = 'fiveTone',
   tonicMidi = 60,

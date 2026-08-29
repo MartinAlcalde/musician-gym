@@ -11,6 +11,7 @@ export function TrainingSetup({
   tonicPc,
   scaleType,
   register,
+  showRegister = true,
   onTonicChange,
   onScaleTypeChange,
   onRegisterChange
@@ -24,12 +25,12 @@ export function TrainingSetup({
       <div className="training-setup-heading">
         <div>
           <h2 id="training-setup-heading">{t('training.title')}</h2>
-          <p>{t('training.help')}</p>
+          <p>{t(showRegister ? 'training.help' : 'training.helpSinging')}</p>
         </div>
         <span className="context-badge">{scale.cadenceLabel}</span>
       </div>
 
-      <div className="training-range">
+      <div className={`training-range ${showRegister ? '' : 'no-register'}`}>
         <label className="scale-control">
           {t('training.scaleMode')}
           <select value={scale.id} onChange={event => onScaleTypeChange(event.target.value)}>
@@ -52,14 +53,16 @@ export function TrainingSetup({
           </select>
         </label>
 
-        <label>
-          {t('training.register')}
-          <select value={register} onChange={event => onRegisterChange(event.target.value)}>
-            {REGISTER_OPTIONS.map(option => (
-              <option key={option.id} value={option.id}>{t(`register.${option.id}`)}</option>
-            ))}
-          </select>
-        </label>
+        {showRegister && (
+          <label>
+            {t('training.register')}
+            <select value={register} onChange={event => onRegisterChange(event.target.value)}>
+              {REGISTER_OPTIONS.map(option => (
+                <option key={option.id} value={option.id}>{t(`register.${option.id}`)}</option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
 
       <p className="scale-summary">

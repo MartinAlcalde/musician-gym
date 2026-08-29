@@ -504,6 +504,7 @@ function App() {
           tonicPc={tonicPc}
           scaleType={scaleType}
           register={register}
+          showRegister={activeArea === 'ear'}
           onTonicChange={value => handleSettingChange('tonality', { tonicPc: value, scaleType })}
           onScaleTypeChange={value => handleSettingChange('tonality', { tonicPc, scaleType: value })}
           onRegisterChange={value => handleSettingChange('register', value)}

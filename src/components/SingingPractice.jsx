@@ -1,12 +1,28 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useVocalWarmup } from '../hooks/useVocalWarmup.js'
-import { labelForMidi, displayNoteName, getTonicName } from '../utils/helpers.js'
 import {
+  displayNoteName,
+  getTonicName,
+  labelForMidi,
+  loadFromStorage,
+  midiToNoteName,
+  saveToStorage
+} from '../utils/helpers.js'
+import {
+  buildVocalWarmupSequence,
+  getVoiceProfileTonicMidi,
+  VOICE_PROFILES,
   VOCAL_WARMUPS,
   WARMUP_KEY_COUNTS,
   WARMUP_TEMPOS
 } from '../utils/vocalWarmups.js'
 import { useI18n } from '../i18n/I18nContext.jsx'
+
+const VOICE_PROFILE_STORAGE_KEY = 'fet-singing-voice-profile'
+const getInitialVoiceProfile = () => {
+  const saved = loadFromStorage(VOICE_PROFILE_STORAGE_KEY, 'male')
+  return VOICE_PROFILES[saved] ? saved : 'male'
+}
 
 export function SingingPractice({
   audio,
@@ -19,6 +35,7 @@ export function SingingPractice({
   const [warmupId, setWarmupId] = useState(VOCAL_WARMUPS[0].id)
   const [tempo, setTempo] = useState(72)
   const [keyCount, setKeyCount] = useState(5)
+  const [voiceProfile, setVoiceProfile] = useState(getInitialVoiceProfile)
   const selectedWarmup = useMemo(() => (
     VOCAL_WARMUPS.find(option => option.id === warmupId) || VOCAL_WARMUPS[0]
   ), [warmupId])
@@ -26,6 +43,22 @@ export function SingingPractice({
   const stopWarmup = warmup.stop
   const requestWakeLock = screenWakeLock.request
   const releaseWakeLock = screenWakeLock.release
+  const profileTonicMidi = getVoiceProfileTonicMidi(tonicMidi % 12, voiceProfile)
+  const previewRange = useMemo(() => {
+    const sequence = buildVocalWarmupSequence({
+      warmupId,
+      tonicMidi: profileTonicMidi,
+      scaleType,
+      keyCount
+    })
+    const midis = sequence.map(event => event.midi)
+    return {
+      lowest: midiToNoteName(Math.min(...midis)),
+      highest: midiToNoteName(Math.max(...midis))
+    }
+  }, [keyCount, profileTonicMidi, scaleType, warmupId])
+
+  useEffect(() => saveToStorage(VOICE_PROFILE_STORAGE_KEY, voiceProfile), [voiceProfile])
 
   useEffect(() => () => {
     stopWarmup()
@@ -42,7 +75,7 @@ export function SingingPractice({
     const wakeLockPromise = requestWakeLock()
     const started = await warmup.start({
       warmupId,
-      tonicMidi,
+      tonicMidi: profileTonicMidi,
       scaleType,
       keyCount,
       tempo,
@@ -53,7 +86,7 @@ export function SingingPractice({
   }
 
   const currentEvent = warmup.currentEvent
-  const currentTonicPc = currentEvent ? currentEvent.cycleTonicMidi % 12 : tonicMidi % 12
+  const currentTonicPc = currentEvent ? currentEvent.cycleTonicMidi % 12 : profileTonicMidi % 12
   const solfegeLabel = currentEvent
     ? labelForMidi(currentEvent.midi, 'solfege', currentTonicPc, scaleType)
     : '—'
@@ -93,6 +126,18 @@ export function SingingPractice({
 
       <fieldset className="warmup-options" disabled={warmup.isRunning}>
         <legend>{t('singing.options')}</legend>
+        <label>
+          {t('singing.voiceProfile')}
+          <select value={voiceProfile} onChange={event => setVoiceProfile(event.target.value)}>
+            {Object.keys(VOICE_PROFILES).map(profileId => (
+              <option key={profileId} value={profileId}>{t(`singing.voiceProfile.${profileId}`)}</option>
+            ))}
+          </select>
+          <small>{t('singing.voiceProfile.range', {
+            lowest: previewRange.lowest,
+            highest: previewRange.highest
+          })}</small>
+        </label>
         <label>
           {t('singing.tempo')}
           <select value={tempo} onChange={event => setTempo(Number(event.target.value))}>

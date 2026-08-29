@@ -2,6 +2,8 @@ import { useCallback, useRef, useState } from 'react'
 import { useManagedTimeouts } from './useManagedTimeouts.js'
 import { buildVocalWarmupSequence } from '../utils/vocalWarmups.js'
 
+const KEY_CHANGE_REST_MS = 2000
+
 export function useVocalWarmup({ playTone, getCurrentTime, startAudioContext }) {
   const [isRunning, setIsRunning] = useState(false)
   const [currentEvent, setCurrentEvent] = useState(null)
@@ -50,7 +52,9 @@ export function useVocalWarmup({ playTone, getCurrentTime, startAudioContext }) 
       setCurrentEvent(event)
       setStep(sequenceIndex + 1)
       sequenceIndex += 1
-      schedule(playNext, beatMs)
+      const nextEvent = sequence[sequenceIndex]
+      const changesKey = nextEvent && nextEvent.cycleIndex !== event.cycleIndex
+      schedule(playNext, beatMs + (changesKey ? KEY_CHANGE_REST_MS : 0))
     }
 
     playNext()
