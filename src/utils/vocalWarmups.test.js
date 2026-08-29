@@ -51,6 +51,8 @@ describe('vocal warm-up sequences', () => {
     expect(sequence.slice(0, 5).map(event => event.midi)).toEqual([48, 52, 55, 52, 48])
     expect(sequence.slice(5, 12).map(event => event.midi)).toEqual([48, 52, 55, 60, 55, 52, 48])
     expect(sequence.slice(12, 15).map(event => event.midi)).toEqual([48, 60, 48])
+    expect(sequence.slice(15, 20).map(event => event.midi)).toEqual([48, 52, 55, 52, 48])
+    expect(sequence.slice(20).map(event => event.midi)).toEqual([48, 50, 52, 53, 55, 53, 52, 50, 48])
     expect(sequence.filter(event => event.patternIndex === 0).map(event => event.segmentId)).toEqual([
       'mmmhh', 'rrrr', 'bubbles', 'buzz', 'puffedCheeks'
     ])

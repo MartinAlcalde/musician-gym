@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useManagedTimeouts } from '../hooks/useManagedTimeouts.js'
+import { useSpeechAnnouncement } from '../hooks/useSpeechAnnouncement.js'
 import { useVocalWarmup } from '../hooks/useVocalWarmup.js'
 import {
   displayNoteName,
@@ -34,7 +35,7 @@ export function SingingPractice({
   notation,
   screenWakeLock
 }) {
-  const { t } = useI18n()
+  const { t, speechLocale } = useI18n()
   const [warmupId, setWarmupId] = useState(VOCAL_WARMUPS[0].id)
   const [tempo, setTempo] = useState(72)
   const [keyCount, setKeyCount] = useState(5)
@@ -48,6 +49,7 @@ export function SingingPractice({
     VOCAL_WARMUPS.find(option => option.id === warmupId) || VOCAL_WARMUPS[0]
   ), [warmupId])
   const warmup = useVocalWarmup(audio)
+  const { announce, cancel: cancelAnnouncement } = useSpeechAnnouncement()
   const {
     schedule: scheduleBlockTransition,
     clearAll: clearBlockTransitions
@@ -77,14 +79,16 @@ export function SingingPractice({
   useEffect(() => () => {
     routineRunRef.current += 1
     clearBlockTransitions()
+    cancelAnnouncement()
     stopWarmup()
     void releaseWakeLock()
-  }, [clearBlockTransitions, releaseWakeLock, stopWarmup])
+  }, [cancelAnnouncement, clearBlockTransitions, releaseWakeLock, stopWarmup])
 
   const handleStart = async () => {
     if (warmup.isRunning || isBlockTransitioning) {
       routineRunRef.current += 1
       clearBlockTransitions()
+      cancelAnnouncement()
       setIsBlockTransitioning(false)
       stopWarmup()
       void releaseWakeLock()
@@ -96,6 +100,13 @@ export function SingingPractice({
     const wakeLockPromise = requestWakeLock()
     const startBlock = async segmentId => {
       if (routineRunRef.current !== runId) return
+      if (warmupId === 'drekxelRoutine') {
+        setIsBlockTransitioning(true)
+        await announce(t('singing.blockAnnouncement', {
+          exercise: t(`warmup.drekxelRoutine.segment.${segmentId}.speech`)
+        }), speechLocale)
+        if (routineRunRef.current !== runId) return
+      }
       setIsBlockTransitioning(false)
       const started = await warmup.start({
         warmupId,
@@ -132,6 +143,7 @@ export function SingingPractice({
   const handleWarmupChange = nextWarmupId => {
     routineRunRef.current += 1
     clearBlockTransitions()
+    cancelAnnouncement()
     setIsBlockTransitioning(false)
     stopWarmup()
     setSeekPreview(null)
@@ -142,6 +154,7 @@ export function SingingPractice({
   const handleSegmentChange = segmentId => {
     routineRunRef.current += 1
     clearBlockTransitions()
+    cancelAnnouncement()
     setIsBlockTransitioning(false)
     stopWarmup()
     setSeekPreview(null)
@@ -174,8 +187,8 @@ export function SingingPractice({
   const letterLabel = currentEvent
     ? displayNoteName(labelForMidi(currentEvent.midi, 'letter', currentTonicPc, scaleType))
     : '—'
-  const primaryLabel = notation === 'solfege' ? solfegeLabel : letterLabel
-  const secondaryLabel = notation === 'solfege' ? letterLabel : solfegeLabel
+  const primaryLabel = isBlockTransitioning ? '…' : notation === 'solfege' ? solfegeLabel : letterLabel
+  const secondaryLabel = isBlockTransitioning ? '—' : notation === 'solfege' ? letterLabel : solfegeLabel
 
   return (
     <section className="singing-practice" aria-labelledby="singing-heading">
@@ -277,14 +290,18 @@ export function SingingPractice({
 
       <div className="warmup-player">
         <div className="warmup-now" aria-live="polite">
-          <span className="muted">{warmup.isRunning
+          <span className="muted">{isBlockTransitioning
+            ? t('singing.blockAnnouncement', {
+                exercise: t(`warmup.drekxelRoutine.segment.${drekxelSegmentId}.speech`)
+              })
+            : warmup.isRunning
             ? currentSegmentId
               ? t(`warmup.drekxelRoutine.segment.${currentSegmentId}.prompt`)
               : t('singing.sing', { syllable: selectedWarmup.syllable })
             : t('singing.currentNote')}</span>
           <strong>{primaryLabel}</strong>
           <span>{secondaryLabel}</span>
-          {currentEvent && (
+          {currentEvent && !isBlockTransitioning && (
             <>
               {currentSegmentId && (
                 <small className="warmup-segment-name">

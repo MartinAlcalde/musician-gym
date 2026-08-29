@@ -5,6 +5,7 @@ import { SingingPractice } from './SingingPractice.jsx'
 describe('SingingPractice', () => {
   afterEach(() => {
     vi.useRealTimers()
+    vi.unstubAllGlobals()
     localStorage.clear()
   })
 
@@ -60,6 +61,18 @@ describe('SingingPractice', () => {
   it('continues automatically with the next DREKXEL block', async () => {
     vi.useFakeTimers()
     const playTone = vi.fn()
+    const speechSynthesis = {
+      cancel: vi.fn(),
+      resume: vi.fn(),
+      speak: vi.fn()
+    }
+    class SpeechSynthesisUtteranceMock {
+      constructor(text) {
+        this.text = text
+      }
+    }
+    vi.stubGlobal('speechSynthesis', speechSynthesis)
+    vi.stubGlobal('SpeechSynthesisUtterance', SpeechSynthesisUtteranceMock)
     render(
       <SingingPractice
         audio={{
@@ -83,10 +96,29 @@ describe('SingingPractice', () => {
       await Promise.resolve()
     })
 
+    expect(playTone).not.toHaveBeenCalled()
+    expect(speechSynthesis.speak).toHaveBeenCalledTimes(1)
+    const firstAnnouncement = speechSynthesis.speak.mock.calls[0][0]
+    expect(firstAnnouncement.text).toBe('Exercise: M humming for resonance.')
+    expect(firstAnnouncement.lang).toBe('en-US')
+
+    await act(async () => {
+      firstAnnouncement.onend()
+      await Promise.resolve()
+    })
     expect(playTone).toHaveBeenCalledTimes(1)
+
     await act(() => vi.advanceTimersByTimeAsync(18000))
 
     expect(screen.getByRole('radio', { name: /RRRR · tongue trill/i }).checked).toBe(true)
+    expect(speechSynthesis.speak).toHaveBeenCalledTimes(2)
+    expect(speechSynthesis.speak.mock.calls[1][0].text).toBe('Exercise: rolled R tongue trill.')
+    expect(playTone).toHaveBeenCalledTimes(15)
+
+    await act(async () => {
+      speechSynthesis.speak.mock.calls[1][0].onend()
+      await Promise.resolve()
+    })
     expect(playTone).toHaveBeenCalledTimes(16)
     expect(playTone.mock.calls.at(-1)[0]).toBe(48)
   })
