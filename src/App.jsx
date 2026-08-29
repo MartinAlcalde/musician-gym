@@ -453,14 +453,16 @@ function App() {
           <h1>Musician Gym</h1>
         </div>
         <div className="header-actions">
-          <label className="language-selector">
-            <span aria-hidden="true">🌐</span>
-            <span className="sr-only">{t('language.label')}</span>
-            <select value={locale} onChange={event => handleLanguageChange(event.target.value)}>
-              <option value="en">{t('language.english')}</option>
-              <option value="es">{t('language.spanish')}</option>
-            </select>
-          </label>
+          <button
+            type="button"
+            className="language-button"
+            onClick={() => handleLanguageChange(locale === 'es' ? 'en' : 'es')}
+            aria-label={t('language.switchTo', {
+              language: t(locale === 'es' ? 'language.english' : 'language.spanish')
+            })}
+          >
+            {locale === 'es' ? 'Es' : 'En'}
+          </button>
           <button
             type="button"
             className="settings-button"

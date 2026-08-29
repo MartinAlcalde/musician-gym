@@ -520,27 +520,20 @@ body.dark .help-text {
   gap: 8px;
 }
 
-.language-selector {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  min-height: 39px;
-  padding: 0 8px;
+.language-button {
+  min-width: 34px;
+  min-height: 32px;
+  padding: 4px 7px;
   border: 1px solid #c8c8c2;
-  border-radius: 8px;
+  border-radius: 7px;
   background: #fff;
-}
-
-.language-selector select {
-  max-width: 92px;
-  border: 0;
-  background: transparent;
   color: inherit;
-  font: inherit;
-  cursor: pointer;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: .02em;
 }
 
-.language-selector select:focus-visible {
+.language-button:focus-visible {
   outline: 2px solid #2563eb;
   outline-offset: 2px;
 }
@@ -1523,7 +1516,7 @@ body.dark .routine-block.selected { background: #42351d; border-color: #f59e0b; 
 body.dark .routine-source { color: #aaa; }
 body.dark .routine-source a { color: #fbbf24; }
 body.dark .danger-zone { background: #3a2525; border-color: #7f1d1d; }
-body.dark .language-selector { background: #242420; border-color: #55554f; }
+body.dark .language-button { background: #242420; border-color: #55554f; }
 
 @media (max-width: 640px) {
   .app-shell { padding: 18px 12px 36px; }
@@ -1552,9 +1545,8 @@ body.dark .language-selector { background: #242420; border-color: #55554f; }
 
 @media (max-width: 420px) {
   .app-header { align-items: flex-start; }
-  .header-actions { align-items: stretch; flex-direction: column-reverse; }
+  .header-actions { align-items: flex-end; flex-direction: column-reverse; }
   .settings-button { padding: 8px 10px; }
-  .language-selector { justify-content: center; min-height: 35px; }
   .practice-tabs { margin-top: 15px; }
   .training-setup { padding: 13px; }
   .context-badge { display: none; }
