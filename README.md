@@ -51,7 +51,7 @@ Enable in settings for passive practice:
 
 ## Training range
 
-Choose any of 36 tonalities—12 major, 12 natural minor, and 12 harmonic minor—and one of three registers. Solfege stays relative to the selected tonic (Do is always degree 1), while letter notation shows the sounding pitch.
+Choose any scale or mode in 12 tonal centers and one of three registers. Labels can use fixed solfege (Do–Re–Mi), letter names (C–D–E), or scale degrees (1–2–3), which stay consistent when the key changes. Ear-training rounds can use either piano samples or a synthesized plucked-guitar timbre.
 
 - Major uses an I-IV-V-I cadence.
 - Natural minor uses i-iv-v-i and includes the lowered seventh.

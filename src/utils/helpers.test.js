@@ -21,7 +21,7 @@ import {
 import { EXERCISES, SCALE_TYPES, TONALITIES, TONIC_NAMES_BY_SCALE } from './constants.js'
 
 describe('musical helpers', () => {
-  it('labels MIDI notes in solfege and letter notation', () => {
+  it('labels MIDI notes in solfege, letter, and scale-degree notation', () => {
     expect(labelForMidi(60, 'solfege')).toBe('do')
     expect(labelForMidi(66, 'letter')).toBe('F#')
     expect(labelForMidi(62, 'solfege', 2)).toBe('re')
@@ -32,6 +32,12 @@ describe('musical helpers', () => {
     expect(labelForMidi(79, 'solfege', 9, 'naturalMinor')).toBe('sol')
     expect(labelForMidi(80, 'solfege', 9, 'harmonicMinor')).toBe('sol♯')
     expect(labelForMidi(80, 'letter', 9, 'harmonicMinor')).toBe('G#')
+    expect(labelForMidi(60, 'degree', 0, 'major')).toBe('1')
+    expect(labelForMidi(64, 'degree', 0, 'major')).toBe('3')
+    expect(labelForMidi(66, 'degree', 2, 'major')).toBe('3')
+    expect(labelForMidi(72, 'degree', 9, 'naturalMinor')).toBe('3')
+    expect(labelForMidi(80, 'degree', 9, 'harmonicMinor')).toBe('7')
+    expect(labelForMidi(61, 'degree', 0, 'major')).toBe('♯1')
     expect(noteNameToFixedSolfege('Bb')).toBe('si♭')
     expect(midiToNoteName(85)).toBe('C#6')
   })
@@ -114,6 +120,12 @@ describe('musical helpers', () => {
         noteNames.forEach((note, degreeIndex) => {
           expect(note[0]).toBe('CDEFGAB'[(tonicLetterIndex + degreeIndex) % 7])
           expect(pitchClassForNoteName(note)).toBe((tonicPc + scale.intervals[degreeIndex]) % 12)
+          expect(labelForMidi(
+            60 + tonicPc + scale.intervals[degreeIndex],
+            'degree',
+            tonicPc,
+            scaleType
+          )).toBe(String(degreeIndex + 1))
         })
         expect(getExerciseSet(3, 60 + tonicPc, scaleType)).toEqual([
           ...scale.intervals.map(interval => 60 + tonicPc + interval),

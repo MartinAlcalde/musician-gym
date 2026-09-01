@@ -187,8 +187,16 @@ export function SingingPractice({
   const letterLabel = currentEvent
     ? displayNoteName(labelForMidi(currentEvent.midi, 'letter', currentTonicPc, scaleType))
     : '—'
-  const primaryLabel = isBlockTransitioning ? '…' : notation === 'solfege' ? solfegeLabel : letterLabel
-  const secondaryLabel = isBlockTransitioning ? '—' : notation === 'solfege' ? letterLabel : solfegeLabel
+  const degreeLabel = currentEvent
+    ? labelForMidi(currentEvent.midi, 'degree', currentTonicPc, scaleType)
+    : '—'
+  const selectedLabel = notation === 'solfege'
+    ? solfegeLabel
+    : notation === 'letter' ? letterLabel : degreeLabel
+  const primaryLabel = isBlockTransitioning ? '…' : selectedLabel
+  const secondaryLabel = isBlockTransitioning
+    ? '—'
+    : notation === 'solfege' ? letterLabel : solfegeLabel
 
   return (
     <section className="singing-practice" aria-labelledby="singing-heading">

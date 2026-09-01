@@ -60,7 +60,24 @@ export const labelForMidi = (midi, notation = 'solfege', tonicPc = 0, scaleType 
   const pitchClass = normalizePitchClass(midi)
   const relativePitchClass = normalizePitchClass(pitchClass - tonicPc)
   const selectedScaleType = safeScaleType(scaleType)
+  const scaleIntervals = SCALE_TYPES[selectedScaleType].intervals
   const scaleNoteName = SCALE_LETTERS[selectedScaleType]?.[normalizePitchClass(tonicPc)]?.[relativePitchClass]
+
+  if (notation === 'degree') {
+    const degreeIndex = scaleIntervals.indexOf(relativePitchClass)
+    if (degreeIndex !== -1) return String(degreeIndex + 1)
+
+    const raisedDegreeIndex = scaleIntervals.findIndex(interval => (
+      normalizePitchClass(interval + 1) === relativePitchClass
+    ))
+    if (raisedDegreeIndex !== -1) return `♯${raisedDegreeIndex + 1}`
+
+    const loweredDegreeIndex = scaleIntervals.findIndex(interval => (
+      normalizePitchClass(interval - 1) === relativePitchClass
+    ))
+    if (loweredDegreeIndex !== -1) return `♭${loweredDegreeIndex + 1}`
+  }
+
   return notation === 'solfege'
     ? (noteNameToFixedSolfege(scaleNoteName) || displayNoteName(PC_TO_SOLFEGE[pitchClass] || ''))
     : (scaleNoteName || PC_TO_LETTER[pitchClass] || '')

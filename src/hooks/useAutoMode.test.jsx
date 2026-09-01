@@ -142,6 +142,25 @@ describe('useAutoMode', () => {
     expect(onUIUpdate).toHaveBeenCalledWith('✨ Answer: do', true, 72)
   })
 
+  it('uses degree labels and the selected guitar timbre throughout a round', async () => {
+    const { result } = renderHook(() => useAutoMode({
+      notation: 'degree',
+      instrument: 'guitar',
+      initialInterval: 3000,
+      initialSayAnswer: false
+    }))
+    const callbacks = startRound(result)
+
+    expect(callbacks.playCadence).toHaveBeenCalledWith(60, 'major', 'guitar')
+    expect(callbacks.playTone).toHaveBeenCalledWith(60, 0.22, 0.9, 'guitar', 0.18)
+
+    await act(() => vi.advanceTimersByTimeAsync(2500))
+    expect(callbacks.onUIUpdate).toHaveBeenCalledWith('✨ Answer: 1', true, 60)
+
+    await act(() => vi.advanceTimersByTimeAsync(1000))
+    expect(callbacks.playTone.mock.calls.filter(call => call[3] === 'guitar')).toHaveLength(3)
+  })
+
   it('localizes automatic feedback and speech for Spanish', async () => {
     class UtteranceMock {
       constructor(text) {

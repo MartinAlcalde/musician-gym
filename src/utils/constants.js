@@ -185,6 +185,13 @@ export const REGISTERS = {
 
 export const REGISTER_OPTIONS = Object.values(REGISTERS)
 
+export const NOTATION_OPTIONS = ['solfege', 'letter', 'degree']
+
+export const INSTRUMENTS = {
+  piano: { id: 'piano' },
+  guitar: { id: 'guitar' }
+}
+
 // Auto mode intervals
 export const AUTO_INTERVALS = {
   3000: '3 seconds',
@@ -206,6 +213,7 @@ export const STORAGE_KEYS = {
   TONIC_PC: 'fet-tonic-pc',
   SCALE_TYPE: 'fet-scale-type',
   REGISTER: 'fet-register',
+  INSTRUMENT: 'fet-instrument',
   LANGUAGE: 'musician-gym-language',
   KEYMAP: 'fet-keymap',
   STATS: 'fet-stats'

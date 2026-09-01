@@ -76,14 +76,13 @@ export const Piano = forwardRef(function Piano({
     const whites = getWhiteKeys(tonicMidi)
     const { startMidi, endMidi } = getPianoRange(tonicMidi)
     const allowedSet = new Set(exerciseSet)
-    const useSolfege = notation === 'solfege'
     const tonicPc = tonicMidi % 12
     
     const keys = []
     
     // White keys
     whites.forEach((midi) => {
-      const text = labelForMidi(midi, useSolfege ? 'solfege' : 'letter', tonicPc, scaleType)
+      const text = labelForMidi(midi, notation, tonicPc, scaleType)
       const inScope = allowedSet.has(midi)
       const noteName = midiToNoteName(midi)
       const visibleText = inScope ? text : ''
@@ -107,7 +106,7 @@ export const Piano = forwardRef(function Piano({
     whites.forEach((midi) => {
       const blackMidi = midi + 1
       if (hasSharpAfter(midi) && blackMidi >= startMidi && blackMidi <= endMidi) {
-        const text = labelForMidi(blackMidi, useSolfege ? 'solfege' : 'letter', tonicPc, scaleType)
+        const text = labelForMidi(blackMidi, notation, tonicPc, scaleType)
         const inScope = allowedSet.has(blackMidi)
         const noteName = midiToNoteName(blackMidi)
         const visibleText = inScope ? text : ''

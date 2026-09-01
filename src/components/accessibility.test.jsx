@@ -99,6 +99,7 @@ describe('accessible game controls', () => {
 
   it('organizes settings into clear sections and explains control mapping', () => {
     const onClose = vi.fn()
+    const onSettingChange = vi.fn()
     render(
       <Settings
         isVisible
@@ -106,13 +107,14 @@ describe('accessible game controls', () => {
         settings={{
           resolve: true,
           notation: 'solfege',
+          instrument: 'piano',
           darkTheme: false,
           autoMode: false,
           autoInterval: 5000,
           showAnswer: true,
           sayAnswer: true
         }}
-        onSettingChange={vi.fn()}
+        onSettingChange={onSettingChange}
         exerciseSet={[60, 62, 64, 65]}
         tonicMidi={60}
         scaleType="major"
@@ -128,11 +130,49 @@ describe('accessible game controls', () => {
     )
 
     expect(screen.getByRole('dialog', { name: 'Settings' })).toBeTruthy()
+    const notationSelect = screen.getByRole('combobox', { name: /Note labels/ })
+    const instrumentSelect = screen.getByRole('combobox', { name: /Ear-training sound/ })
+    expect(notationSelect.querySelectorAll('option')).toHaveLength(3)
+    expect(instrumentSelect.querySelectorAll('option')).toHaveLength(2)
+    fireEvent.change(notationSelect, { target: { value: 'degree' } })
+    fireEvent.change(instrumentSelect, { target: { value: 'guitar' } })
+    expect(onSettingChange).toHaveBeenCalledWith('notation', 'degree')
+    expect(onSettingChange).toHaveBeenCalledWith('instrument', 'guitar')
     fireEvent.click(screen.getByRole('button', { name: /controls/i }))
     expect(screen.getByText('Why add controls?')).toBeTruthy()
     expect(screen.getByText(/same buttons work in every key and mode/i)).toBeTruthy()
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows scale degrees independently of the sounding note name', () => {
+    const { container, rerender } = render(
+      <Piano
+        exerciseSet={[60, 62, 64, 65]}
+        tonicMidi={60}
+        scaleType="major"
+        notation="degree"
+        disabled={false}
+        onKeyClick={vi.fn()}
+      />
+    )
+
+    expect(container.querySelector('[data-midi="60"] .label').textContent).toBe('1')
+    expect(container.querySelector('[data-midi="64"] .label').textContent).toBe('3')
+
+    rerender(
+      <Piano
+        exerciseSet={[62, 64, 66, 67]}
+        tonicMidi={62}
+        scaleType="major"
+        notation="degree"
+        disabled={false}
+        onKeyClick={vi.fn()}
+      />
+    )
+
+    expect(container.querySelector('[data-midi="62"] .label').textContent).toBe('1')
+    expect(container.querySelector('[data-midi="66"] .label').textContent).toBe('3')
   })
 
   it('visually distinguishes scale notes on black keys after transposition', () => {

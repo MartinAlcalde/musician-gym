@@ -103,12 +103,33 @@ export function Settings({
                   title={t('settings.resolve.title')}
                   description={t('settings.resolve.description')}
                 />
-                <ToggleSetting
-                  checked={settingsNotation === 'solfege'}
-                  onChange={checked => onSettingChange('notation', checked ? 'solfege' : 'letter')}
-                  title={t('settings.notation.title')}
-                  description={t('settings.notation.description')}
-                />
+                <label className="setting-select">
+                  <span>
+                    <strong>{t('settings.notation.title')}</strong>
+                    <small>{t('settings.notation.description')}</small>
+                  </span>
+                  <select
+                    value={settingsNotation}
+                    onChange={event => onSettingChange('notation', event.target.value)}
+                  >
+                    <option value="solfege">{t('settings.notation.solfege')}</option>
+                    <option value="letter">{t('settings.notation.letter')}</option>
+                    <option value="degree">{t('settings.notation.degree')}</option>
+                  </select>
+                </label>
+                <label className="setting-select">
+                  <span>
+                    <strong>{t('settings.instrument.title')}</strong>
+                    <small>{t('settings.instrument.description')}</small>
+                  </span>
+                  <select
+                    value={settings.instrument}
+                    onChange={event => onSettingChange('instrument', event.target.value)}
+                  >
+                    <option value="piano">{t('settings.instrument.piano')}</option>
+                    <option value="guitar">{t('settings.instrument.guitar')}</option>
+                  </select>
+                </label>
                 <ToggleSetting
                   checked={darkTheme}
                   onChange={checked => onSettingChange('darkTheme', checked)}

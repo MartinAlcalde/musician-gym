@@ -22,7 +22,13 @@ import {
   getTonicMidi,
   getTonalityLabel
 } from './utils/helpers.js'
-import { STORAGE_KEYS, REGISTERS, SCALE_TYPES } from './utils/constants.js'
+import {
+  STORAGE_KEYS,
+  REGISTERS,
+  SCALE_TYPES,
+  INSTRUMENTS,
+  NOTATION_OPTIONS
+} from './utils/constants.js'
 import { useI18n } from './i18n/I18nContext.jsx'
 import './App.css'
 
@@ -71,7 +77,14 @@ function App() {
   
   // Settings state
   const [resolve, setResolve] = useState(() => loadBooleanPreference(STORAGE_KEYS.RESOLVE, true))
-  const [notation, setNotation] = useState(() => loadPreference(STORAGE_KEYS.NOTATION, 'solfege'))
+  const [notation, setNotation] = useState(() => {
+    const saved = loadPreference(STORAGE_KEYS.NOTATION, 'solfege')
+    return NOTATION_OPTIONS.includes(saved) ? saved : 'solfege'
+  })
+  const [instrument, setInstrument] = useState(() => {
+    const saved = loadPreference(STORAGE_KEYS.INSTRUMENT, 'piano')
+    return INSTRUMENTS[saved] ? saved : 'piano'
+  })
   const [darkTheme, setDarkTheme] = useState(() => loadBooleanPreference(STORAGE_KEYS.DARK_THEME, false))
   const [autoModeEnabled, setAutoModeEnabled] = useState(() => (
     loadBooleanPreference(STORAGE_KEYS.AUTO_MODE, false)
@@ -104,6 +117,7 @@ function App() {
   const keyboard = useKeyboard()
   const autoMode = useAutoMode({
     notation,
+    instrument,
     initialInterval: initialAutoSettings.interval,
     initialShowAnswer: initialAutoSettings.showAnswer,
     initialSayAnswer: initialAutoSettings.sayAnswer,
@@ -179,11 +193,11 @@ function App() {
     setFeedback({ key: 'feedback.cadence' })
     setFeedbackOk(null)
     
-    const endCad = audio.playCadence(tonicMidi, scaleType)
+    const endCad = audio.playCadence(tonicMidi, scaleType, instrument)
     const newTarget = gameState.startNewRound()
     
     const tTarget = endCad + 0.12
-    audio.playTone(newTarget, tTarget, 0.9, "piano", 0.18)
+    audio.playTone(newTarget, tTarget, 0.9, instrument, 0.18)
     
     const currentTime = audio.getCurrentTime()
     const enableAtMs = currentTime !== null
@@ -263,9 +277,9 @@ function App() {
     setFeedback({ key: 'feedback.cadence' })
     setFeedbackOk(null)
     
-    const endCad = audio.playCadence(tonicMidi, scaleType)
+    const endCad = audio.playCadence(tonicMidi, scaleType, instrument)
     const tTarget = endCad + 0.12
-    audio.playTone(gameState.targetMidi, tTarget, 0.9, 'piano', 0.18)
+    audio.playTone(gameState.targetMidi, tTarget, 0.9, instrument, 0.18)
     
     const currentTime = audio.getCurrentTime()
     const enableAtMs = currentTime !== null
@@ -301,8 +315,8 @@ function App() {
         const currentTime = audio.getCurrentTime()
         if (currentTime !== null) {
           const t0 = currentTime + 0.05
-          audio.playTone(currentTarget, t0, 0.45, 'piano', 0.16)
-          audio.playTone(tonicMidi, t0 + 0.46, 0.8, 'piano', 0.18)
+          audio.playTone(currentTarget, t0, 0.45, instrument, 0.16)
+          audio.playTone(tonicMidi, t0 + 0.46, 0.8, instrument, 0.18)
           const tEnd = t0 + 0.46 + 0.82
           nextDelayMs = Math.max(0, (tEnd - currentTime) * 1000) + 120
         }
@@ -324,8 +338,24 @@ function App() {
         savePreference(STORAGE_KEYS.RESOLVE, value)
         break
       case 'notation':
+        if (!NOTATION_OPTIONS.includes(value)) break
         setNotation(value)
         savePreference(STORAGE_KEYS.NOTATION, value)
+        break
+      case 'instrument':
+        if (!INSTRUMENTS[value]) break
+        manualTimers.clearAll()
+        if (autoMode.isRunningRef.current) {
+          autoMode.stop()
+          void releaseWakeLock()
+        }
+        gameState.resetTarget()
+        gameState.disableAnswers()
+        setManualSessionStarted(false)
+        setFeedback({ key: 'feedback.instrumentChanged' })
+        setFeedbackOk(null)
+        setInstrument(value)
+        savePreference(STORAGE_KEYS.INSTRUMENT, value)
         break
       case 'darkTheme':
         setDarkTheme(value)
@@ -411,6 +441,7 @@ function App() {
   const settings = {
     resolve,
     notation,
+    instrument,
     darkTheme,
     autoMode: autoModeEnabled,
     autoInterval: autoMode.interval,

@@ -11,6 +11,7 @@ const now = () => globalThis.performance?.now?.() ?? Date.now()
 
 export function useAutoMode({
   notation = 'solfege',
+  instrument = 'piano',
   initialInterval = 5000,
   initialShowAnswer = true,
   initialSayAnswer = true,
@@ -27,6 +28,7 @@ export function useAutoMode({
   const showAnswerRef = useRef(showAnswer)
   const sayAnswerRef = useRef(sayAnswer)
   const notationRef = useRef(notation)
+  const instrumentRef = useRef(instrument)
   const translateRef = useRef(translate || ((key, variables) => translateMessage('en', key, variables)))
   const speechLocaleRef = useRef(speechLocale)
   const timersRef = useRef(new Set())
@@ -38,6 +40,10 @@ export function useAutoMode({
   useEffect(() => {
     notationRef.current = notation
   }, [notation])
+
+  useEffect(() => {
+    instrumentRef.current = instrument === 'guitar' ? 'guitar' : 'piano'
+  }, [instrument])
 
   useEffect(() => {
     translateRef.current = translate || ((key, variables) => translateMessage('en', key, variables))
@@ -162,8 +168,8 @@ export function useAutoMode({
       }
 
       const t0 = currentTime + 0.1
-      playTone(targetMidi, t0, 0.45, 'piano', 0.16)
-      playTone(tonicMidi, t0 + 0.46, 0.8, 'piano', 0.18)
+      playTone(targetMidi, t0, 0.45, instrumentRef.current, 0.16)
+      playTone(tonicMidi, t0 + 0.46, 0.8, instrumentRef.current, 0.18)
 
       scheduleNextRound(onComplete, roundStartedAt, sessionId, roundId)
     }, RESOLUTION_DELAY_MS, sessionId, roundId)
@@ -214,7 +220,10 @@ export function useAutoMode({
 
     cancelSpeech()
     const spanishSpeech = speechLocaleRef.current.toLowerCase().startsWith('es')
-    const spokenLabel = targetLabel
+    const answerToSpeak = notationRef.current === 'degree'
+      ? translateRef.current('notation.degree.spoken', { degree: targetLabel })
+      : targetLabel
+    const spokenLabel = answerToSpeak
       .replaceAll('♭', spanishSpeech ? ' bemol' : ' flat')
       .replaceAll('♯', spanishSpeech ? ' sostenido' : ' sharp')
       .replaceAll('#', spanishSpeech ? ' sostenido' : ' sharp')
@@ -276,9 +285,9 @@ export function useAutoMode({
     roundRef.current = roundId
     const roundStartedAt = now()
 
-    const endCadence = playCadence(tonicMidi, scaleType)
+    const endCadence = playCadence(tonicMidi, scaleType, instrumentRef.current)
     const targetTime = endCadence + 0.12
-    playTone(targetMidi, targetTime, 0.9, 'piano', 0.18)
+    playTone(targetMidi, targetTime, 0.9, instrumentRef.current, 0.18)
 
     const beginAnswerSequence = (audioDelayMs) => {
       schedule(() => {
