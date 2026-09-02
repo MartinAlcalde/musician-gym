@@ -40,12 +40,12 @@ describe('rhythm patterns', () => {
 
   it('copies notation using the selected language', () => {
     const pattern = generateRhythmPattern({ random: () => 0.2 })
-    expect(rhythmPatternText(pattern, 'es')).toContain('Musician Gym · R3')
+    expect(rhythmPatternText(pattern, 'es')).toContain('Musician Gym · Rhythm')
     expect(rhythmPatternText(pattern, 'es')).toMatch(/[DI]/)
     expect(rhythmPatternText(pattern, 'en')).toMatch(/[RL]/)
   })
 
-  it('keeps the original R3 quick-start patterns available', () => {
+  it('keeps the original quick-start patterns available', () => {
     const preset = createRhythmPresetPattern('free-medium')
     expect(preset.mode).toBe('free')
     expect(preset.level).toBe(5)

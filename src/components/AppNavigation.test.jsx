@@ -18,6 +18,7 @@ describe('AppNavigation', () => {
 
     expect(screen.getByRole('button', { name: 'Rhythm' }).getAttribute('aria-current')).toBe('page')
     expect(screen.getByRole('button', { name: /Tinnitus/i })).toBeTruthy()
+    expect(screen.getByText('Auditory rehabilitation')).toBeTruthy()
     expect(screen.getAllByRole('button', { name: 'Open settings' })).toHaveLength(1)
     fireEvent.click(screen.getByRole('button', { name: 'Ear' }))
     expect(onSelectArea).toHaveBeenCalledWith('ear')

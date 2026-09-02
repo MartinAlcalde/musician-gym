@@ -9,7 +9,7 @@ describe('RhythmPractice', () => {
     vi.unstubAllGlobals()
   })
 
-  it('integrates the configurable R3 rhythm trainer', () => {
+  it('integrates the configurable rhythm trainer', () => {
     const { container } = render(
       <RhythmPractice screenWakeLock={{ request: vi.fn(), release: vi.fn() }} />
     )

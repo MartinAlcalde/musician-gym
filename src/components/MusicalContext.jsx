@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import {
   REGISTER_OPTIONS,
   SCALE_TYPE_GROUPS,
@@ -7,7 +8,7 @@ import {
 import { displayNoteName, getScaleNoteNames } from '../utils/helpers.js'
 import { useI18n } from '../i18n/I18nContext.jsx'
 
-export function TrainingSetup({
+export function MusicalContext({
   tonicPc,
   scaleType,
   register,
@@ -17,14 +18,15 @@ export function TrainingSetup({
   onRegisterChange
 }) {
   const { t } = useI18n()
+  const headingId = useId()
   const scale = SCALE_TYPES[scaleType] || SCALE_TYPES.major
   const noteNames = getScaleNoteNames(tonicPc, scale.id).map(displayNoteName)
 
   return (
-    <section className="training-setup" aria-labelledby="training-setup-heading">
-      <div className="training-setup-heading">
+    <section className="musical-context" aria-labelledby={headingId}>
+      <div className="musical-context-heading">
         <div>
-          <h2 id="training-setup-heading">{t('training.title')}</h2>
+          <h2 id={headingId}>{t('training.title')}</h2>
           <p>{t(showRegister ? 'training.help' : 'training.helpSinging')}</p>
         </div>
         <span className="context-badge">{scale.cadenceLabel}</span>

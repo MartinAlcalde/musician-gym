@@ -470,8 +470,7 @@ export function RhythmPractice({ screenWakeLock }) {
       <header className="section-intro rhythm-intro">
         <div>
           <p className="eyebrow">{t('rhythm.eyebrow')}</p>
-          <h2 id="rhythm-heading">{t('rhythm.title')} <span className="r3-badge">R3</span></h2>
-          <p>{t('rhythm.intro')}</p>
+          <h2 id="rhythm-heading">{t('rhythm.title')}</h2>
         </div>
         <span className="rhythm-shortcuts">{t('rhythm.shortcuts')}</span>
       </header>

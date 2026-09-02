@@ -349,5 +349,5 @@ export function rhythmPatternText(pattern, locale = 'es') {
     ? `${locale === 'es' ? (step.hand === 'R' ? 'D' : 'I') : step.hand}${step.accent ? '!' : ''}`
     : '–')
   const level = locale === 'es' ? 'nivel' : 'level'
-  return `${labels.join('  ')}\n${hands.join('  ')}\nMusician Gym · R3 · ${pattern.beats}/4 · ${level} ${pattern.rating}`
+  return `${labels.join('  ')}\n${hands.join('  ')}\nMusician Gym · Rhythm · ${pattern.beats}/4 · ${level} ${pattern.rating}`
 }

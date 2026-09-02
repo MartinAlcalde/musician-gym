@@ -2,7 +2,7 @@
 
 **One practice space for ear, voice, and rhythm.**
 
-Musician Gym combines functional ear training, guided vocal warm-ups, and the R3 rhythm-and-coordination trainer in one bilingual, installable app. The tinnitus listening experiment remains available as a separate utility rather than a core training discipline.
+Musician Gym combines functional ear training, guided vocal warm-ups, and rhythm-and-coordination practice in one bilingual, installable app. The tinnitus experiment lives in a separate auditory-rehabilitation area.
 
 ## Key Features
 
@@ -14,7 +14,7 @@ Musician Gym combines functional ear training, guided vocal warm-ups, and the R3
 
 **🎤 Vocal Practice** - Move scales and the six-part DREKXEL-inspired routine through different keys with original pacing and an ascending-descending range.
 
-**🥁 R3 Rhythm Training** - Generate patterns for hands, guitar, or feet with configurable meters, subdivisions, accents, difficulty, count-in, and precise Web Audio scheduling.
+**🥁 Rhythm Training** - Generate patterns for hands, guitar, or feet with configurable meters, subdivisions, accents, difficulty, count-in, and precise Web Audio scheduling.
 
 **🎹 36 Tonalities & 3 Registers** - Practice every major, natural-minor, and harmonic-minor key in low, middle, or high registers.
 
@@ -29,7 +29,7 @@ Musician Gym combines functional ear training, guided vocal warm-ups, and the R3
 ## Getting Started
 
 1. **[Open Musician Gym](https://musician-gym.vercel.app/)**
-2. Choose Ear, Voice, Rhythm R3, or Tinnitus from the practice rail (the compact menu on mobile).
+2. Choose Ear, Voice, Rhythm, or Tinnitus from the practice rail (the compact menu on mobile).
 3. Configure only the musical context needed by that practice.
 4. Start training; preferences and recent rhythm patterns remain on the device.
 
@@ -71,8 +71,8 @@ Choose any scale or mode in 12 tonal centers and one of three registers. Labels 
 
 - **Ear** — tonal-context recognition with solfege, letters, or scale degrees.
 - **Voice** — guided warm-ups across keys and vocal ranges.
-- **Rhythm / R3** — pulse, reading, accents, and limb or guitar coordination.
-- **Listening tool** — personalized notched audio for tonal tinnitus, clearly separated from the training areas.
+- **Rhythm** — pulse, reading, accents, and limb or guitar coordination.
+- **Auditory rehabilitation** — personalized notched audio for tonal tinnitus, clearly separated from the training areas.
 
 ## Technical Details
 

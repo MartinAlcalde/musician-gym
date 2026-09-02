@@ -6,7 +6,7 @@ import { GameDisplay } from './GameDisplay.jsx'
 import { Piano } from './Piano.jsx'
 import { RemoteControl } from './RemoteControl.jsx'
 import { Settings } from './Settings.jsx'
-import { TrainingSetup } from './TrainingSetup.jsx'
+import { MusicalContext } from './MusicalContext.jsx'
 
 describe('accessible game controls', () => {
   afterEach(() => vi.unstubAllGlobals())
@@ -54,7 +54,7 @@ describe('accessible game controls', () => {
     const onRegisterChange = vi.fn()
     render(
       <>
-        <TrainingSetup
+        <MusicalContext
           tonicPc={2}
           scaleType="major"
           register="middle"

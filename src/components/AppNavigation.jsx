@@ -1,9 +1,10 @@
 import { useI18n } from '../i18n/I18nContext.jsx'
+import { BrandMark } from './BrandMark.jsx'
 
 const TRAINING_AREAS = [
   { id: 'ear', number: '01' },
   { id: 'singing', number: '02' },
-  { id: 'rhythm', number: '03', badge: 'R3' }
+  { id: 'rhythm', number: '03' }
 ]
 
 export function AppNavigation({ activeArea, isOpen, onSelectArea, onOpenSettings, onClose }) {
@@ -13,7 +14,7 @@ export function AppNavigation({ activeArea, isOpen, onSelectArea, onOpenSettings
     <aside className={`app-sidebar ${isOpen ? 'open' : ''}`} id="app-navigation">
       <header className="sidebar-header">
         <button type="button" className="sidebar-brand" onClick={() => onSelectArea('ear')} aria-label="Musician Gym">
-          <span className="sidebar-monogram" aria-hidden="true"><b>M</b><i>/</i><b>G</b></span>
+          <BrandMark />
           <span><strong>Musician Gym</strong><small>{t('app.disciplines')}</small></span>
         </button>
         <button type="button" className="sidebar-close" onClick={onClose} aria-label={t('nav.close')}>×</button>
@@ -35,12 +36,11 @@ export function AppNavigation({ activeArea, isOpen, onSelectArea, onOpenSettings
               <strong>{t(`nav.short.${area.id}`)}</strong>
               <small>{t(`nav.description.${area.id}`)}</small>
             </span>
-            {area.badge && <b className="sidebar-badge">{area.badge}</b>}
             <span className="sidebar-arrow" aria-hidden="true">↗</span>
           </button>
         ))}
 
-        <p className="sidebar-tools-label">{t('nav.toolsPlural')}</p>
+        <p className="sidebar-tools-label">{t('nav.rehabilitation')}</p>
         <button
           type="button"
           className={`sidebar-tool ${activeArea === 'tinnitus' ? 'active' : ''}`}
@@ -72,7 +72,6 @@ export function AppNavigation({ activeArea, isOpen, onSelectArea, onOpenSettings
             <span aria-hidden="true">⌘</span> {t('settings.button')}
           </button>
         </div>
-        <p>{t('app.sidebarNote')}</p>
       </footer>
     </aside>
   )

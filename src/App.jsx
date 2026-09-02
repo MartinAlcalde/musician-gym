@@ -5,7 +5,8 @@ import {
   GameControls,
   GameDisplay,
   ExerciseSelector,
-  TrainingSetup,
+  MusicalContext,
+  BrandMark,
   SingingPractice,
   TinnitusPractice,
   AppNavigation,
@@ -524,6 +525,7 @@ function App() {
           >
             <span aria-hidden="true"><i /><i /></span>
           </button>
+          <BrandMark className="mobile-brand-symbol" />
           <div>
             <small>Musician Gym</small>
             <strong>{activeAreaLabel}</strong>
@@ -601,7 +603,7 @@ function App() {
                   <p>{t('ear.intro')}</p>
                 </div>
               </header>
-              <TrainingSetup
+              <MusicalContext
                 tonicPc={tonicPc}
                 scaleType={scaleType}
                 register={register}
@@ -658,7 +660,7 @@ function App() {
               notation={notation}
               screenWakeLock={screenWakeLock}
               contextPanel={(
-                <TrainingSetup
+                <MusicalContext
                   tonicPc={tonicPc}
                   scaleType={scaleType}
                   register={register}

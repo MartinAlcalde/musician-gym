@@ -1,4 +1,4 @@
-const CACHE_NAME = 'musician-gym-v3'
+const CACHE_NAME = 'musician-gym-v4'
 
 const coreAssets = [
   './',

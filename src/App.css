@@ -490,7 +490,7 @@ body.dark .help-text {
 }
 
 .app-header,
-.training-setup-heading,
+.musical-context-heading,
 .settings-header {
   display: flex;
   align-items: center;
@@ -574,7 +574,7 @@ body.dark .help-text {
   box-shadow: 0 1px 4px rgba(0, 0, 0, .09);
 }
 
-.training-setup {
+.musical-context {
   margin-bottom: 14px;
   padding: 16px;
   border: 1px solid #deded8;
@@ -583,17 +583,17 @@ body.dark .help-text {
   box-shadow: 0 1px 2px rgba(0, 0, 0, .025);
 }
 
-.training-setup-heading {
+.musical-context-heading {
   align-items: flex-start;
   margin-bottom: 13px;
 }
 
-.training-setup-heading h2 {
+.musical-context-heading h2 {
   margin: 0;
   font-size: 15px;
 }
 
-.training-setup-heading p,
+.musical-context-heading p,
 .scale-summary {
   margin: 3px 0 0;
   color: #6b6b64;
@@ -1458,7 +1458,7 @@ body.dark .voice-safety {
 }
 
 body.dark .practice-tabs button.active,
-body.dark .training-setup,
+body.dark .musical-context,
 body.dark .singing-practice,
 body.dark .tinnitus-practice,
 body.dark .tinnitus-info-modal,
@@ -1468,7 +1468,7 @@ body.dark .settings-nav button.active {
   color: #e5e5e5;
 }
 
-body.dark .training-setup,
+body.dark .musical-context,
 body.dark .singing-practice,
 body.dark .tinnitus-practice,
 body.dark .tinnitus-step,
@@ -1480,7 +1480,7 @@ body.dark .device-details {
   border-color: #404040;
 }
 
-body.dark .training-setup-heading p,
+body.dark .musical-context-heading p,
 body.dark .scale-summary,
 body.dark .section-intro > p:last-child,
 body.dark .settings-section > header p,
@@ -1555,7 +1555,7 @@ body.dark .language-button { background: #242420; border-color: #55554f; }
   .header-actions { align-items: flex-end; flex-direction: column-reverse; }
   .settings-button { padding: 8px 10px; }
   .practice-tabs { margin-top: 15px; }
-  .training-setup { padding: 13px; }
+  .musical-context { padding: 13px; }
   .context-badge { display: none; }
   .game-actions > button { flex: 1 1 auto; }
   .warmup-options { grid-template-columns: 1fr; }
@@ -1843,7 +1843,7 @@ body {
 .workspace-settings { flex: 0 0 auto; padding: 8px 10px; color: var(--mg-muted); font-size: 12px; }
 
 .practice-content,
-.training-setup,
+.musical-context,
 .singing-practice,
 .tinnitus-practice {
   border-color: var(--mg-line);
@@ -1853,7 +1853,7 @@ body {
 }
 
 .practice-content { padding: 20px; }
-.training-setup { border-radius: 14px; box-shadow: 0 6px 20px rgba(45, 40, 29, .035); }
+.musical-context { border-radius: 14px; box-shadow: 0 6px 20px rgba(45, 40, 29, .035); }
 .singing-practice,
 .tinnitus-practice { padding: clamp(17px, 3vw, 26px); }
 
@@ -1995,13 +1995,12 @@ body {
 .home-tool-card .home-card-copy strong { font-size: 16px; }
 .home-tool-card .home-card-copy span { font-size: 11px; }
 
-/* R3 rhythm module */
+/* Rhythm module */
 .rhythm-practice { display: grid; gap: 14px; }
 .rhythm-intro { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding: 8px 4px 4px; }
 .rhythm-intro > div { max-width: 720px; }
 .rhythm-intro h2 { display: flex; gap: 10px; align-items: center; font-size: clamp(1.55rem, 3vw, 2rem); letter-spacing: -.04em; }
 .rhythm-intro > div > p:last-child { margin-bottom: 0; }
-.r3-badge { padding: 3px 6px; border-radius: 6px; color: #2d360d; background: #d8e979; font: 900 10px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .04em; }
 .rhythm-shortcuts { flex: 0 0 auto; margin-top: 20px; color: var(--mg-muted); font: 700 9px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .03em; }
 
 .rhythm-setup {
@@ -2362,19 +2361,11 @@ body {
   text-transform: uppercase;
 }
 
-.sidebar-monogram {
-  display: flex;
-  width: 42px;
-  height: 42px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #dbe97c;
-  color: #dbe97c;
-  font: 800 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: -.08em;
-}
-
-.sidebar-monogram i { margin: 0 1px; color: #65705f; font-style: normal; font-weight: 400; }
+.brand-symbol { display: block; width: 44px; height: 44px; overflow: visible; }
+.brand-symbol path { fill: none; stroke-linecap: square; stroke-linejoin: miter; }
+.brand-symbol-loop { stroke: #dbe97c; stroke-width: 2.8; }
+.brand-symbol-pulse { stroke: #f2f1e9; stroke-width: 2.8; }
+.brand-symbol-dot { fill: #ee805d; }
 .sidebar-close { display: none; }
 
 .sidebar-nav {
@@ -2395,7 +2386,7 @@ body {
 .sidebar-nav > button {
   position: relative;
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr) auto auto;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
   gap: 8px;
   width: 100%;
   min-height: 68px;
@@ -2439,13 +2430,6 @@ body {
   white-space: nowrap;
 }
 
-.sidebar-badge {
-  padding: 3px 5px;
-  border: 1px solid #59614f;
-  color: #dbe97c;
-  font: 800 8px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-
 .sidebar-arrow { color: #555c52; font-size: 13px; }
 .sidebar-nav > button.active .sidebar-arrow { color: #dbe97c; }
 
@@ -2471,7 +2455,6 @@ body {
 .sidebar-footer button + button { justify-content: flex-end; }
 .sidebar-footer button:hover:not(:disabled) { background: transparent; color: #f4f4ed; }
 .sidebar-footer button span { color: #dbe97c; font: 750 10px ui-monospace, SFMono-Regular, Menlo, monospace; }
-.sidebar-footer > p { margin: 9px 0 0; color: #686f66; font-size: 9px; line-height: 1.45; }
 
 .app-workspace {
   grid-column: 2;
@@ -2489,7 +2472,7 @@ body {
 .navigation-scrim { display: none; }
 
 .practice-content,
-.training-setup,
+.musical-context,
 .singing-practice,
 .tinnitus-practice,
 .rhythm-more,
@@ -2506,9 +2489,9 @@ body {
 }
 
 .practice-content { padding: clamp(20px, 3vw, 30px); }
-.training-setup { border-radius: 2px; background: #f6f4ed; }
-.practice-content > .training-setup,
-.singing-practice > .training-setup { margin-top: 18px; }
+.musical-context { border-radius: 2px; background: #f6f4ed; }
+.practice-content > .musical-context,
+.singing-practice > .musical-context { margin-top: 18px; }
 .workspace-heading { padding-bottom: 14px; border-bottom: 1px solid var(--mg-line); }
 .workspace-heading h2,
 .section-intro h2 { max-width: 780px; font-size: clamp(1.7rem, 3.3vw, 2.8rem); line-height: 1.03; }
@@ -2524,7 +2507,7 @@ body.dark .app-workspace { background: #161814; }
 body.dark .practice-content,
 body.dark .singing-practice,
 body.dark .tinnitus-practice { border-top-color: #dbe97c; }
-body.dark .training-setup { background: #1b1e1a; }
+body.dark .musical-context { background: #1b1e1a; }
 
 @media (max-width: 800px) {
   .app-shell { display: block; }
@@ -2597,6 +2580,9 @@ body.dark .training-setup { background: #1b1e1a; }
   .mobile-menu-button i { display: block; height: 1px; background: currentColor; }
   .mobile-menu-button i:last-child { width: 11px; }
   .mobile-workspace-header > div { display: grid; gap: 1px; }
+  .mobile-brand-symbol { width: 27px; height: 27px; }
+  .mobile-brand-symbol .brand-symbol-loop { stroke: #717c35; }
+  .mobile-brand-symbol .brand-symbol-pulse { stroke: #1f211e; }
   .mobile-workspace-header small {
     color: #73766d;
     font: 700 8px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -2620,4 +2606,149 @@ body.dark .training-setup { background: #1b1e1a; }
 
 @media (prefers-reduced-motion: reduce) {
   .app-sidebar { transition: none; }
+}
+
+/* Final theme layer: every module uses the same surface and contrast hierarchy. */
+body.dark {
+  --mg-ink: #f1f2ec;
+  --mg-muted: #a6aca2;
+  --mg-surface: #20231f;
+  --mg-canvas: #141613;
+  --mg-line: #3d433b;
+  background: var(--mg-canvas);
+  color: var(--mg-ink);
+}
+
+body.dark .app-sidebar button,
+body.dark .sidebar-brand,
+body.dark .sidebar-footer button {
+  border-color: transparent;
+  background: transparent;
+  color: inherit;
+}
+
+body.dark .sidebar-nav > button {
+  border: 0;
+  border-top: 1px solid #2d312c;
+  background: transparent;
+  color: #b7bcb3;
+}
+
+body.dark .sidebar-nav > button:last-child { border-bottom: 1px solid #2d312c; }
+body.dark .sidebar-nav > button:hover:not(:disabled) { background: #1c201b; color: #f0f0e8; }
+body.dark .sidebar-nav > button.active { background: transparent; color: #f5f5ec; }
+body.dark .sidebar-close { border-color: #3a3e37; }
+
+body.dark .practice-content,
+body.dark .singing-practice,
+body.dark .tinnitus-practice,
+body.dark .settings-modal,
+body.dark .tinnitus-info-modal,
+body.dark .exercise-selector-modal {
+  border-color: var(--mg-line);
+  background: var(--mg-surface);
+  color: var(--mg-ink);
+}
+
+body.dark .workspace-heading,
+body.dark .settings-header,
+body.dark .settings-nav,
+body.dark .setting-toggle,
+body.dark .setting-select,
+body.dark .device-details,
+body.dark .exercise-selector-header,
+body.dark .exercise-selector-footer { border-color: var(--mg-line); }
+
+body.dark .musical-context {
+  border-color: var(--mg-line);
+  background: #181b18;
+}
+
+body.dark .training-range {
+  border: 0;
+  background: transparent;
+}
+
+body.dark select,
+body.dark input[type="number"] {
+  border-color: #50564d;
+  background: #292d28;
+  color: var(--mg-ink);
+}
+
+body.dark .context-badge {
+  background: #3a2a20;
+  color: #ffae7d;
+}
+
+body.dark .stat { color: #c5c9c0; }
+body.dark .feedback { color: #e5e7df; }
+
+body.dark .warmup-card,
+body.dark .routine-block,
+body.dark .tinnitus-step,
+body.dark .audio-file-picker,
+body.dark .audio-playlist {
+  border-color: #454a43;
+  background: #20231f;
+}
+
+body.dark .warmup-card.selected,
+body.dark .routine-block.selected {
+  border-color: #f59e0b;
+  background: #3b2c18;
+}
+
+body.dark .warmup-player,
+body.dark .notch-visual { background: #141713; }
+body.dark .warmup-now { background: #292d27; }
+body.dark .voice-safety,
+body.dark .controls-guide,
+body.dark .notched-player,
+body.dark .audio-playlist header { background: #181b18; }
+body.dark .voice-safety { color: #b5bbb0; }
+body.dark .notch-gap { background: #141713; box-shadow: -12px 0 18px #141713, 12px 0 18px #141713; }
+body.dark .notch-visual strong { background: rgba(20, 23, 19, .9); }
+
+body.dark .primary-button,
+body.dark .primary-button:hover:not(:disabled) {
+  border-color: #f59e0b;
+  background: #f59e0b;
+  color: #241500;
+}
+
+body.dark .primary-button:disabled {
+  border-color: #5e4b1d;
+  background: #55451d;
+  color: #c8af72;
+}
+
+body.dark .tinnitus-compact-note button {
+  border: 0;
+  background: transparent;
+  color: #f0a16a;
+}
+
+body.dark .rhythm-play,
+body.dark .rhythm-play:hover:not(:disabled) {
+  border-color: #d8e979;
+  background: #d8e979;
+  color: #20260c;
+}
+
+body.dark .rhythm-play.playing { border-color: #f2a76e; background: #f2a76e; }
+body.dark .rhythm-new,
+body.dark .rhythm-tempo > button {
+  background: transparent;
+  color: #e5e5de;
+}
+
+body.dark .rhythm-new { border-color: rgba(255,255,255,.15); }
+body.dark .rhythm-tempo > button { border: 0; }
+body.dark .rhythm-new:hover:not(:disabled),
+body.dark .rhythm-tempo > button:hover:not(:disabled) { background: rgba(255,255,255,.08); }
+
+@media (max-width: 800px) {
+  body.dark .mobile-brand-symbol .brand-symbol-loop { stroke: #dbe97c; }
+  body.dark .mobile-brand-symbol .brand-symbol-pulse { stroke: #f2f1e9; }
 }
