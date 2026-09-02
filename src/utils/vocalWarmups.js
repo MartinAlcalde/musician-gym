@@ -1,16 +1,55 @@
 import { SCALE_TYPES } from './constants.js'
 
 export const DREKXEL_ROUTINE_SEGMENTS = [
-  { id: 'mmmhh', semitones: [0, 4, 7, 4, 0] },
-  { id: 'rrrr', semitones: [0, 4, 7, 12, 7, 4, 0] },
-  { id: 'bubbles', semitones: [0, 12, 0] },
-  { id: 'buzz', semitones: [0, 4, 7, 4, 0] },
-  { id: 'puffedCheeks', semitones: [0, 2, 4, 5, 7, 5, 4, 2, 0] }
+  { id: 'mmmhh', semitones: [0, 4, 7, 4, 0], tempo: 120, restBeats: 3 },
+  { id: 'rrrr', semitones: [0, 4, 7, 12, 7, 4, 0], tempo: 100, restBeats: 3 },
+  {
+    id: 'bubbles',
+    semitones: [0, 12, 0],
+    durationBeats: [2, 4, 2],
+    tempo: 110,
+    restBeats: 2
+  },
+  {
+    id: 'bubbleGlides',
+    semitones: [0, 4, 7, 12, 7, 4, 0],
+    durationBeats: [1, 1, 1, 2, 1, 1, 1],
+    tempo: 90,
+    restBeats: 5
+  },
+  { id: 'buzz', semitones: [0, 4, 7, 4, 0], tempo: 120, restBeats: 3 },
+  {
+    id: 'puffedCheeks',
+    semitones: [0, 2, 4, 5, 7, 5, 4, 2, 0],
+    tempo: 110,
+    restBeats: 1
+  }
 ]
+
+export const DEFAULT_WARMUP_TEMPO = 120
+export const DEFAULT_WARMUP_KEY_COUNT = 5
+export const DEFAULT_DREKXEL_KEY_COUNT = 9
 
 export const getNextDrekxelSegmentId = segmentId => {
   const currentIndex = DREKXEL_ROUTINE_SEGMENTS.findIndex(segment => segment.id === segmentId)
   return DREKXEL_ROUTINE_SEGMENTS[currentIndex + 1]?.id ?? null
+}
+
+export const getWarmupTempo = (warmupId, segmentId, selectedTempo) => {
+  if (selectedTempo === 'original' && warmupId === 'drekxelRoutine') {
+    return DREKXEL_ROUTINE_SEGMENTS.find(segment => segment.id === segmentId)?.tempo
+      ?? DEFAULT_WARMUP_TEMPO
+  }
+
+  const numericTempo = Number(selectedTempo)
+  return Number.isFinite(numericTempo) ? numericTempo : DEFAULT_WARMUP_TEMPO
+}
+
+export const getWarmupRoundCount = (warmupId, ascendingKeyCount) => {
+  const safeKeyCount = Math.max(1, Math.min(12, Math.round(Number(ascendingKeyCount) || 1)))
+  return warmupId === 'drekxelRoutine' && safeKeyCount > 1
+    ? safeKeyCount * 2 - 2
+    : safeKeyCount
 }
 
 export const VOCAL_WARMUPS = [
@@ -38,8 +77,8 @@ export const VOCAL_WARMUPS = [
   {
     id: 'drekxelRoutine',
     label: 'DREKXEL routine',
-    description: 'Five adapted blocks for articulation, resonance, and airflow.',
-    syllable: 'M · R · BRR · DZZZ · B',
+    description: 'Six original-paced blocks for articulation, resonance, and airflow.',
+    syllable: 'M · R · BRR · BRR↗↘ · DZZZ · B',
     segments: DREKXEL_ROUTINE_SEGMENTS
   }
 ]
@@ -48,10 +87,13 @@ export const WARMUP_TEMPOS = [
   { value: 60, label: '60 BPM · Slow' },
   { value: 72, label: '72 BPM · Comfortable' },
   { value: 88, label: '88 BPM · Flowing' },
-  { value: 104, label: '104 BPM · Quick' }
+  { value: 100, label: '100 BPM' },
+  { value: 110, label: '110 BPM' },
+  { value: 120, label: '120 BPM · Lively' },
+  { value: 132, label: '132 BPM · Quick' }
 ]
 
-export const WARMUP_KEY_COUNTS = [3, 5, 8]
+export const WARMUP_KEY_COUNTS = [3, 5, 7, 9]
 
 export const VOICE_PROFILES = {
   male: { id: 'male', anchorMidi: 48 },
@@ -71,7 +113,7 @@ export const buildVocalWarmupSequence = ({
   warmupId = 'fiveTone',
   tonicMidi = 60,
   scaleType = 'major',
-  keyCount = 5,
+  keyCount = DEFAULT_WARMUP_KEY_COUNT,
   segmentId
 } = {}) => {
   const warmup = VOCAL_WARMUPS.find(option => option.id === warmupId) || VOCAL_WARMUPS[0]
@@ -83,17 +125,24 @@ export const buildVocalWarmupSequence = ({
     ? allSegments.find(segment => segment.id === segmentId)
     : null
   const segments = requestedSegment ? [requestedSegment] : allSegments
+  const ascendingOffsets = Array.from({ length: safeKeyCount }, (_, index) => index)
+  const keyOffsets = warmup.segments && safeKeyCount > 1
+    ? [...ascendingOffsets, ...ascendingOffsets.slice(1, -1).reverse()]
+    : ascendingOffsets
 
   return segments.flatMap(segment => {
     const segmentIndex = warmup.segments ? warmup.segments.indexOf(segment) : 0
-    return Array.from({ length: safeKeyCount }, (_, cycleIndex) => {
-      const cycleTonicMidi = tonicMidi + cycleIndex
+    return keyOffsets.map((keyOffset, cycleIndex) => {
+      const cycleTonicMidi = tonicMidi + keyOffset
       const pattern = segment.semitones || segment.degrees
       return pattern.map((value, patternIndex) => ({
         midi: cycleTonicMidi + (segment.semitones ? value : scaleWithOctave[value]),
         degree: segment.semitones ? null : value,
+        durationBeats: segment.durationBeats?.[patternIndex] ?? 1,
+        restAfterBeats: segment.restBeats,
         patternIndex,
         cycleIndex,
+        keyOffset,
         cycleTonicMidi,
         segmentId: segment.id,
         segmentIndex

@@ -53,8 +53,12 @@ describe('SingingPractice', () => {
 
     const source = screen.getByRole('link', { name: 'the original DREKXEL warm-up' })
     expect(source.getAttribute('href')).toBe('https://www.youtube.com/watch?v=rgP_zKTvlE8')
-    expect(screen.getByText(/5 guided blocks/)).toBeTruthy()
-    expect(screen.getAllByRole('radio', { name: /MMMMHH|RRRR|Bubbles|DZZZ|BBBB/ })).toHaveLength(5)
+    expect(screen.getByText(/6 guided blocks/)).toBeTruthy()
+    expect(screen.getAllByRole('radio', { name: /MMMMHH|RRRR|Bubbles|DZZZ|BBBB/ })).toHaveLength(6)
+    expect(screen.getByLabelText('Tempo').value).toBe('original')
+    expect(screen.getByRole('option', { name: 'Original · 120 BPM in this block' }).selected).toBe(true)
+    expect(screen.getByLabelText('Tonal range').value).toBe('9')
+    expect(screen.getByRole('option', { name: '9 ascending keys · 16 total rounds' }).selected).toBe(true)
     expect(screen.getByRole('slider', { name: 'Warm-up position' }).disabled).toBe(true)
   })
 
@@ -90,7 +94,7 @@ describe('SingingPractice', () => {
 
     fireEvent.click(screen.getByText('DREKXEL guided routine'))
     fireEvent.change(screen.getByLabelText('Tempo'), { target: { value: '60' } })
-    fireEvent.change(screen.getByLabelText('Ascending keys'), { target: { value: '3' } })
+    fireEvent.change(screen.getByLabelText('Tonal range'), { target: { value: '3' } })
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /start warm-up/i }))
       await Promise.resolve()
@@ -108,18 +112,18 @@ describe('SingingPractice', () => {
     })
     expect(playTone).toHaveBeenCalledTimes(1)
 
-    await act(() => vi.advanceTimersByTimeAsync(18000))
+    await act(() => vi.advanceTimersByTimeAsync(30000))
 
     expect(screen.getByRole('radio', { name: /RRRR · tongue trill/i }).checked).toBe(true)
     expect(speechSynthesis.speak).toHaveBeenCalledTimes(2)
     expect(speechSynthesis.speak.mock.calls[1][0].text).toBe('Rolled R tongue trill.')
-    expect(playTone).toHaveBeenCalledTimes(15)
+    expect(playTone).toHaveBeenCalledTimes(20)
 
     await act(async () => {
       speechSynthesis.speak.mock.calls[1][0].onend()
       await Promise.resolve()
     })
-    expect(playTone).toHaveBeenCalledTimes(16)
+    expect(playTone).toHaveBeenCalledTimes(21)
     expect(playTone.mock.calls.at(-1)[0]).toBe(48)
   })
 })

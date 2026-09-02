@@ -1,12 +1,12 @@
 {
   "name": "Musician Gym",
   "short_name": "Musician Gym",
-  "description": "Functional ear training for scale degrees and tonal context.",
+  "description": "Ear, voice, and rhythm training in one musician practice space.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#1a1a1a",
-  "theme_color": "#1a1a1a",
+  "background_color": "#f2f0e9",
+  "theme_color": "#1d1d19",
   "icons": [
     {
       "src": "icon.svg",

@@ -7,7 +7,9 @@ import {
   ExerciseSelector,
   TrainingSetup,
   SingingPractice,
-  TinnitusPractice
+  TinnitusPractice,
+  HomeDashboard,
+  RhythmPractice
 } from './components'
 import { useAudio } from './hooks/useAudio.js'
 import { useGameState } from './hooks/useGameState.js'
@@ -54,6 +56,12 @@ const loadBooleanPreference = (key, fallback) => {
   return loadPreference(key, String(fallback)) === 'true'
 }
 
+const APP_AREAS = new Set(['home', 'ear', 'singing', 'rhythm', 'tinnitus'])
+const getInitialArea = () => {
+  const requestedArea = globalThis.location?.hash?.slice(1)
+  return APP_AREAS.has(requestedArea) ? requestedArea : 'home'
+}
+
 const legacyGamepadInputId = testData => {
   if (testData.type !== 'gamepad') return null
   if (testData.buttonIndex !== undefined) {
@@ -73,7 +81,7 @@ function App() {
   const [settingsVisible, setSettingsVisible] = useState(false)
   const [exerciseSelectorVisible, setExerciseSelectorVisible] = useState(false)
   const [manualSessionStarted, setManualSessionStarted] = useState(false)
-  const [activeArea, setActiveArea] = useState('ear')
+  const [activeArea, setActiveArea] = useState(getInitialArea)
   
   // Settings state
   const [resolve, setResolve] = useState(() => loadBooleanPreference(STORAGE_KEYS.RESOLVE, true))
@@ -138,6 +146,12 @@ function App() {
   useEffect(() => {
     document.body.classList.toggle('dark', darkTheme)
   }, [darkTheme])
+
+  useEffect(() => {
+    const hash = activeArea === 'home' ? '' : `#${activeArea}`
+    const url = `${location.pathname}${location.search}${hash}`
+    history.replaceState(null, '', url)
+  }, [activeArea])
 
   const clickMidi = useCallback((midi) => {
     const element = pianoRef.current?.querySelector(`[data-midi="${midi}"]`)
@@ -479,9 +493,22 @@ function App() {
   return (
     <main className="app-shell">
       <header className="app-header">
-        <div>
-          <p className="eyebrow">{t('app.eyebrow')}</p>
-          <h1>Musician Gym</h1>
+        <div className="brand-lockup">
+          <button
+            type="button"
+            className="brand-home-button"
+            onClick={() => handleAreaChange('home')}
+            aria-label={t('nav.home')}
+          >
+            <span className="brand-mark" aria-hidden="true">
+              <i /><i /><i /><i /><i />
+            </span>
+            <span className="brand-copy">
+              <strong>Musician Gym</strong>
+              <small>{t('app.disciplines')}</small>
+            </span>
+          </button>
+          <h1 className="sr-only">Musician Gym</h1>
         </div>
         <div className="header-actions">
           <button
@@ -505,34 +532,58 @@ function App() {
         </div>
       </header>
 
-      <nav className="practice-tabs" aria-label={t('nav.label')}>
+      <nav className="product-nav" aria-label={t('nav.label')}>
         <button
           type="button"
-          className={activeArea === 'ear' ? 'active' : ''}
-          aria-current={activeArea === 'ear' ? 'page' : undefined}
-          onClick={() => handleAreaChange('ear')}
+          className={`product-nav-home ${activeArea === 'home' ? 'active' : ''}`}
+          aria-current={activeArea === 'home' ? 'page' : undefined}
+          onClick={() => handleAreaChange('home')}
         >
-          {t('nav.ear')}
+          <span aria-hidden="true">⌂</span>
+          <strong>{t('nav.home')}</strong>
         </button>
+        <div className="product-nav-primary" aria-label={t('nav.practice')}>
+          <button
+            type="button"
+            className={activeArea === 'ear' ? 'active' : ''}
+            aria-current={activeArea === 'ear' ? 'page' : undefined}
+            onClick={() => handleAreaChange('ear')}
+          >
+            <span aria-hidden="true">◉</span>
+            <span><strong>{t('nav.short.ear')}</strong><small>{t('nav.meta.ear')}</small></span>
+          </button>
+          <button
+            type="button"
+            className={activeArea === 'singing' ? 'active' : ''}
+            aria-current={activeArea === 'singing' ? 'page' : undefined}
+            onClick={() => handleAreaChange('singing')}
+          >
+            <span aria-hidden="true">◒</span>
+            <span><strong>{t('nav.short.singing')}</strong><small>{t('nav.meta.singing')}</small></span>
+          </button>
+          <button
+            type="button"
+            className={activeArea === 'rhythm' ? 'active' : ''}
+            aria-current={activeArea === 'rhythm' ? 'page' : undefined}
+            onClick={() => handleAreaChange('rhythm')}
+          >
+            <span aria-hidden="true">♩</span>
+            <span><strong>{t('nav.short.rhythm')}</strong><small>{t('nav.meta.rhythm')}</small></span>
+            <b>R3</b>
+          </button>
+        </div>
         <button
           type="button"
-          className={activeArea === 'singing' ? 'active' : ''}
-          aria-current={activeArea === 'singing' ? 'page' : undefined}
-          onClick={() => handleAreaChange('singing')}
-        >
-          {t('nav.singing')}
-        </button>
-        <button
-          type="button"
-          className={activeArea === 'tinnitus' ? 'active' : ''}
+          className={`product-nav-tool ${activeArea === 'tinnitus' ? 'active' : ''}`}
           aria-current={activeArea === 'tinnitus' ? 'page' : undefined}
           onClick={() => handleAreaChange('tinnitus')}
         >
-          {t('nav.tinnitus')}
+          <span aria-hidden="true">⌁</span>
+          <span><strong>{t('nav.short.tinnitus')}</strong><small>{t('nav.tools')}</small></span>
         </button>
       </nav>
 
-      {activeArea !== 'tinnitus' && (
+      {(activeArea === 'ear' || activeArea === 'singing') && (
         <TrainingSetup
           tonicPc={tonicPc}
           scaleType={scaleType}
@@ -605,8 +656,26 @@ function App() {
         }}
       />
 
-      {activeArea === 'ear' ? (
+      {activeArea === 'home' ? (
+        <HomeDashboard
+          onSelectArea={handleAreaChange}
+          tonalityLabel={tonalityLabel}
+          notationLabel={t(`settings.notation.${notation}`)}
+          instrumentLabel={t(`settings.instrument.${instrument}`)}
+          onOpenSettings={() => setSettingsVisible(true)}
+        />
+      ) : activeArea === 'ear' ? (
         <section className="practice-content" aria-label={t('nav.ear')}>
+          <header className="workspace-heading">
+            <div>
+              <p className="eyebrow">{t('ear.eyebrow')}</p>
+              <h2>{t('ear.title')}</h2>
+              <p>{t('ear.intro')}</p>
+            </div>
+            <button type="button" className="workspace-settings" onClick={() => setSettingsVisible(true)}>
+              ⚙ {t('ear.settings')}
+            </button>
+          </header>
           <GameControls
             onStart={handleStart}
             onRepeat={handleRepeat}
@@ -656,6 +725,8 @@ function App() {
           notation={notation}
           screenWakeLock={screenWakeLock}
         />
+      ) : activeArea === 'rhythm' ? (
+        <RhythmPractice screenWakeLock={screenWakeLock} />
       ) : (
         <TinnitusPractice screenWakeLock={screenWakeLock} />
       )}

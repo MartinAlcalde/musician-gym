@@ -12,8 +12,13 @@ import {
 } from '../utils/helpers.js'
 import {
   buildVocalWarmupSequence,
+  DEFAULT_DREKXEL_KEY_COUNT,
+  DEFAULT_WARMUP_KEY_COUNT,
+  DEFAULT_WARMUP_TEMPO,
   DREKXEL_ROUTINE_SEGMENTS,
   getNextDrekxelSegmentId,
+  getWarmupRoundCount,
+  getWarmupTempo,
   getVoiceProfileTonicMidi,
   VOICE_PROFILES,
   VOCAL_WARMUPS,
@@ -37,8 +42,8 @@ export function SingingPractice({
 }) {
   const { t, speechLocale } = useI18n()
   const [warmupId, setWarmupId] = useState(VOCAL_WARMUPS[0].id)
-  const [tempo, setTempo] = useState(72)
-  const [keyCount, setKeyCount] = useState(5)
+  const [tempo, setTempo] = useState(DEFAULT_WARMUP_TEMPO)
+  const [keyCount, setKeyCount] = useState(DEFAULT_WARMUP_KEY_COUNT)
   const [voiceProfile, setVoiceProfile] = useState(getInitialVoiceProfile)
   const [drekxelSegmentId, setDrekxelSegmentId] = useState(DREKXEL_ROUTINE_SEGMENTS[0].id)
   const [seekPreview, setSeekPreview] = useState(null)
@@ -58,7 +63,10 @@ export function SingingPractice({
   const requestWakeLock = screenWakeLock.request
   const releaseWakeLock = screenWakeLock.release
   const profileTonicMidi = getVoiceProfileTonicMidi(tonicMidi % 12, voiceProfile)
-  const activeSegmentId = warmupId === 'drekxelRoutine' ? drekxelSegmentId : undefined
+  const isDrekxelRoutine = warmupId === 'drekxelRoutine'
+  const activeSegmentId = isDrekxelRoutine ? drekxelSegmentId : undefined
+  const activeTempo = getWarmupTempo(warmupId, activeSegmentId, tempo)
+  const roundCount = getWarmupRoundCount(warmupId, keyCount)
   const previewRange = useMemo(() => {
     const sequence = buildVocalWarmupSequence({
       warmupId,
@@ -100,7 +108,8 @@ export function SingingPractice({
     const wakeLockPromise = requestWakeLock()
     const startBlock = async segmentId => {
       if (routineRunRef.current !== runId) return
-      if (warmupId === 'drekxelRoutine') {
+      const blockTempo = getWarmupTempo(warmupId, segmentId, tempo)
+      if (isDrekxelRoutine) {
         setIsBlockTransitioning(true)
         await announce(t('singing.blockAnnouncement', {
           exercise: t(`warmup.drekxelRoutine.segment.${segmentId}.speech`)
@@ -114,17 +123,17 @@ export function SingingPractice({
         scaleType,
         keyCount,
         segmentId,
-        tempo,
+        tempo: blockTempo,
         onComplete: () => {
           if (routineRunRef.current !== runId) return
-          const nextSegmentId = warmupId === 'drekxelRoutine'
+          const nextSegmentId = isDrekxelRoutine
             ? getNextDrekxelSegmentId(segmentId)
             : null
 
           if (nextSegmentId) {
             setDrekxelSegmentId(nextSegmentId)
             setIsBlockTransitioning(true)
-            scheduleBlockTransition(() => void startBlock(nextSegmentId), 60000 / tempo)
+            scheduleBlockTransition(() => void startBlock(nextSegmentId), 60000 / blockTempo)
           } else {
             void releaseWakeLock()
           }
@@ -149,6 +158,13 @@ export function SingingPractice({
     setSeekPreview(null)
     seekPreviewRef.current = null
     setWarmupId(nextWarmupId)
+    if (nextWarmupId === 'drekxelRoutine') {
+      setTempo('original')
+      setKeyCount(DEFAULT_DREKXEL_KEY_COUNT)
+      setDrekxelSegmentId(DREKXEL_ROUTINE_SEGMENTS[0].id)
+    } else if (tempo === 'original') {
+      setTempo(DEFAULT_WARMUP_TEMPO)
+    }
   }
 
   const handleSegmentChange = segmentId => {
@@ -229,7 +245,7 @@ export function SingingPractice({
             </label>
           ))}
         </div>
-        {warmupId === 'drekxelRoutine' && (
+        {isDrekxelRoutine && (
           <p className="routine-source">
             {t('warmup.drekxelRoutine.source')}{' '}
             <a href="https://www.youtube.com/watch?v=rgP_zKTvlE8" target="_blank" rel="noreferrer">
@@ -239,7 +255,7 @@ export function SingingPractice({
         )}
       </fieldset>
 
-      {warmupId === 'drekxelRoutine' && (
+      {isDrekxelRoutine && (
         <fieldset className="routine-block-picker" disabled={warmup.isRunning || isBlockTransitioning}>
           <legend>{t('warmup.drekxelRoutine.chooseBlock')}</legend>
           <p className="routine-flow">{t('warmup.drekxelRoutine.flow')}</p>
@@ -265,7 +281,7 @@ export function SingingPractice({
       )}
 
       <fieldset className="warmup-options" disabled={warmup.isRunning || isBlockTransitioning}>
-        <legend>{t(warmupId === 'drekxelRoutine' ? 'singing.optionsAfterBlock' : 'singing.options')}</legend>
+        <legend>{t(isDrekxelRoutine ? 'singing.optionsAfterBlock' : 'singing.options')}</legend>
         <label>
           {t('singing.voiceProfile')}
           <select value={voiceProfile} onChange={event => setVoiceProfile(event.target.value)}>
@@ -280,17 +296,32 @@ export function SingingPractice({
         </label>
         <label>
           {t('singing.tempo')}
-          <select value={tempo} onChange={event => setTempo(Number(event.target.value))}>
+          <select
+            value={tempo}
+            onChange={event => setTempo(
+              event.target.value === 'original' ? 'original' : Number(event.target.value)
+            )}
+          >
+            {isDrekxelRoutine && (
+              <option value="original">{t('tempo.original', { count: activeTempo })}</option>
+            )}
             {WARMUP_TEMPOS.map(option => (
               <option key={option.value} value={option.value}>{t(`tempo.${option.value}`)}</option>
             ))}
           </select>
         </label>
         <label>
-          {t('singing.keys')}
+          {t(isDrekxelRoutine ? 'singing.keysDrekxel' : 'singing.keys')}
           <select value={keyCount} onChange={event => setKeyCount(Number(event.target.value))}>
             {WARMUP_KEY_COUNTS.map(value => (
-              <option key={value} value={value}>{t('singing.keyCount', { count: value })}</option>
+              <option key={value} value={value}>{t(
+                isDrekxelRoutine ? 'singing.drekxelKeyCount' : 'singing.keyCount',
+                {
+                  count: value,
+                  ascending: value,
+                  rounds: getWarmupRoundCount(warmupId, value)
+                }
+              )}</option>
             ))}
           </select>
         </label>
@@ -319,7 +350,7 @@ export function SingingPractice({
               <small>
                 {t('singing.keyProgress', {
                   current: currentEvent.cycleIndex + 1,
-                  total: keyCount,
+                  total: roundCount,
                   key: displayNoteName(getTonicName(currentTonicPc, scaleType))
                 })}
               </small>

@@ -1,6 +1,9 @@
 import { useCallback, useRef, useState } from 'react'
 import { useManagedTimeouts } from './useManagedTimeouts.js'
-import { buildVocalWarmupSequence } from '../utils/vocalWarmups.js'
+import {
+  buildVocalWarmupSequence,
+  DEFAULT_WARMUP_TEMPO
+} from '../utils/vocalWarmups.js'
 
 const KEY_CHANGE_REST_BEATS = 1
 
@@ -25,13 +28,13 @@ export function useVocalWarmup({ playTone, getCurrentTime, startAudioContext }) 
     setCompleted(false)
   }, [clearAll])
 
-  const start = useCallback(async ({ tempo = 72, onComplete, ...sequenceOptions } = {}) => {
+  const start = useCallback(async ({ tempo = DEFAULT_WARMUP_TEMPO, onComplete, ...sequenceOptions } = {}) => {
     stop()
     const audioStarted = await startAudioContext()
     if (!audioStarted) return false
 
     const sequence = buildVocalWarmupSequence(sequenceOptions)
-    const beatMs = 60000 / Math.max(40, Math.min(160, Number(tempo) || 72))
+    const beatMs = 60000 / Math.max(40, Math.min(160, Number(tempo) || DEFAULT_WARMUP_TEMPO))
     const sessionId = sessionRef.current
     let sequenceIndex = 0
 
@@ -50,7 +53,14 @@ export function useVocalWarmup({ playTone, getCurrentTime, startAudioContext }) 
 
       const event = sequence[sequenceIndex]
       const currentTime = getCurrentTime()
-      playTone(event.midi, (currentTime ?? 0) + 0.025, beatMs / 1000 * 0.82, 'piano', 0.16)
+      const durationBeats = event.durationBeats ?? 1
+      playTone(
+        event.midi,
+        (currentTime ?? 0) + 0.025,
+        beatMs / 1000 * durationBeats * 0.9,
+        'piano',
+        0.16
+      )
       setCurrentEvent(event)
       setStep(sequenceIndex + 1)
       sequenceIndex += 1
@@ -59,7 +69,10 @@ export function useVocalWarmup({ playTone, getCurrentTime, startAudioContext }) 
         nextEvent.cycleTonicMidi !== event.cycleTonicMidi ||
         nextEvent.segmentId !== event.segmentId
       )
-      schedule(playNext, beatMs * (changesPhrase ? 1 + KEY_CHANGE_REST_BEATS : 1))
+      const phraseRestBeats = changesPhrase
+        ? event.restAfterBeats ?? KEY_CHANGE_REST_BEATS
+        : 0
+      schedule(playNext, beatMs * (durationBeats + phraseRestBeats))
     }
 
     seekRef.current = targetIndex => {

@@ -39,7 +39,7 @@ describe('useVocalWarmup', () => {
     expect(playTone.mock.calls[7][0]).toBe(61)
   })
 
-  it('uses the same tempo-aware rest between DREKXEL blocks', async () => {
+  it('uses the original phrase rest between DREKXEL blocks', async () => {
     const { result, playTone } = setup()
 
     await act(async () => result.current.start({
@@ -52,12 +52,30 @@ describe('useVocalWarmup', () => {
     await act(() => vi.advanceTimersByTimeAsync(4000))
     expect(playTone).toHaveBeenCalledTimes(5)
 
-    await act(() => vi.advanceTimersByTimeAsync(1999))
+    await act(() => vi.advanceTimersByTimeAsync(3999))
     expect(playTone).toHaveBeenCalledTimes(5)
 
     await act(() => vi.advanceTimersByTimeAsync(1))
     expect(playTone).toHaveBeenCalledTimes(6)
     expect(playTone.mock.calls[5][0]).toBe(48)
+  })
+
+  it('honors the longer notes in the original lip-bubble pattern', async () => {
+    const { result, playTone } = setup()
+
+    await act(async () => result.current.start({
+      warmupId: 'drekxelRoutine',
+      segmentId: 'bubbles',
+      tonicMidi: 48,
+      keyCount: 1,
+      tempo: 60
+    }))
+
+    expect(playTone.mock.calls[0][2]).toBe(1.8)
+    await act(() => vi.advanceTimersByTimeAsync(2000))
+    expect(playTone.mock.calls[1][2]).toBe(3.6)
+    await act(() => vi.advanceTimersByTimeAsync(4000))
+    expect(playTone.mock.calls[2][2]).toBe(1.8)
   })
 
   it('can stop immediately during the rest between keys', async () => {

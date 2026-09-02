@@ -1,8 +1,8 @@
 # Musician Gym
 
-**Functional ear training focused on scale degrees and tonal context.**
+**One practice space for ear, voice, and rhythm.**
 
-Musician Gym helps you recognize scale degrees by their function within a key. Instead of abstract interval training, you learn to hear notes in harmonic context using major and minor cadences.
+Musician Gym combines functional ear training, guided vocal warm-ups, and the R3 rhythm-and-coordination trainer in one bilingual, installable app. The tinnitus listening experiment remains available as a separate utility rather than a core training discipline.
 
 ## Key Features
 
@@ -11,6 +11,10 @@ Musician Gym helps you recognize scale degrees by their function within a key. I
 **🎮 Remote Control Support** - Use Bluetooth gamepads, cheap USB camera shutters (~$2), or any HID device. Practice hands-free from across the room.
 
 **🎼 Functional Training** - Learn scale degrees in tonal context rather than isolated intervals.
+
+**🎤 Vocal Practice** - Move scales and the six-part DREKXEL-inspired routine through different keys with original pacing and an ascending-descending range.
+
+**🥁 R3 Rhythm Training** - Generate patterns for hands, guitar, or feet with configurable meters, subdivisions, accents, difficulty, count-in, and precise Web Audio scheduling.
 
 **🎹 36 Tonalities & 3 Registers** - Practice every major, natural-minor, and harmonic-minor key in low, middle, or high registers.
 
@@ -25,9 +29,9 @@ Musician Gym helps you recognize scale degrees by their function within a key. I
 ## Getting Started
 
 1. **[Open Musician Gym](https://musician-gym.vercel.app/)**
-2. Click "Start" to hear a cadence + target note  
-3. Identify the scale degree on the piano
-4. Track your progress over time
+2. Choose Ear, Voice, or Rhythm from the unified home screen.
+3. Configure only the musical context needed by that practice.
+4. Start training; preferences and recent rhythm patterns remain on the device.
 
 ### Custom Controls
 
@@ -62,6 +66,13 @@ Choose any scale or mode in 12 tonal centers and one of three registers. Labels 
 - **Exercise 1**: Do-Fa - lower tetrachord
 - **Exercise 2**: Sol-Do - upper tetrachord
 - **Exercise 3**: Full octave Do-Do
+
+## Product structure
+
+- **Ear** — tonal-context recognition with solfege, letters, or scale degrees.
+- **Voice** — guided warm-ups across keys and vocal ranges.
+- **Rhythm / R3** — pulse, reading, accents, and limb or guitar coordination.
+- **Listening tool** — personalized notched audio for tonal tinnitus, clearly separated from the training areas.
 
 ## Technical Details
 
