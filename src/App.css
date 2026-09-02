@@ -2297,3 +2297,327 @@ body.dark .rhythm-tools { border-color: var(--mg-line); }
   .home-practice-card:hover:not(:disabled),
   .rhythm-step.active { transform: none; }
 }
+
+/* Practice workspace: the product navigation behaves like an instrument rail, not tabs. */
+body {
+  min-width: 320px;
+  background: #e9e7df;
+  color: #191a17;
+  font-family: "Avenir Next", Avenir, "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 278px minmax(0, 1fr);
+  width: 100%;
+  min-height: 100svh;
+  margin: 0;
+  padding: 0;
+}
+
+.app-sidebar {
+  position: fixed;
+  z-index: 40;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  width: 278px;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 0 22px;
+  border-right: 1px solid #30342e;
+  background: #151814;
+  color: #f0f0e8;
+}
+
+.sidebar-header {
+  display: flex;
+  min-height: 104px;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #343832;
+}
+
+.sidebar-brand {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.sidebar-brand:hover:not(:disabled) { background: transparent; }
+.sidebar-brand > span:last-child { display: grid; gap: 2px; }
+.sidebar-brand strong { font-size: 16px; font-weight: 750; letter-spacing: -.035em; }
+.sidebar-brand small {
+  color: #8e958a;
+  font: 700 8px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.sidebar-monogram {
+  display: flex;
+  width: 42px;
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #dbe97c;
+  color: #dbe97c;
+  font: 800 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: -.08em;
+}
+
+.sidebar-monogram i { margin: 0 1px; color: #65705f; font-style: normal; font-weight: 400; }
+.sidebar-close { display: none; }
+
+.sidebar-nav {
+  flex: 1;
+  padding: 32px 0 22px;
+}
+
+.sidebar-nav > p {
+  margin: 0 0 10px;
+  color: #747c71;
+  font: 750 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+}
+
+.sidebar-nav > p.sidebar-tools-label { margin-top: 34px; }
+
+.sidebar-nav > button {
+  position: relative;
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto auto;
+  gap: 8px;
+  width: 100%;
+  min-height: 68px;
+  align-items: center;
+  padding: 12px 4px;
+  border: 0;
+  border-top: 1px solid #2d312c;
+  border-radius: 0;
+  background: transparent;
+  color: #b7bcb3;
+  text-align: left;
+}
+
+.sidebar-nav > button:last-child { border-bottom: 1px solid #2d312c; }
+.sidebar-nav > button:hover:not(:disabled) { background: #1c201b; color: #f0f0e8; }
+.sidebar-nav > button.active { color: #f5f5ec; }
+.sidebar-nav > button.active::before {
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: -22px;
+  width: 3px;
+  background: #dbe97c;
+  content: '';
+}
+
+.sidebar-index {
+  color: #646b61;
+  font: 700 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.sidebar-nav > button.active .sidebar-index { color: #dbe97c; }
+.sidebar-nav-copy { display: grid; min-width: 0; gap: 3px; }
+.sidebar-nav-copy strong { font-size: 14px; font-weight: 720; letter-spacing: -.015em; }
+.sidebar-nav-copy small {
+  overflow: hidden;
+  color: #747b72;
+  font-size: 9px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-badge {
+  padding: 3px 5px;
+  border: 1px solid #59614f;
+  color: #dbe97c;
+  font: 800 8px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.sidebar-arrow { color: #555c52; font-size: 13px; }
+.sidebar-nav > button.active .sidebar-arrow { color: #dbe97c; }
+
+.sidebar-footer {
+  padding: 18px 0 22px;
+  border-top: 1px solid #343832;
+}
+
+.sidebar-footer > div { display: grid; grid-template-columns: 1fr 1fr; }
+.sidebar-footer button {
+  display: flex;
+  min-width: 0;
+  gap: 7px;
+  align-items: center;
+  padding: 8px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #b4bab0;
+  font-size: 11px;
+  text-align: left;
+}
+.sidebar-footer button + button { justify-content: flex-end; }
+.sidebar-footer button:hover:not(:disabled) { background: transparent; color: #f4f4ed; }
+.sidebar-footer button span { color: #dbe97c; font: 750 10px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.sidebar-footer > p { margin: 9px 0 0; color: #686f66; font-size: 9px; line-height: 1.45; }
+
+.app-workspace {
+  grid-column: 2;
+  min-width: 0;
+  min-height: 100svh;
+}
+
+.workspace-canvas {
+  width: min(100%, 1180px);
+  margin: 0 auto;
+  padding: 38px clamp(24px, 4.5vw, 70px) 72px;
+}
+
+.mobile-workspace-header,
+.navigation-scrim { display: none; }
+
+.practice-content,
+.training-setup,
+.singing-practice,
+.tinnitus-practice,
+.rhythm-more,
+.rhythm-history,
+.rhythm-setup {
+  border-radius: 5px;
+  box-shadow: none;
+}
+
+.practice-content,
+.singing-practice,
+.tinnitus-practice {
+  border-top: 3px solid #191a17;
+}
+
+.practice-content { padding: clamp(20px, 3vw, 30px); }
+.training-setup { border-radius: 2px; background: #f6f4ed; }
+.practice-content > .training-setup,
+.singing-practice > .training-setup { margin-top: 18px; }
+.workspace-heading { padding-bottom: 14px; border-bottom: 1px solid var(--mg-line); }
+.workspace-heading h2,
+.section-intro h2 { max-width: 780px; font-size: clamp(1.7rem, 3.3vw, 2.8rem); line-height: 1.03; }
+.workspace-heading p:last-child,
+.section-intro > p:last-child { max-width: 680px; }
+
+body.dark {
+  background: #10120f;
+}
+
+body.dark .app-sidebar { background: #0d0f0d; }
+body.dark .app-workspace { background: #161814; }
+body.dark .practice-content,
+body.dark .singing-practice,
+body.dark .tinnitus-practice { border-top-color: #dbe97c; }
+body.dark .training-setup { background: #1b1e1a; }
+
+@media (max-width: 800px) {
+  .app-shell { display: block; }
+
+  .app-sidebar {
+    z-index: 80;
+    width: min(88vw, 320px);
+    padding-right: 24px;
+    padding-left: 24px;
+    transform: translateX(-104%);
+    transition: transform .22s cubic-bezier(.2, .75, .25, 1);
+  }
+
+  .app-sidebar.open { transform: translateX(0); }
+  .sidebar-close {
+    display: grid;
+    width: 38px;
+    height: 38px;
+    place-items: center;
+    padding: 0;
+    border: 1px solid #3a3e37;
+    border-radius: 0;
+    background: transparent;
+    color: #bfc4ba;
+    font-size: 23px;
+  }
+
+  .navigation-scrim {
+    position: fixed;
+    z-index: 70;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: rgba(8, 10, 8, .68);
+    cursor: default;
+  }
+
+  .app-workspace { min-height: 100svh; }
+  .mobile-workspace-header {
+    position: sticky;
+    z-index: 30;
+    top: 0;
+    display: flex;
+    min-height: 64px;
+    gap: 13px;
+    align-items: center;
+    padding: 9px 16px;
+    border-bottom: 1px solid #d0cec5;
+    background: rgba(233, 231, 223, .94);
+    backdrop-filter: blur(14px);
+  }
+
+  .mobile-menu-button {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    padding: 0;
+    border: 1px solid #20221e;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .mobile-menu-button:hover:not(:disabled) { background: transparent; }
+  .mobile-menu-button > span { display: grid; width: 17px; gap: 5px; }
+  .mobile-menu-button i { display: block; height: 1px; background: currentColor; }
+  .mobile-menu-button i:last-child { width: 11px; }
+  .mobile-workspace-header > div { display: grid; gap: 1px; }
+  .mobile-workspace-header small {
+    color: #73766d;
+    font: 700 8px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+  .mobile-workspace-header strong { font-size: 14px; letter-spacing: -.02em; }
+
+  .workspace-canvas { width: 100%; padding: 18px 12px 44px; }
+  body.dark .mobile-workspace-header { border-bottom-color: #343831; background: rgba(22, 24, 20, .94); }
+  body.dark .mobile-menu-button { border-color: #5a5f56; color: #eaeae2; }
+}
+
+@media (max-width: 430px) {
+  .practice-content,
+  .singing-practice,
+  .tinnitus-practice { padding: 17px 13px; }
+  .workspace-heading h2,
+  .section-intro h2 { font-size: 1.65rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-sidebar { transition: none; }
+}

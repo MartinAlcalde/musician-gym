@@ -38,7 +38,8 @@ export function SingingPractice({
   tonicMidi,
   scaleType,
   notation,
-  screenWakeLock
+  screenWakeLock,
+  contextPanel = null
 }) {
   const { t, speechLocale } = useI18n()
   const [warmupId, setWarmupId] = useState(VOCAL_WARMUPS[0].id)
@@ -221,6 +222,8 @@ export function SingingPractice({
         <h2 id="singing-heading">{t('singing.title')}</h2>
         <p>{t('singing.intro')}</p>
       </div>
+
+      {contextPanel}
 
       <fieldset className="warmup-picker" disabled={warmup.isRunning || isBlockTransitioning}>
         <legend>{t('singing.choose')}</legend>

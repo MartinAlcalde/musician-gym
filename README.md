@@ -29,7 +29,7 @@ Musician Gym combines functional ear training, guided vocal warm-ups, and the R3
 ## Getting Started
 
 1. **[Open Musician Gym](https://musician-gym.vercel.app/)**
-2. Choose Ear, Voice, or Rhythm from the unified home screen.
+2. Choose Ear, Voice, Rhythm R3, or Tinnitus from the practice rail (the compact menu on mobile).
 3. Configure only the musical context needed by that practice.
 4. Start training; preferences and recent rhythm patterns remain on the device.
 

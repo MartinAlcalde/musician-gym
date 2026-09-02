@@ -8,7 +8,7 @@ import {
   TrainingSetup,
   SingingPractice,
   TinnitusPractice,
-  HomeDashboard,
+  AppNavigation,
   RhythmPractice
 } from './components'
 import { useAudio } from './hooks/useAudio.js'
@@ -56,10 +56,10 @@ const loadBooleanPreference = (key, fallback) => {
   return loadPreference(key, String(fallback)) === 'true'
 }
 
-const APP_AREAS = new Set(['home', 'ear', 'singing', 'rhythm', 'tinnitus'])
+const APP_AREAS = new Set(['ear', 'singing', 'rhythm', 'tinnitus'])
 const getInitialArea = () => {
   const requestedArea = globalThis.location?.hash?.slice(1)
-  return APP_AREAS.has(requestedArea) ? requestedArea : 'home'
+  return APP_AREAS.has(requestedArea) ? requestedArea : 'ear'
 }
 
 const legacyGamepadInputId = testData => {
@@ -74,7 +74,7 @@ const legacyGamepadInputId = testData => {
 }
 
 function App() {
-  const { locale, setLocale, t, speechLocale } = useI18n()
+  const { t, speechLocale } = useI18n()
   // Main app state
   const [feedback, setFeedback] = useState({ key: 'feedback.loading' })
   const [feedbackOk, setFeedbackOk] = useState(null)
@@ -82,6 +82,7 @@ function App() {
   const [exerciseSelectorVisible, setExerciseSelectorVisible] = useState(false)
   const [manualSessionStarted, setManualSessionStarted] = useState(false)
   const [activeArea, setActiveArea] = useState(getInitialArea)
+  const [navigationOpen, setNavigationOpen] = useState(false)
   
   // Settings state
   const [resolve, setResolve] = useState(() => loadBooleanPreference(STORAGE_KEYS.RESOLVE, true))
@@ -148,7 +149,7 @@ function App() {
   }, [darkTheme])
 
   useEffect(() => {
-    const hash = activeArea === 'home' ? '' : `#${activeArea}`
+    const hash = activeArea === 'ear' ? '' : `#${activeArea}`
     const url = `${location.pathname}${location.search}${hash}`
     history.replaceState(null, '', url)
   }, [activeArea])
@@ -471,12 +472,8 @@ function App() {
       : t(feedback.key, feedback.variables)
   const tonalityLabel = getTonalityLabel(tonicPc, scaleType, t(`scale.${scaleType}.label`))
 
-  const handleLanguageChange = nextLocale => {
-    setLocale(nextLocale)
-    setFeedback({ key: 'feedback.ready' })
-  }
-
   const handleAreaChange = nextArea => {
+    setNavigationOpen(false)
     if (nextArea === activeArea) return
     manualTimers.clearAll()
     if (autoMode.isRunningRef.current) autoMode.stop()
@@ -490,112 +487,51 @@ function App() {
     setActiveArea(nextArea)
   }
 
+  const activeAreaLabel = activeArea === 'tinnitus'
+    ? t('nav.tinnitus')
+    : t(`nav.short.${activeArea}`)
+
   return (
-    <main className="app-shell">
-      <header className="app-header">
-        <div className="brand-lockup">
-          <button
-            type="button"
-            className="brand-home-button"
-            onClick={() => handleAreaChange('home')}
-            aria-label={t('nav.home')}
-          >
-            <span className="brand-mark" aria-hidden="true">
-              <i /><i /><i /><i /><i />
-            </span>
-            <span className="brand-copy">
-              <strong>Musician Gym</strong>
-              <small>{t('app.disciplines')}</small>
-            </span>
-          </button>
-          <h1 className="sr-only">Musician Gym</h1>
-        </div>
-        <div className="header-actions">
-          <button
-            type="button"
-            className="language-button"
-            onClick={() => handleLanguageChange(locale === 'es' ? 'en' : 'es')}
-            aria-label={t('language.switchTo', {
-              language: t(locale === 'es' ? 'language.english' : 'language.spanish')
-            })}
-          >
-            {locale === 'es' ? 'Es' : 'En'}
-          </button>
-          <button
-            type="button"
-            className="settings-button"
-            onClick={() => setSettingsVisible(true)}
-            aria-label={t('settings.open')}
-          >
-            <span aria-hidden="true">⚙</span> {t('settings.button')}
-          </button>
-        </div>
-      </header>
-
-      <nav className="product-nav" aria-label={t('nav.label')}>
+    <div className="app-shell">
+      <AppNavigation
+        activeArea={activeArea}
+        isOpen={navigationOpen}
+        onSelectArea={handleAreaChange}
+        onClose={() => setNavigationOpen(false)}
+        onOpenSettings={() => {
+          setNavigationOpen(false)
+          setSettingsVisible(true)
+        }}
+      />
+      {navigationOpen && (
         <button
           type="button"
-          className={`product-nav-home ${activeArea === 'home' ? 'active' : ''}`}
-          aria-current={activeArea === 'home' ? 'page' : undefined}
-          onClick={() => handleAreaChange('home')}
-        >
-          <span aria-hidden="true">⌂</span>
-          <strong>{t('nav.home')}</strong>
-        </button>
-        <div className="product-nav-primary" aria-label={t('nav.practice')}>
-          <button
-            type="button"
-            className={activeArea === 'ear' ? 'active' : ''}
-            aria-current={activeArea === 'ear' ? 'page' : undefined}
-            onClick={() => handleAreaChange('ear')}
-          >
-            <span aria-hidden="true">◉</span>
-            <span><strong>{t('nav.short.ear')}</strong><small>{t('nav.meta.ear')}</small></span>
-          </button>
-          <button
-            type="button"
-            className={activeArea === 'singing' ? 'active' : ''}
-            aria-current={activeArea === 'singing' ? 'page' : undefined}
-            onClick={() => handleAreaChange('singing')}
-          >
-            <span aria-hidden="true">◒</span>
-            <span><strong>{t('nav.short.singing')}</strong><small>{t('nav.meta.singing')}</small></span>
-          </button>
-          <button
-            type="button"
-            className={activeArea === 'rhythm' ? 'active' : ''}
-            aria-current={activeArea === 'rhythm' ? 'page' : undefined}
-            onClick={() => handleAreaChange('rhythm')}
-          >
-            <span aria-hidden="true">♩</span>
-            <span><strong>{t('nav.short.rhythm')}</strong><small>{t('nav.meta.rhythm')}</small></span>
-            <b>R3</b>
-          </button>
-        </div>
-        <button
-          type="button"
-          className={`product-nav-tool ${activeArea === 'tinnitus' ? 'active' : ''}`}
-          aria-current={activeArea === 'tinnitus' ? 'page' : undefined}
-          onClick={() => handleAreaChange('tinnitus')}
-        >
-          <span aria-hidden="true">⌁</span>
-          <span><strong>{t('nav.short.tinnitus')}</strong><small>{t('nav.tools')}</small></span>
-        </button>
-      </nav>
-
-      {(activeArea === 'ear' || activeArea === 'singing') && (
-        <TrainingSetup
-          tonicPc={tonicPc}
-          scaleType={scaleType}
-          register={register}
-          showRegister={activeArea === 'ear'}
-          onTonicChange={value => handleSettingChange('tonality', { tonicPc: value, scaleType })}
-          onScaleTypeChange={value => handleSettingChange('tonality', { tonicPc, scaleType: value })}
-          onRegisterChange={value => handleSettingChange('register', value)}
+          className="navigation-scrim"
+          aria-label={t('nav.close')}
+          onClick={() => setNavigationOpen(false)}
         />
       )}
 
-      <Settings
+      <main className="app-workspace">
+        <header className="mobile-workspace-header">
+          <button
+            type="button"
+            className="mobile-menu-button"
+            aria-label={t('nav.menu')}
+            aria-expanded={navigationOpen}
+            aria-controls="app-navigation"
+            onClick={() => setNavigationOpen(true)}
+          >
+            <span aria-hidden="true"><i /><i /></span>
+          </button>
+          <div>
+            <small>Musician Gym</small>
+            <strong>{activeAreaLabel}</strong>
+          </div>
+        </header>
+
+        <div className="workspace-canvas">
+          <Settings
         isVisible={settingsVisible}
         onClose={() => setSettingsVisible(false)}
         settings={settings}
@@ -654,83 +590,93 @@ function App() {
             if (actualMidi !== null) clickMidi(actualMidi)
           }
         }}
-      />
-
-      {activeArea === 'home' ? (
-        <HomeDashboard
-          onSelectArea={handleAreaChange}
-          tonalityLabel={tonalityLabel}
-          notationLabel={t(`settings.notation.${notation}`)}
-          instrumentLabel={t(`settings.instrument.${instrument}`)}
-          onOpenSettings={() => setSettingsVisible(true)}
-        />
-      ) : activeArea === 'ear' ? (
-        <section className="practice-content" aria-label={t('nav.ear')}>
-          <header className="workspace-heading">
-            <div>
-              <p className="eyebrow">{t('ear.eyebrow')}</p>
-              <h2>{t('ear.title')}</h2>
-              <p>{t('ear.intro')}</p>
-            </div>
-            <button type="button" className="workspace-settings" onClick={() => setSettingsVisible(true)}>
-              ⚙ {t('ear.settings')}
-            </button>
-          </header>
-          <GameControls
-            onStart={handleStart}
-            onRepeat={handleRepeat}
-            onToggleExerciseSelector={() => setExerciseSelectorVisible(!exerciseSelectorVisible)}
-            startEnabled={startEnabled}
-            repeatEnabled={gameState.repeatEnabled}
-            autoMode={autoModeEnabled}
-            isAutoRunning={autoMode.isRunning}
-            currentExercise={gameState.exercise}
-            contextLabel={tonalityLabel}
           />
 
-          <Piano
-            ref={pianoRef}
-            exerciseSet={gameState.exerciseSet}
-            tonicMidi={tonicMidi}
-            scaleType={scaleType}
-            notation={notation}
-            disabled={!gameState.answersEnabled}
-            onKeyClick={handlePianoClick}
-          />
+          {activeArea === 'ear' ? (
+            <section className="practice-content" aria-label={t('nav.ear')}>
+              <header className="workspace-heading">
+                <div>
+                  <p className="eyebrow">{t('ear.eyebrow')}</p>
+                  <h2>{t('ear.title')}</h2>
+                  <p>{t('ear.intro')}</p>
+                </div>
+              </header>
+              <TrainingSetup
+                tonicPc={tonicPc}
+                scaleType={scaleType}
+                register={register}
+                onTonicChange={value => handleSettingChange('tonality', { tonicPc: value, scaleType })}
+                onScaleTypeChange={value => handleSettingChange('tonality', { tonicPc, scaleType: value })}
+                onRegisterChange={value => handleSettingChange('register', value)}
+              />
+              <GameControls
+                onStart={handleStart}
+                onRepeat={handleRepeat}
+                onToggleExerciseSelector={() => setExerciseSelectorVisible(!exerciseSelectorVisible)}
+                startEnabled={startEnabled}
+                repeatEnabled={gameState.repeatEnabled}
+                autoMode={autoModeEnabled}
+                isAutoRunning={autoMode.isRunning}
+                currentExercise={gameState.exercise}
+                contextLabel={tonalityLabel}
+              />
 
-          <GameDisplay
-            feedback={displayedFeedback}
-            feedbackOk={feedbackOk}
-            attempts={gameState.attempts}
-            correct={gameState.correct}
-            accuracy={gameState.accuracy}
-          />
+              <Piano
+                ref={pianoRef}
+                exerciseSet={gameState.exerciseSet}
+                tonicMidi={tonicMidi}
+                scaleType={scaleType}
+                notation={notation}
+                disabled={!gameState.answersEnabled}
+                onKeyClick={handlePianoClick}
+              />
 
-          <ExerciseSelector
-            isVisible={exerciseSelectorVisible}
-            currentExercise={gameState.exercise}
-            tonalityLabel={tonalityLabel}
-            tonicMidi={tonicMidi}
-            scaleType={scaleType}
-            onExerciseSelect={(exerciseNum) => handleSettingChange('exercise', exerciseNum)}
-            onClose={() => setExerciseSelectorVisible(false)}
-          />
-        </section>
-      ) : activeArea === 'singing' ? (
-        <SingingPractice
-          key={`${scaleType}:${tonicMidi}`}
-          audio={audio}
-          tonicMidi={tonicMidi}
-          scaleType={scaleType}
-          notation={notation}
-          screenWakeLock={screenWakeLock}
-        />
-      ) : activeArea === 'rhythm' ? (
-        <RhythmPractice screenWakeLock={screenWakeLock} />
-      ) : (
-        <TinnitusPractice screenWakeLock={screenWakeLock} />
-      )}
-    </main>
+              <GameDisplay
+                feedback={displayedFeedback}
+                feedbackOk={feedbackOk}
+                attempts={gameState.attempts}
+                correct={gameState.correct}
+                accuracy={gameState.accuracy}
+              />
+
+              <ExerciseSelector
+                isVisible={exerciseSelectorVisible}
+                currentExercise={gameState.exercise}
+                tonalityLabel={tonalityLabel}
+                tonicMidi={tonicMidi}
+                scaleType={scaleType}
+                onExerciseSelect={(exerciseNum) => handleSettingChange('exercise', exerciseNum)}
+                onClose={() => setExerciseSelectorVisible(false)}
+              />
+            </section>
+          ) : activeArea === 'singing' ? (
+            <SingingPractice
+              key={`${scaleType}:${tonicMidi}`}
+              audio={audio}
+              tonicMidi={tonicMidi}
+              scaleType={scaleType}
+              notation={notation}
+              screenWakeLock={screenWakeLock}
+              contextPanel={(
+                <TrainingSetup
+                  tonicPc={tonicPc}
+                  scaleType={scaleType}
+                  register={register}
+                  showRegister={false}
+                  onTonicChange={value => handleSettingChange('tonality', { tonicPc: value, scaleType })}
+                  onScaleTypeChange={value => handleSettingChange('tonality', { tonicPc, scaleType: value })}
+                  onRegisterChange={value => handleSettingChange('register', value)}
+                />
+              )}
+            />
+          ) : activeArea === 'rhythm' ? (
+            <RhythmPractice screenWakeLock={screenWakeLock} />
+          ) : (
+            <TinnitusPractice screenWakeLock={screenWakeLock} />
+          )}
+        </div>
+      </main>
+    </div>
   )
 }
 
