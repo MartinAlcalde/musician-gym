@@ -161,6 +161,31 @@ describe('useAutoMode', () => {
     expect(callbacks.playTone.mock.calls.filter(call => call[3] === 'guitar')).toHaveLength(3)
   })
 
+  it('speaks only the number when degree notation is selected', async () => {
+    class UtteranceMock {
+      constructor(text) {
+        this.text = text
+      }
+    }
+    Object.defineProperty(globalThis, 'SpeechSynthesisUtterance', {
+      configurable: true,
+      value: UtteranceMock
+    })
+    const { result } = renderHook(() => useAutoMode({
+      notation: 'degree',
+      initialInterval: 3000,
+      initialSayAnswer: true,
+      translate: (key, variables) => translate('es', key, variables),
+      speechLocale: 'es-UY'
+    }))
+
+    startRound(result)
+    await act(() => vi.advanceTimersByTimeAsync(2500))
+
+    const utterance = globalThis.speechSynthesis.speak.mock.calls[0][0]
+    expect(utterance.text).toBe('1')
+  })
+
   it('localizes automatic feedback and speech for Spanish', async () => {
     class UtteranceMock {
       constructor(text) {

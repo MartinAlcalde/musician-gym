@@ -8,6 +8,7 @@ export function useAudio() {
   const toneRef = useRef(null)
   const samplerRef = useRef(null)
   const guitarVoicesRef = useRef([])
+  const guitarOutputRef = useRef([])
   const nextGuitarVoiceRef = useRef(0)
 
   useEffect(() => {
@@ -40,13 +41,29 @@ export function useAudio() {
         if (cancelled) return
 
         toneRef.current = Tone
+        const guitarEq = new Tone.EQ3({
+          low: 1.5,
+          mid: 0.5,
+          high: -7,
+          lowFrequency: 180,
+          highFrequency: 2400
+        })
+        const guitarCompressor = new Tone.Compressor({
+          threshold: -18,
+          ratio: 2.5,
+          attack: 0.003,
+          release: 0.18
+        }).toDestination()
+        guitarEq.connect(guitarCompressor)
+        guitarOutputRef.current = [guitarEq, guitarCompressor]
+
         guitarVoicesRef.current = Array.from({ length: 6 }, () => (
           new Tone.PluckSynth({
-            attackNoise: 1.4,
-            dampening: 3600,
-            resonance: 0.82,
-            release: 0.55
-          }).toDestination()
+            attackNoise: 0.65,
+            dampening: 4800,
+            resonance: 0.93,
+            release: 1.25
+          }).connect(guitarEq)
         ))
         if (window.PIANO_BASE64) {
           createSampler(Tone)
@@ -75,6 +92,8 @@ export function useAudio() {
       samplerRef.current = null
       guitarVoicesRef.current.forEach(voice => voice.dispose())
       guitarVoicesRef.current = []
+      guitarOutputRef.current.forEach(node => node.dispose())
+      guitarOutputRef.current = []
       nextGuitarVoiceRef.current = 0
       toneRef.current = null
     }

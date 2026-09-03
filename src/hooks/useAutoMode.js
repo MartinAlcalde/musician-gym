@@ -220,9 +220,7 @@ export function useAutoMode({
 
     cancelSpeech()
     const spanishSpeech = speechLocaleRef.current.toLowerCase().startsWith('es')
-    const answerToSpeak = notationRef.current === 'degree'
-      ? translateRef.current('notation.degree.spoken', { degree: targetLabel })
-      : targetLabel
+    const answerToSpeak = targetLabel
     const spokenLabel = answerToSpeak
       .replaceAll('♭', spanishSpeech ? ' bemol' : ' flat')
       .replaceAll('♯', spanishSpeech ? ' sostenido' : ' sharp')
